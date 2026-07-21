@@ -641,11 +641,18 @@ function renderHistorialPagos(lista, anio) {
 
     card.appendChild(filaSuperior);
 
+    // Todo lo demás (monto, botón de pago, botón de comprobante) va
+    // dentro de un solo contenedor con espaciado parejo (gap), para
+    // que nunca queden encimados sin importar cuáles de estos
+    // elementos aparezcan o no en cada mensualidad.
+    const cuerpo = document.createElement("div");
+    cuerpo.className = "historial-cuerpo";
+
     if (p.monto) {
       const monto = document.createElement("p");
       monto.className = "historial-monto";
       monto.textContent = "Monto: Q" + p.monto;
-      card.appendChild(monto);
+      cuerpo.appendChild(monto);
     }
 
     const yaPagado = (p.estado || "").toUpperCase() === "PAGADO";
@@ -657,13 +664,13 @@ function renderHistorialPagos(lista, anio) {
         link.target = "_blank";
         link.rel = "noopener";
         link.textContent = "💳 Pagar ahora";
-        card.appendChild(link);
+        cuerpo.appendChild(link);
       } else {
         const btnGenerar = document.createElement("button");
         btnGenerar.className = "btn-secundario btn-generar-chico";
         btnGenerar.textContent = "Generar link de pago";
         btnGenerar.addEventListener("click", () => generarLinkHistorial(p.pagoId, btnGenerar));
-        card.appendChild(btnGenerar);
+        cuerpo.appendChild(btnGenerar);
       }
     }
 
@@ -676,7 +683,7 @@ function renderHistorialPagos(lista, anio) {
       const ok = document.createElement("p");
       ok.className = "comprobante-ok";
       ok.textContent = "✅ Ya subiste tu comprobante de pago.";
-      card.appendChild(ok);
+      cuerpo.appendChild(ok);
     } else {
       const label = document.createElement("label");
       label.className = "btn-secundario btn-subir-archivo-historial";
@@ -695,9 +702,10 @@ function renderHistorialPagos(lista, anio) {
 
       label.appendChild(span);
       label.appendChild(input);
-      card.appendChild(label);
+      cuerpo.appendChild(label);
     }
 
+    card.appendChild(cuerpo);
     cont.appendChild(card);
   });
 }
