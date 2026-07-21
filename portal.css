@@ -136,8 +136,46 @@ font-size:clamp(13px,3.6vw,16px);
 color:#fff;
 }
 
+.tema-banner.back-to-dance{
+background:linear-gradient(90deg,#4cc9f0,#7c3aed);
+}
+
+.tema-banner.carino{
+background:linear-gradient(90deg,#ff6b9d,#e0245e);
+}
+
+.tema-banner.mujer{
+background:linear-gradient(90deg,#9b5de5,#7c3aed);
+}
+
+.tema-banner.danza{
+background:linear-gradient(90deg,#ff72b7,#ffd166);
+}
+
+.tema-banner.madre{
+background:linear-gradient(90deg,#ff9ed2,#ff6b9d);
+}
+
+.tema-banner.padre{
+background:linear-gradient(90deg,#4cc9f0,#2563eb);
+}
+
+.tema-banner.independencia{
+background:linear-gradient(90deg,#0d6efd,#1e3a8a);
+}
+
+.tema-banner.nino{
+background:linear-gradient(90deg,#ff9ed2,#ffd166,#4cc9f0);
+background-size:300% 300%;
+animation:bannerRainbow 4s ease infinite;
+}
+
 .tema-banner.halloween{
 background:linear-gradient(90deg,#ff8a3d,#7c3aed);
+}
+
+.tema-banner.show{
+background:linear-gradient(90deg,#ffd166,#ff72b7);
 }
 
 .tema-banner.navidad{
@@ -156,16 +194,25 @@ animation:bannerRainbow 4s ease infinite;
 100%{ background-position:0% 50%; }
 }
 
-body.tema-halloween .container{
-box-shadow:0 20px 60px rgba(124,58,237,.20),0 6px 15px rgba(0,0,0,.05);
-}
+/* Cada tema define de qué color se pone el brillo de la tarjeta
+   principal mientras esté activo (variable --tema-color), y una sola
+   regla usa esa variable — así no hay que repetir el box-shadow
+   completo para cada uno de los 12 temas. */
+body.tema-back-to-dance{ --tema-color:124,58,237; }
+body.tema-carino{ --tema-color:224,36,94; }
+body.tema-mujer{ --tema-color:155,93,229; }
+body.tema-danza{ --tema-color:255,114,183; }
+body.tema-madre{ --tema-color:255,107,157; }
+body.tema-padre{ --tema-color:37,99,235; }
+body.tema-independencia{ --tema-color:13,110,253; }
+body.tema-nino{ --tema-color:255,159,28; }
+body.tema-halloween{ --tema-color:124,58,237; }
+body.tema-show{ --tema-color:255,209,102; }
+body.tema-navidad{ --tema-color:31,157,99; }
+body.tema-cumple{ --tema-color:255,183,0; }
 
-body.tema-navidad .container{
-box-shadow:0 20px 60px rgba(31,157,99,.20),0 6px 15px rgba(0,0,0,.05);
-}
-
-body.tema-cumple .container{
-box-shadow:0 20px 60px rgba(255,183,0,.25),0 6px 15px rgba(0,0,0,.05);
+body[class*="tema-"] .container{
+box-shadow:0 20px 60px rgba(var(--tema-color),.20),0 6px 15px rgba(0,0,0,.05);
 }
 
 .container{
