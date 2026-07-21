@@ -644,7 +644,8 @@ margin-top:6px;
 }
 
 .btn-link-pago-chico,
-.btn-generar-chico{
+.btn-generar-chico,
+.btn-subir-archivo-historial{
 display:block;
 width:100%;
 text-align:center;
@@ -652,6 +653,11 @@ text-decoration:none;
 margin-top:10px;
 padding:clamp(10px,3vw,12px);
 font-size:clamp(13px,3.6vw,15px);
+cursor:pointer;
+}
+
+.historial-card .comprobante-ok{
+margin-top:10px;
 }
 
 /*=====================================
