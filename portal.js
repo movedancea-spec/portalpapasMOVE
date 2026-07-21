@@ -802,8 +802,8 @@ async function guardarNuevaClave() {
     mostrarError("Escribe tu nueva clave y confírmala.");
     return;
   }
-  if (nueva.length < 4) {
-    mostrarError("Tu nueva clave debe tener al menos 4 caracteres.");
+  if (nueva.length < 6) {
+    mostrarError("Tu nueva clave debe tener al menos 6 caracteres.");
     return;
   }
   if (nueva !== confirmar) {
