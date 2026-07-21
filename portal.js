@@ -36,6 +36,84 @@ function el(id) {
   return document.getElementById(id);
 }
 
+// ---------- decoración de temporada (cumpleaños / halloween / navidad) ----------
+
+const EMOJIS_TEMA = {
+  halloween: ["🎃", "👻", "🕸️", "🦇", "🕷️"],
+  navidad: ["❄️", "🎄", "🎅", "⛄", "🎁"],
+  cumple: ["🎈", "🎉", "🎊", "🍰", "✨"],
+};
+
+// Octubre = Halloween, Diciembre = Navidad. El resto del año, sin tema.
+// (Para probar el tema sin esperar al mes correcto, se puede abrir la
+// página con ?temaPrueba=halloween, ?temaPrueba=navidad o
+// ?temaPrueba=cumple al final del link — solo para pruebas, quítalo
+// cuando termines de revisar cómo se ve.)
+function obtenerTemaDelDia() {
+  const forzado = new URLSearchParams(window.location.search).get("temaPrueba");
+  if (forzado === "halloween" || forzado === "navidad" || forzado === "cumple") {
+    return forzado;
+  }
+  const mes = new Date().getMonth() + 1; // 1-12
+  if (mes === 10) return "halloween";
+  if (mes === 12) return "navidad";
+  return null;
+}
+
+// Compara solo mes y día (ignora el año) contra la fecha "AAAA-MM-DD"
+// que manda el campo CUMPLEAÑOS.
+function esHoyElCumpleanos(fechaISO) {
+  if (!fechaISO) return false;
+  const partes = fechaISO.split("-");
+  if (partes.length !== 3) return false;
+  const hoy = new Date();
+  return Number(partes[1]) === hoy.getMonth() + 1 && Number(partes[2]) === hoy.getDate();
+}
+
+function limpiarDecoracion() {
+  document.body.classList.remove("tema-halloween", "tema-navidad", "tema-cumple");
+  el("temaDecoracion").innerHTML = "";
+  const banner = el("temaBanner");
+  banner.hidden = true;
+  banner.className = "tema-banner";
+}
+
+function aplicarDecoracion(tema, nombre) {
+  limpiarDecoracion();
+  if (!tema) return;
+
+  document.body.classList.add("tema-" + tema);
+
+  const emojis = EMOJIS_TEMA[tema] || [];
+  const cont = el("temaDecoracion");
+  const estilo = tema === "cumple" ? "sube" : tema === "halloween" ? "flota" : "cae";
+
+  for (let i = 0; i < 18; i++) {
+    const span = document.createElement("span");
+    span.className = "tema-particula " + estilo;
+    span.textContent = emojis[i % emojis.length];
+    span.style.left = Math.random() * 96 + "%";
+    span.style.fontSize = 1.2 + Math.random() * 1.3 + "rem";
+    span.style.animationDuration = 6 + Math.random() * 8 + "s";
+    span.style.animationDelay = Math.random() * 8 + "s";
+    if (estilo === "flota") {
+      span.style.top = Math.random() * 85 + "%";
+    }
+    cont.appendChild(span);
+  }
+
+  const banner = el("temaBanner");
+  banner.className = "tema-banner " + tema;
+  if (tema === "cumple") {
+    banner.textContent = "🎉 ¡Feliz cumpleaños, " + (nombre || "") + "! 🎉";
+  } else if (tema === "halloween") {
+    banner.textContent = "🎃 ¡Feliz Halloween!";
+  } else if (tema === "navidad") {
+    banner.textContent = "🎄 ¡Feliz Navidad!";
+  }
+  banner.hidden = false;
+}
+
 function mostrarPantalla(id) {
   const pantallas = [
     "pantallaCargando",
@@ -69,6 +147,7 @@ async function llamarWorker(payload) {
 }
 
 async function iniciar() {
+  aplicarDecoracion(obtenerTemaDelDia());
   mostrarPantalla("pantallaCargando");
   try {
     const datos = await llamarWorker({ accion: "alumnas" });
@@ -132,6 +211,14 @@ async function entrar() {
     el("inputClaveNueva").value = "";
     el("inputClaveConfirmar").value = "";
     el("mensajeClaveOk").hidden = true;
+
+    // El cumpleaños de HOY es más especial que el tema del mes, así
+    // que si es su día, ese decora por encima de Halloween/Navidad.
+    const filaCumple = (datos.perfil || []).find((f) => f.campo === "CUMPLEAÑOS");
+    const esCumpleHoy = filaCumple && esHoyElCumpleanos(filaCumple.valor);
+    const tema = esCumpleHoy ? "cumple" : obtenerTemaDelDia();
+    aplicarDecoracion(tema, datos.nombre || alumnaSeleccionada.nombre);
+
     mostrarPantalla("pantallaPerfil");
   } catch (e) {
     mostrarError(e.message);
@@ -164,6 +251,10 @@ function renderPerfil(datos) {
       // si quedó mal escrito.
       if (f.campo === "CUMPLEAÑOS") {
         cont.appendChild(construirFilaCumpleanos(f));
+        // El botón de historial ya existe en el HTML; lo movemos aquí
+        // debajo del cumpleaños (appendChild reubica el nodo, no lo
+        // duplica, así que su evento de click sigue funcionando igual).
+        cont.appendChild(el("btnHistorialPagos"));
         return;
       }
 
@@ -886,6 +977,9 @@ el("btnSalir").addEventListener("click", () => {
   claveActual = "";
   el("buscarAlumna").value = "";
   renderAlumnas("");
+  // Quitamos la decoración de cumpleaños (era de esa alumna en
+  // particular); si es octubre o diciembre, vuelve el tema del mes.
+  aplicarDecoracion(obtenerTemaDelDia());
   mostrarPantalla("pantallaAlumna");
 });
 
