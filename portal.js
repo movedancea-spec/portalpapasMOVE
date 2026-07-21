@@ -667,6 +667,37 @@ function renderHistorialPagos(lista, anio) {
       }
     }
 
+    // Subir comprobante de pago de ESTA mensualidad (dispara la misma
+    // automatización que ya tienen: al subirlo, el estado pasa a "EN
+    // REVISION"). Se ofrece en cualquier mensualidad, no solo la del
+    // mes actual, por si pagan por otro medio y necesitan mandar el
+    // comprobante.
+    if (p.tieneComprobante) {
+      const ok = document.createElement("p");
+      ok.className = "comprobante-ok";
+      ok.textContent = "✅ Ya subiste tu comprobante de pago.";
+      card.appendChild(ok);
+    } else {
+      const label = document.createElement("label");
+      label.className = "btn-secundario btn-subir-archivo-historial";
+
+      const span = document.createElement("span");
+      span.textContent = "📎 Subir comprobante de pago";
+
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*,.pdf";
+      input.hidden = true;
+      input.addEventListener("change", (e) => {
+        const archivo = e.target.files && e.target.files[0];
+        if (archivo) subirComprobanteHistorial(p.pagoId, archivo, span);
+      });
+
+      label.appendChild(span);
+      label.appendChild(input);
+      card.appendChild(label);
+    }
+
     cont.appendChild(card);
   });
 }
@@ -684,6 +715,32 @@ async function generarLinkHistorial(pagoId, boton) {
     mostrarError(e.message);
     boton.disabled = false;
     boton.textContent = textoOriginal;
+  }
+}
+
+async function subirComprobanteHistorial(pagoId, archivo, spanTexto) {
+  if (archivo.size > TAMANO_MAX_ARCHIVO) {
+    mostrarError("El archivo es muy grande (máximo 8 MB). Intenta con una foto más liviana.");
+    return;
+  }
+
+  const textoOriginal = spanTexto.textContent;
+  spanTexto.textContent = "Subiendo...";
+  mostrarError("");
+
+  try {
+    const archivoBase64 = await leerArchivoBase64(archivo);
+    await llamarWorker({
+      accion: "subirComprobante",
+      pagoId,
+      archivoBase64,
+      nombreArchivo: archivo.name,
+      tipoArchivo: archivo.type,
+    });
+    await actualizarHistorialPagos();
+  } catch (e) {
+    mostrarError(e.message);
+    spanTexto.textContent = textoOriginal;
   }
 }
 
