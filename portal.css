@@ -10,6 +10,18 @@ box-sizing:border-box;
 font-family:"Poppins",sans-serif;
 }
 
+/* Varios botones/tarjetas de aquí abajo fijan su propio "display"
+   (block/flex) para verse como botón grande de ancho completo. Sin
+   esta regla, ese "display" fijo le gana al atributo "hidden" que la
+   página usa por JavaScript para mostrar/ocultar (por ejemplo,
+   "Generar link de pago" vs "Pagar ahora"), y el elemento se queda
+   visible aunque el código le haya puesto hidden=true. Esta regla
+   asegura que "hidden" SIEMPRE gane, sin importar qué otra clase
+   tenga el elemento. */
+[hidden]{
+display:none !important;
+}
+
 html{
 width:100%;
 min-height:100%;
