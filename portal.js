@@ -159,6 +159,14 @@ function renderPerfil(datos) {
   (datos.perfil || [])
     .filter((f) => f.tipo !== "imagen")
     .forEach((f) => {
+      // El cumpleaños se muestra siempre (aunque esté vacío) con su
+      // propio control editable, para que los papás puedan corregirlo
+      // si quedó mal escrito.
+      if (f.campo === "CUMPLEAÑOS") {
+        cont.appendChild(construirFilaCumpleanos(f));
+        return;
+      }
+
       if (!f.valor) return;
       const fila = document.createElement("div");
       fila.className = "perfil-fila";
@@ -184,6 +192,112 @@ function renderPerfil(datos) {
       fila.appendChild(valor);
       cont.appendChild(fila);
     });
+}
+
+// ---------- cumpleaños editable ----------
+
+function construirFilaCumpleanos(f) {
+  const fila = document.createElement("div");
+  fila.className = "perfil-fila";
+
+  const etiqueta = document.createElement("p");
+  etiqueta.className = "perfil-etiqueta";
+  etiqueta.textContent = f.etiqueta || "🎂 Cumpleaños";
+  fila.appendChild(etiqueta);
+
+  const filaValor = document.createElement("div");
+  filaValor.className = "cumple-fila-valor";
+
+  const valorTexto = document.createElement("p");
+  valorTexto.className = "perfil-valor";
+  valorTexto.textContent = f.valor ? formatearFechaCorta(f.valor) : "Sin registrar";
+  filaValor.appendChild(valorTexto);
+
+  const btnEditar = document.createElement("button");
+  btnEditar.className = "btn-editar-cumple";
+  btnEditar.type = "button";
+  btnEditar.textContent = "✏️ Editar";
+  filaValor.appendChild(btnEditar);
+
+  fila.appendChild(filaValor);
+
+  const bloqueEdicion = document.createElement("div");
+  bloqueEdicion.className = "cumple-edicion";
+  bloqueEdicion.hidden = true;
+
+  const input = document.createElement("input");
+  input.type = "date";
+  input.className = "input-cumple";
+  if (f.valor) input.value = f.valor;
+
+  const filaBotones = document.createElement("div");
+  filaBotones.className = "cumple-botones";
+
+  const btnGuardar = document.createElement("button");
+  btnGuardar.className = "btn-secundario";
+  btnGuardar.type = "button";
+  btnGuardar.textContent = "Guardar";
+
+  const btnCancelar = document.createElement("button");
+  btnCancelar.className = "btn-cancelar-cumple";
+  btnCancelar.type = "button";
+  btnCancelar.textContent = "Cancelar";
+
+  filaBotones.appendChild(btnGuardar);
+  filaBotones.appendChild(btnCancelar);
+
+  const mensajeOk = document.createElement("p");
+  mensajeOk.className = "mensaje-clave-ok";
+  mensajeOk.hidden = true;
+  mensajeOk.textContent = "✅ Fecha actualizada.";
+
+  bloqueEdicion.appendChild(input);
+  bloqueEdicion.appendChild(filaBotones);
+  bloqueEdicion.appendChild(mensajeOk);
+  fila.appendChild(bloqueEdicion);
+
+  btnEditar.addEventListener("click", () => {
+    mensajeOk.hidden = true;
+    bloqueEdicion.hidden = !bloqueEdicion.hidden;
+  });
+
+  btnCancelar.addEventListener("click", () => {
+    input.value = f.valor || "";
+    mensajeOk.hidden = true;
+    bloqueEdicion.hidden = true;
+  });
+
+  btnGuardar.addEventListener("click", async () => {
+    const nuevaFecha = input.value;
+    if (!nuevaFecha) {
+      mostrarError("Elige una fecha.");
+      return;
+    }
+
+    btnGuardar.disabled = true;
+    const textoOriginal = btnGuardar.textContent;
+    btnGuardar.textContent = "Guardando...";
+    mostrarError("");
+
+    try {
+      await llamarWorker({
+        accion: "actualizarCumpleanos",
+        alumnaId: alumnaSeleccionada.id,
+        nuevaFecha,
+      });
+      f.valor = nuevaFecha;
+      valorTexto.textContent = formatearFechaCorta(nuevaFecha);
+      mensajeOk.hidden = false;
+      bloqueEdicion.hidden = true;
+    } catch (e) {
+      mostrarError(e.message);
+    } finally {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = textoOriginal;
+    }
+  });
+
+  return fila;
 }
 
 // ---------- sección de pago (link de pago + comprobante) ----------
