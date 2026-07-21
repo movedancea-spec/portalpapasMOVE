@@ -1,0 +1,337 @@
+/* ===================================================
+   MOVE PORTAL DE ALUMNAS
+   Mismo lenguaje visual que MOVE ACCESS / EVALUACIONES / PRUEBAS
+=================================================== */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Poppins",sans-serif;
+}
+
+html{
+width:100%;
+min-height:100%;
+}
+
+body{
+width:100%;
+min-height:100dvh;
+overflow-y:auto;
+overflow-x:hidden;
+display:flex;
+justify-content:center;
+align-items:flex-start;
+padding:30px 20px;
+background:linear-gradient(-45deg,#ffffff,#fff4fb,#ffe9f5,#fff6fc,#ffffff);
+background-size:400% 400%;
+animation:gradientMove 18s ease infinite;
+}
+
+@keyframes gradientMove{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+
+.floating{
+position:fixed;
+border-radius:50%;
+filter:blur(45px);
+opacity:.20;
+animation:float 12s infinite ease-in-out;
+pointer-events:none;
+}
+
+.floating1{ width:180px; height:180px; background:#ff9ed2; left:5%; top:10%; }
+.floating2{ width:240px; height:240px; background:#ffd8ea; right:5%; top:15%; animation-delay:2s; }
+.floating3{ width:170px; height:170px; background:#ffc6df; left:15%; bottom:10%; animation-delay:4s; }
+.floating4{ width:240px; height:240px; background:#ffeaf6; right:10%; bottom:5%; animation-delay:1s; }
+
+@keyframes float{
+50%{ transform:translateY(-25px) translateX(15px); }
+}
+
+.container{
+width:92%;
+max-width:560px;
+margin:20px auto;
+padding:clamp(20px,6vw,35px);
+border-radius:clamp(20px,5vw,35px);
+background:rgba(255,255,255,.55);
+backdrop-filter:blur(20px);
+-webkit-backdrop-filter:blur(20px);
+box-shadow:0 20px 60px rgba(239,75,155,.18),0 6px 15px rgba(0,0,0,.05);
+text-align:center;
+position:relative;
+z-index:20;
+}
+
+.logo{
+width:80%;
+max-width:260px;
+margin:auto;
+display:block;
+margin-bottom:6px;
+animation:logoFloat 5s ease-in-out infinite;
+filter:drop-shadow(0 15px 25px rgba(239,75,155,.25));
+}
+
+@keyframes logoFloat{
+50%{ transform:translateY(-8px); }
+}
+
+.title{
+font-size:clamp(20px,5vw,28px);
+font-weight:700;
+color:#ef4b9b;
+margin-top:6px;
+margin-bottom:14px;
+}
+
+.pantalla{
+animation:fadeIn .35s ease;
+}
+
+@keyframes fadeIn{
+from{ opacity:0; transform:translateY(10px); }
+to{ opacity:1; transform:translateY(0); }
+}
+
+.loading-text{
+font-size:clamp(16px,4.5vw,20px);
+color:#ef4b9b;
+font-weight:600;
+padding:30px 0;
+}
+
+.subtitulo{
+font-size:clamp(15px,4vw,19px);
+font-weight:700;
+color:#777;
+margin-bottom:14px;
+}
+
+.message{
+font-size:clamp(15px,4vw,18px);
+color:#666;
+font-weight:600;
+margin-bottom:18px;
+}
+
+.mensaje-error{
+min-height:24px;
+color:#e0245e;
+font-weight:700;
+font-size:clamp(13px,3.5vw,15px);
+margin-top:14px;
+}
+
+/*=====================================
+BUSCADOR + LISTA DE ALUMNAS
+=====================================*/
+
+.buscador{
+width:100%;
+border:2px solid #ffd8ea;
+border-radius:14px;
+padding:clamp(10px,3vw,14px);
+font-size:clamp(14px,4vw,16px);
+font-family:inherit;
+color:#555;
+background:white;
+outline:none;
+transition:.18s;
+margin-bottom:12px;
+}
+
+.buscador:focus{
+border-color:#ef4b9b;
+box-shadow:0 0 0 3px rgba(239,75,155,.15);
+}
+
+.lista-alumnas{
+display:flex;
+flex-direction:column;
+gap:8px;
+max-height:42vh;
+overflow-y:auto;
+padding:4px;
+}
+
+.lista-alumnas button{
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:clamp(12px,3.5vw,16px);
+font-size:clamp(14px,4vw,16px);
+font-weight:700;
+color:#555;
+background:white;
+cursor:pointer;
+transition:.15s;
+text-align:left;
+}
+
+.lista-alumnas button:active{ transform:scale(.98); }
+
+.lista-alumnas button:hover{
+border-color:#ef4b9b;
+color:#ef4b9b;
+background:rgba(239,75,155,.06);
+}
+
+/*=====================================
+ENTRADA DE CLAVE (PIN)
+=====================================*/
+
+.nombre-elegido{
+font-size:clamp(18px,5vw,22px);
+font-weight:800;
+color:#ef4b9b;
+margin-bottom:16px;
+}
+
+.input-clave{
+width:100%;
+border:2px solid #ffd8ea;
+border-radius:16px;
+padding:clamp(16px,4.5vw,20px);
+font-size:clamp(22px,7vw,30px);
+font-weight:700;
+letter-spacing:6px;
+text-align:center;
+color:#ef4b9b;
+font-family:inherit;
+outline:none;
+transition:.18s;
+margin-bottom:6px;
+}
+
+.input-clave:focus{
+border-color:#ef4b9b;
+box-shadow:0 0 0 3px rgba(239,75,155,.15);
+}
+
+/*=====================================
+BOTONES GRANDES
+=====================================*/
+
+.btn-grande{
+width:100%;
+border:none;
+border-radius:18px;
+padding:clamp(14px,4.5vw,18px);
+font-size:clamp(16px,4.5vw,19px);
+font-weight:700;
+color:white;
+cursor:pointer;
+transition:.18s;
+margin-top:20px;
+}
+
+.btn-siguiente{
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+box-shadow:0 8px 20px rgba(239,75,155,.30);
+}
+
+.btn-siguiente:disabled{
+opacity:.45;
+cursor:not-allowed;
+box-shadow:none;
+}
+
+.btn-grande:active:not(:disabled){ transform:scale(.97); }
+
+.btn-secundario{
+border:2px solid #ef4b9b;
+background:white;
+color:#ef4b9b;
+border-radius:18px;
+padding:clamp(14px,4.5vw,18px);
+font-size:clamp(15px,4.2vw,18px);
+font-weight:700;
+cursor:pointer;
+flex:1;
+transition:.18s;
+}
+
+.btn-secundario:active{ transform:scale(.97); }
+
+.nav-botones{
+display:flex;
+gap:12px;
+margin-top:20px;
+}
+
+.nav-botones .btn-siguiente{
+flex:1.4;
+margin-top:0;
+}
+
+/*=====================================
+PERFIL DE LA ALUMNA
+=====================================*/
+
+.foto-perfil{
+width:140px;
+height:140px;
+border-radius:50%;
+object-fit:cover;
+margin:0 auto 16px;
+display:block;
+border:4px solid white;
+box-shadow:0 10px 25px rgba(239,75,155,.30);
+}
+
+.perfil-nombre{
+font-size:clamp(20px,5.5vw,26px);
+font-weight:800;
+color:#ef4b9b;
+margin-bottom:18px;
+}
+
+.perfil-lista{
+display:flex;
+flex-direction:column;
+gap:10px;
+text-align:left;
+}
+
+.perfil-fila{
+border:2px solid #ffe3f0;
+border-radius:16px;
+padding:clamp(12px,3.5vw,16px);
+background:rgba(255,255,255,.5);
+}
+
+.perfil-etiqueta{
+font-size:clamp(12.5px,3.5vw,14px);
+font-weight:700;
+color:#ef4b9b;
+margin-bottom:4px;
+}
+
+.perfil-valor{
+font-size:clamp(14px,4vw,16px);
+font-weight:600;
+color:#555;
+white-space:pre-wrap;
+}
+
+/*=====================================
+RESPONSIVE
+=====================================*/
+
+@media(max-width:360px){
+.container{ width:96%; margin:10px auto; }
+}
+
+@media(max-height:640px){
+.container{ margin:8px auto; padding:clamp(14px,4vw,22px); }
+.logo{ max-width:150px; }
+}
+
+@media(min-width:900px){
+.container{ max-width:600px; }
+}
