@@ -636,11 +636,18 @@ font-weight:700;
 color:#555;
 }
 
+.historial-cuerpo{
+display:flex;
+flex-direction:column;
+align-items:stretch;
+gap:10px;
+margin-top:10px;
+}
+
 .historial-monto{
 font-size:clamp(13px,3.6vw,15px);
 color:#666;
 font-weight:600;
-margin-top:6px;
 }
 
 .btn-link-pago-chico,
@@ -650,14 +657,14 @@ display:block;
 width:100%;
 text-align:center;
 text-decoration:none;
-margin-top:10px;
 padding:clamp(10px,3vw,12px);
 font-size:clamp(13px,3.6vw,15px);
 cursor:pointer;
+box-sizing:border-box;
 }
 
-.historial-card .comprobante-ok{
-margin-top:10px;
+.historial-cuerpo .comprobante-ok{
+margin:0;
 }
 
 /*=====================================
