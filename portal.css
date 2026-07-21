@@ -65,6 +65,109 @@ pointer-events:none;
 50%{ transform:translateY(-25px) translateX(15px); }
 }
 
+/*=====================================
+DECORACIÓN DE TEMPORADA (cumpleaños / halloween / navidad)
+=====================================*/
+
+.tema-decoracion{
+position:fixed;
+inset:0;
+overflow:hidden;
+pointer-events:none;
+z-index:15;
+}
+
+.tema-particula{
+position:absolute;
+top:0;
+line-height:1;
+user-select:none;
+will-change:transform, opacity;
+}
+
+.tema-particula.cae{
+animation-name:temaCae;
+animation-timing-function:linear;
+animation-iteration-count:infinite;
+}
+
+.tema-particula.sube{
+top:auto;
+bottom:0;
+animation-name:temaSube;
+animation-timing-function:linear;
+animation-iteration-count:infinite;
+}
+
+.tema-particula.flota{
+top:50%;
+animation-name:temaFlota;
+animation-timing-function:ease-in-out;
+animation-iteration-count:infinite;
+animation-direction:alternate;
+}
+
+@keyframes temaCae{
+0%{ transform:translateY(-10vh) rotate(0deg); opacity:0; }
+10%{ opacity:.9; }
+90%{ opacity:.9; }
+100%{ transform:translateY(110vh) rotate(360deg); opacity:0; }
+}
+
+@keyframes temaSube{
+0%{ transform:translateY(10vh) rotate(0deg); opacity:0; }
+10%{ opacity:.9; }
+90%{ opacity:.9; }
+100%{ transform:translateY(-110vh) rotate(-15deg); opacity:0; }
+}
+
+@keyframes temaFlota{
+0%{ transform:translate(0,0) rotate(0deg); opacity:.75; }
+100%{ transform:translate(18px,-24px) rotate(10deg); opacity:1; }
+}
+
+.tema-banner{
+display:inline-block;
+margin:0 0 14px;
+padding:8px 18px;
+border-radius:999px;
+font-weight:800;
+font-size:clamp(13px,3.6vw,16px);
+color:#fff;
+}
+
+.tema-banner.halloween{
+background:linear-gradient(90deg,#ff8a3d,#7c3aed);
+}
+
+.tema-banner.navidad{
+background:linear-gradient(90deg,#e53950,#1f9d63);
+}
+
+.tema-banner.cumple{
+background:linear-gradient(90deg,#ff72b7,#ffd166,#06d6a0,#4cc9f0);
+background-size:300% 300%;
+animation:bannerRainbow 4s ease infinite;
+}
+
+@keyframes bannerRainbow{
+0%{ background-position:0% 50%; }
+50%{ background-position:100% 50%; }
+100%{ background-position:0% 50%; }
+}
+
+body.tema-halloween .container{
+box-shadow:0 20px 60px rgba(124,58,237,.20),0 6px 15px rgba(0,0,0,.05);
+}
+
+body.tema-navidad .container{
+box-shadow:0 20px 60px rgba(31,157,99,.20),0 6px 15px rgba(0,0,0,.05);
+}
+
+body.tema-cumple .container{
+box-shadow:0 20px 60px rgba(255,183,0,.25),0 6px 15px rgba(0,0,0,.05);
+}
+
 .container{
 width:92%;
 max-width:560px;
@@ -308,6 +411,14 @@ display:flex;
 flex-direction:column;
 gap:10px;
 text-align:left;
+}
+
+/* El botón de historial de mensualidades se reubica aquí adentro,
+   justo debajo del cumpleaños; le quitamos su margen superior propio
+   para que respete el mismo espaciado parejo (gap) que las demás
+   filas del perfil. */
+.perfil-lista > #btnHistorialPagos{
+margin-top:0;
 }
 
 .perfil-fila{
