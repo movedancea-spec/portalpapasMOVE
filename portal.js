@@ -12,6 +12,24 @@ const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
 let alumnas = [];
 let alumnaSeleccionada = null;
+let pagoActual = null;
+
+const TAMANO_MAX_ARCHIVO = 8 * 1024 * 1024; // 8 MB
+
+const ESTADOS_BADGE = {
+  PAGADO: "badge-pagado",
+  PENDIENTE: "badge-pendiente",
+  AUSENTE: "badge-malo",
+  ANULADO: "badge-malo",
+  "EN REVISION": "badge-neutro",
+  PRUEBA: "badge-neutro",
+  GENERADO: "badge-neutro",
+};
+
+function claseBadge(texto) {
+  const clave = (texto || "").toString().trim().toUpperCase();
+  return ESTADOS_BADGE[clave] || null;
+}
 
 function el(id) {
   return document.getElementById(id);
@@ -99,6 +117,7 @@ async function entrar() {
       clave,
     });
     renderPerfil(datos);
+    renderPago(datos.pago);
     mostrarPantalla("pantallaPerfil");
   } catch (e) {
     mostrarError(e.message);
@@ -136,12 +155,141 @@ function renderPerfil(datos) {
 
       const valor = document.createElement("p");
       valor.className = "perfil-valor";
-      valor.textContent = f.valor;
+
+      const clase = claseBadge(f.valor);
+      if (clase) {
+        const badge = document.createElement("span");
+        badge.className = "badge-estado " + clase;
+        badge.textContent = f.valor;
+        valor.appendChild(badge);
+      } else {
+        valor.textContent = f.valor;
+      }
 
       fila.appendChild(etiqueta);
       fila.appendChild(valor);
       cont.appendChild(fila);
     });
+}
+
+// ---------- sección de pago (link de pago + comprobante) ----------
+
+function renderPago(pago) {
+  pagoActual = pago || null;
+  const seccion = el("seccionPago");
+
+  if (!pagoActual) {
+    seccion.hidden = true;
+    return;
+  }
+  seccion.hidden = false;
+
+  const badgeCont = el("pagoEstadoBadge");
+  badgeCont.innerHTML = "";
+  const clase = claseBadge(pagoActual.estado);
+  const badge = document.createElement("span");
+  badge.className = "badge-estado " + (clase || "badge-neutro");
+  badge.textContent = pagoActual.estado || "-";
+  badgeCont.appendChild(badge);
+
+  const montoEl = el("pagoMonto");
+  if (pagoActual.monto) {
+    montoEl.textContent = "Monto: Q" + pagoActual.monto;
+    montoEl.hidden = false;
+  } else {
+    montoEl.hidden = true;
+  }
+
+  const btnGenerar = el("btnGenerarLink");
+  const linkPagar = el("linkPagar");
+  const yaPagado = (pagoActual.estado || "").toUpperCase() === "PAGADO";
+
+  if (yaPagado) {
+    btnGenerar.hidden = true;
+    linkPagar.hidden = true;
+  } else if (pagoActual.linkPago) {
+    btnGenerar.hidden = true;
+    linkPagar.hidden = false;
+    linkPagar.href = pagoActual.linkPago;
+  } else {
+    btnGenerar.hidden = false;
+    linkPagar.hidden = true;
+  }
+
+  // Bloque de comprobante
+  const bloqueComprobante = el("bloqueComprobante");
+  const comprobanteOk = el("comprobanteOk");
+  const labelSubir = el("labelSubirArchivo");
+  if (pagoActual.tieneComprobante) {
+    comprobanteOk.hidden = false;
+    labelSubir.hidden = true;
+  } else {
+    comprobanteOk.hidden = true;
+    labelSubir.hidden = false;
+  }
+  bloqueComprobante.hidden = false;
+}
+
+async function generarLinkPago() {
+  if (!pagoActual) return;
+  const btn = el("btnGenerarLink");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Generando... espera un momento";
+  mostrarError("");
+
+  try {
+    const datos = await llamarWorker({ accion: "generarLink", pagoId: pagoActual.pagoId });
+    renderPago(datos.pago);
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+function leerArchivoBase64(archivo) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onload = () => {
+      const resultado = lector.result || "";
+      const partes = resultado.split(",");
+      resolve(partes[1] || "");
+    };
+    lector.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    lector.readAsDataURL(archivo);
+  });
+}
+
+async function subirComprobante(archivo) {
+  if (!pagoActual || !archivo) return;
+
+  if (archivo.size > TAMANO_MAX_ARCHIVO) {
+    mostrarError("El archivo es muy grande (máximo 8 MB). Intenta con una foto más liviana.");
+    return;
+  }
+
+  const textoLabel = el("textoSubirArchivo");
+  const textoOriginal = textoLabel.textContent;
+  textoLabel.textContent = "Subiendo...";
+  mostrarError("");
+
+  try {
+    const archivoBase64 = await leerArchivoBase64(archivo);
+    await llamarWorker({
+      accion: "subirComprobante",
+      pagoId: pagoActual.pagoId,
+      archivoBase64,
+      nombreArchivo: archivo.name,
+      tipoArchivo: archivo.type,
+    });
+    pagoActual.tieneComprobante = true;
+    renderPago(pagoActual);
+  } catch (e) {
+    mostrarError(e.message);
+    textoLabel.textContent = textoOriginal;
+  }
 }
 
 // ---------- eventos ----------
@@ -160,9 +308,17 @@ el("inputClave").addEventListener("keydown", (e) => {
 
 el("btnSalir").addEventListener("click", () => {
   alumnaSeleccionada = null;
+  pagoActual = null;
   el("buscarAlumna").value = "";
   renderAlumnas("");
   mostrarPantalla("pantallaAlumna");
+});
+
+el("btnGenerarLink").addEventListener("click", generarLinkPago);
+
+el("inputComprobante").addEventListener("change", (e) => {
+  const archivo = e.target.files && e.target.files[0];
+  if (archivo) subirComprobante(archivo);
 });
 
 // ---------- arranque ----------
