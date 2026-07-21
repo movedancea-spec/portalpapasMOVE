@@ -320,6 +320,74 @@ white-space:pre-wrap;
 }
 
 /*=====================================
+CUMPLEAÑOS EDITABLE
+=====================================*/
+
+.cumple-fila-valor{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+}
+
+.btn-editar-cumple{
+background:none;
+border:none;
+color:#ef4b9b;
+font-weight:700;
+font-size:clamp(12px,3.3vw,14px);
+text-decoration:underline;
+cursor:pointer;
+white-space:nowrap;
+}
+
+.cumple-edicion{
+margin-top:12px;
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+
+.input-cumple{
+width:100%;
+border:2px solid #ffd8ea;
+border-radius:12px;
+padding:clamp(10px,3vw,12px);
+font-size:clamp(14px,4vw,16px);
+font-family:inherit;
+color:#555;
+background:white;
+outline:none;
+}
+
+.input-cumple:focus{
+border-color:#ef4b9b;
+box-shadow:0 0 0 3px rgba(239,75,155,.15);
+}
+
+.cumple-botones{
+display:flex;
+gap:8px;
+}
+
+.cumple-botones .btn-secundario{
+padding:clamp(10px,3vw,12px);
+font-size:clamp(13px,3.6vw,15px);
+}
+
+.btn-cancelar-cumple{
+flex:1;
+border:2px solid #e0e0e0;
+background:white;
+color:#888;
+border-radius:14px;
+padding:clamp(10px,3vw,12px);
+font-size:clamp(13px,3.6vw,15px);
+font-weight:700;
+cursor:pointer;
+}
+
+/*=====================================
 BADGES DE ESTADO (PAGADO / PENDIENTE / etc.)
 =====================================*/
 
