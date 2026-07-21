@@ -36,7 +36,13 @@ function el(id) {
 }
 
 function mostrarPantalla(id) {
-  const pantallas = ["pantallaCargando", "pantallaAlumna", "pantallaClave", "pantallaPerfil"];
+  const pantallas = [
+    "pantallaCargando",
+    "pantallaAlumna",
+    "pantallaClave",
+    "pantallaPerfil",
+    "pantallaEvaluaciones",
+  ];
   pantallas.forEach((p) => {
     el(p).hidden = p !== id;
   });
@@ -118,6 +124,7 @@ async function entrar() {
     });
     renderPerfil(datos);
     renderPago(datos.pago);
+    renderPagosEspeciales(datos.pagosEspeciales);
     mostrarPantalla("pantallaPerfil");
   } catch (e) {
     mostrarError(e.message);
@@ -230,6 +237,197 @@ function renderPago(pago) {
   bloqueComprobante.hidden = false;
 }
 
+// ---------- pagos especiales (trajes / competencias) ----------
+
+function formatearFechaCorta(fechaISO) {
+  // Airtable manda la fecha como "AAAA-MM-DD"; la mostramos como
+  // "DD/MM/AAAA" sin usar Date() para no depender de zona horaria.
+  const partes = (fechaISO || "").split("-");
+  if (partes.length !== 3) return fechaISO || "";
+  const [anio, mes, dia] = partes;
+  return `${dia}/${mes}/${anio}`;
+}
+
+function renderPagosEspeciales(lista) {
+  const seccion = el("seccionPagosEspeciales");
+  const cont = el("listaPagosEspeciales");
+  cont.innerHTML = "";
+
+  if (!lista || !lista.length) {
+    seccion.hidden = true;
+    return;
+  }
+  seccion.hidden = false;
+
+  lista.forEach((p) => {
+    const card = document.createElement("div");
+    card.className = "pago-especial-card";
+
+    const titulo = document.createElement("div");
+    titulo.className = "pago-especial-titulo";
+
+    const tipo = document.createElement("span");
+    tipo.className = "pago-especial-tipo";
+    tipo.textContent = p.tipo || "Pago especial";
+    titulo.appendChild(tipo);
+
+    const clase = claseBadge(p.estado);
+    const badge = document.createElement("span");
+    badge.className = "badge-estado " + (clase || "badge-neutro");
+    badge.textContent = p.estado || "-";
+    titulo.appendChild(badge);
+
+    card.appendChild(titulo);
+
+    const filas = [
+      ["Total", p.montoTotal],
+      ["Pagado", p.montoPagado],
+      ["Saldo pendiente", p.saldo],
+    ];
+    filas.forEach(([etiqueta, monto]) => {
+      if (monto === null || monto === undefined) return;
+      const fila = document.createElement("div");
+      fila.className = "pago-especial-fila";
+      const izq = document.createElement("span");
+      izq.textContent = etiqueta;
+      const der = document.createElement("span");
+      der.textContent = "Q" + monto;
+      fila.appendChild(izq);
+      fila.appendChild(der);
+      card.appendChild(fila);
+    });
+
+    if (p.fechaLimite && (p.estado || "").toUpperCase() !== "PAGADO") {
+      const limite = document.createElement("p");
+      limite.className = "pago-especial-limite";
+      limite.textContent = "⏰ Límite: " + formatearFechaCorta(p.fechaLimite);
+      card.appendChild(limite);
+    }
+
+    cont.appendChild(card);
+  });
+}
+
+// ---------- evaluaciones ----------
+
+function estrellas(valor) {
+  const n = Math.round(Number(valor) || 0);
+  const llenas = Math.max(0, Math.min(5, n));
+  return "★".repeat(llenas) + "☆".repeat(5 - llenas);
+}
+
+async function verEvaluaciones() {
+  const btn = el("btnVerEvaluaciones");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Cargando...";
+  mostrarError("");
+
+  try {
+    const datos = await llamarWorker({
+      accion: "evaluaciones",
+      alumnaId: alumnaSeleccionada.id,
+    });
+    renderEvaluaciones(datos.evaluaciones || []);
+    mostrarPantalla("pantallaEvaluaciones");
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+function renderEvaluaciones(lista) {
+  const cont = el("listaEvaluaciones");
+  cont.innerHTML = "";
+
+  if (!lista.length) {
+    const vacio = document.createElement("p");
+    vacio.className = "mensaje-vacio";
+    vacio.textContent = "Todavía no tienes evaluaciones registradas.";
+    cont.appendChild(vacio);
+    return;
+  }
+
+  lista.forEach((ev) => {
+    const card = document.createElement("div");
+    card.className = "evaluacion-card";
+
+    const header = document.createElement("div");
+    header.className = "evaluacion-header";
+
+    const titulo = document.createElement("p");
+    titulo.className = "evaluacion-titulo";
+    titulo.textContent = ev.titulo;
+    header.appendChild(titulo);
+
+    if (ev.notaFinal !== null && ev.notaFinal !== undefined) {
+      const nota = document.createElement("span");
+      nota.className = "nota-final-badge";
+      nota.textContent = Math.round(ev.notaFinal) + "%";
+      header.appendChild(nota);
+    }
+    card.appendChild(header);
+
+    const subtitulo = [ev.tipo, ev.anio].filter(Boolean).join(" • ");
+    if (subtitulo) {
+      const sub = document.createElement("p");
+      sub.className = "evaluacion-subtitulo";
+      sub.textContent = subtitulo;
+      card.appendChild(sub);
+    }
+
+    (ev.grupos || []).forEach((g) => {
+      const grupo = document.createElement("div");
+      grupo.className = "grupo-evaluacion";
+
+      const tituloGrupo = document.createElement("p");
+      tituloGrupo.className = "grupo-evaluacion-titulo";
+      tituloGrupo.textContent = g.titulo;
+      grupo.appendChild(tituloGrupo);
+
+      g.items.forEach((it) => {
+        const fila = document.createElement("div");
+        fila.className = "rating-fila";
+
+        const label = document.createElement("span");
+        label.className = "rating-label";
+        label.textContent = it.label;
+
+        const valor = document.createElement("span");
+        valor.className = "rating-estrellas";
+        valor.textContent = estrellas(it.valor);
+
+        fila.appendChild(label);
+        fila.appendChild(valor);
+        grupo.appendChild(fila);
+      });
+
+      card.appendChild(grupo);
+    });
+
+    (ev.comentarios || []).forEach((c) => {
+      const bloque = document.createElement("div");
+      bloque.className = "evaluacion-comentario";
+
+      const tituloC = document.createElement("p");
+      tituloC.className = "evaluacion-comentario-titulo";
+      tituloC.textContent = c.label;
+
+      const texto = document.createElement("p");
+      texto.className = "evaluacion-comentario-texto";
+      texto.textContent = c.valor;
+
+      bloque.appendChild(tituloC);
+      bloque.appendChild(texto);
+      card.appendChild(bloque);
+    });
+
+    cont.appendChild(card);
+  });
+}
+
 async function generarLinkPago() {
   if (!pagoActual) return;
   const btn = el("btnGenerarLink");
@@ -319,6 +517,12 @@ el("btnGenerarLink").addEventListener("click", generarLinkPago);
 el("inputComprobante").addEventListener("change", (e) => {
   const archivo = e.target.files && e.target.files[0];
   if (archivo) subirComprobante(archivo);
+});
+
+el("btnVerEvaluaciones").addEventListener("click", verEvaluaciones);
+
+el("btnAtrasEvaluaciones").addEventListener("click", () => {
+  mostrarPantalla("pantallaPerfil");
 });
 
 // ---------- arranque ----------
