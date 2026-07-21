@@ -13,6 +13,7 @@ const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 let alumnas = [];
 let alumnaSeleccionada = null;
 let pagoActual = null;
+let claveActual = ""; // la clave con la que la alumna entró, se usa para confirmar cambios de clave
 
 const TAMANO_MAX_ARCHIVO = 8 * 1024 * 1024; // 8 MB
 
@@ -42,6 +43,7 @@ function mostrarPantalla(id) {
     "pantallaClave",
     "pantallaPerfil",
     "pantallaEvaluaciones",
+    "pantallaHistorialPagos",
   ];
   pantallas.forEach((p) => {
     el(p).hidden = p !== id;
@@ -99,6 +101,7 @@ function seleccionarAlumna(a) {
   alumnaSeleccionada = a;
   el("nombreElegido").textContent = a.nombre;
   el("inputClave").value = "";
+  el("mensajeRecuperarClave").hidden = true;
   mostrarPantalla("pantallaClave");
   el("inputClave").focus();
 }
@@ -122,9 +125,13 @@ async function entrar() {
       alumnaId: alumnaSeleccionada.id,
       clave,
     });
+    claveActual = clave;
     renderPerfil(datos);
     renderPago(datos.pago);
     renderPagosEspeciales(datos.pagosEspeciales);
+    el("inputClaveNueva").value = "";
+    el("inputClaveConfirmar").value = "";
+    el("mensajeClaveOk").hidden = true;
     mostrarPantalla("pantallaPerfil");
   } catch (e) {
     mostrarError(e.message);
@@ -490,6 +497,196 @@ async function subirComprobante(archivo) {
   }
 }
 
+// ---------- recuperar clave (pantalla de clave) ----------
+
+async function recuperarClave() {
+  const btn = el("btnOlvideClave");
+  const msg = el("mensajeRecuperarClave");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Enviando...";
+  msg.hidden = true;
+  mostrarError("");
+
+  try {
+    const datos = await llamarWorker({
+      accion: "recuperarClave",
+      alumnaId: alumnaSeleccionada.id,
+    });
+    msg.textContent =
+      "✅ Te enviamos tu clave por WhatsApp al número terminado en " +
+      (datos.ultimosDigitos || "****") +
+      ".";
+    msg.hidden = false;
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+// ---------- cambiar clave (dentro del perfil) ----------
+
+async function guardarNuevaClave() {
+  const nueva = el("inputClaveNueva").value.trim();
+  const confirmar = el("inputClaveConfirmar").value.trim();
+  mostrarError("");
+  el("mensajeClaveOk").hidden = true;
+
+  if (!nueva || !confirmar) {
+    mostrarError("Escribe tu nueva clave y confírmala.");
+    return;
+  }
+  if (nueva.length < 4) {
+    mostrarError("Tu nueva clave debe tener al menos 4 caracteres.");
+    return;
+  }
+  if (nueva !== confirmar) {
+    mostrarError("Las dos claves no coinciden.");
+    return;
+  }
+
+  const btn = el("btnGuardarClave");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Guardando...";
+
+  try {
+    await llamarWorker({
+      accion: "cambiarClave",
+      alumnaId: alumnaSeleccionada.id,
+      claveActual,
+      claveNueva: nueva,
+    });
+    claveActual = nueva;
+    el("inputClaveNueva").value = "";
+    el("inputClaveConfirmar").value = "";
+    el("mensajeClaveOk").hidden = false;
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+// ---------- historial de mensualidades ----------
+
+async function verHistorialPagos() {
+  const btn = el("btnHistorialPagos");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Cargando...";
+  mostrarError("");
+
+  try {
+    const datos = await llamarWorker({
+      accion: "historialPagos",
+      alumnaId: alumnaSeleccionada.id,
+    });
+    renderHistorialPagos(datos.historial || [], datos.anio);
+    mostrarPantalla("pantallaHistorialPagos");
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+async function actualizarHistorialPagos() {
+  try {
+    const datos = await llamarWorker({
+      accion: "historialPagos",
+      alumnaId: alumnaSeleccionada.id,
+    });
+    renderHistorialPagos(datos.historial || [], datos.anio);
+  } catch (e) {
+    mostrarError(e.message);
+  }
+}
+
+function renderHistorialPagos(lista, anio) {
+  el("historialTitulo").textContent = "📅 Mensualidades " + (anio || "");
+
+  const cont = el("listaHistorialPagos");
+  cont.innerHTML = "";
+
+  if (!lista || !lista.length) {
+    const vacio = document.createElement("p");
+    vacio.className = "mensaje-vacio";
+    vacio.textContent = "Todavía no hay mensualidades registradas este año.";
+    cont.appendChild(vacio);
+    return;
+  }
+
+  lista.forEach((p) => {
+    const card = document.createElement("div");
+    card.className = "historial-card";
+
+    const filaSuperior = document.createElement("div");
+    filaSuperior.className = "historial-fila-superior";
+
+    const mes = document.createElement("span");
+    mes.className = "historial-mes";
+    mes.textContent = p.mes || "-";
+    filaSuperior.appendChild(mes);
+
+    const clase = claseBadge(p.estado);
+    const badge = document.createElement("span");
+    badge.className = "badge-estado " + (clase || "badge-neutro");
+    badge.textContent = p.estado || "-";
+    filaSuperior.appendChild(badge);
+
+    card.appendChild(filaSuperior);
+
+    if (p.monto) {
+      const monto = document.createElement("p");
+      monto.className = "historial-monto";
+      monto.textContent = "Monto: Q" + p.monto;
+      card.appendChild(monto);
+    }
+
+    const yaPagado = (p.estado || "").toUpperCase() === "PAGADO";
+    if (!yaPagado) {
+      if (p.linkPago) {
+        const link = document.createElement("a");
+        link.className = "btn-secundario btn-link-pago-chico";
+        link.href = p.linkPago;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "💳 Pagar ahora";
+        card.appendChild(link);
+      } else {
+        const btnGenerar = document.createElement("button");
+        btnGenerar.className = "btn-secundario btn-generar-chico";
+        btnGenerar.textContent = "Generar link de pago";
+        btnGenerar.addEventListener("click", () => generarLinkHistorial(p.pagoId, btnGenerar));
+        card.appendChild(btnGenerar);
+      }
+    }
+
+    cont.appendChild(card);
+  });
+}
+
+async function generarLinkHistorial(pagoId, boton) {
+  boton.disabled = true;
+  const textoOriginal = boton.textContent;
+  boton.textContent = "Generando...";
+  mostrarError("");
+
+  try {
+    await llamarWorker({ accion: "generarLink", pagoId });
+    await actualizarHistorialPagos();
+  } catch (e) {
+    mostrarError(e.message);
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  }
+}
+
 // ---------- eventos ----------
 el("buscarAlumna").addEventListener("input", (e) => renderAlumnas(e.target.value));
 
@@ -507,6 +704,7 @@ el("inputClave").addEventListener("keydown", (e) => {
 el("btnSalir").addEventListener("click", () => {
   alumnaSeleccionada = null;
   pagoActual = null;
+  claveActual = "";
   el("buscarAlumna").value = "";
   renderAlumnas("");
   mostrarPantalla("pantallaAlumna");
@@ -522,6 +720,16 @@ el("inputComprobante").addEventListener("change", (e) => {
 el("btnVerEvaluaciones").addEventListener("click", verEvaluaciones);
 
 el("btnAtrasEvaluaciones").addEventListener("click", () => {
+  mostrarPantalla("pantallaPerfil");
+});
+
+el("btnOlvideClave").addEventListener("click", recuperarClave);
+
+el("btnGuardarClave").addEventListener("click", guardarNuevaClave);
+
+el("btnHistorialPagos").addEventListener("click", verHistorialPagos);
+
+el("btnAtrasHistorial").addEventListener("click", () => {
   mostrarPantalla("pantallaPerfil");
 });
 
