@@ -228,9 +228,27 @@ function renderAlumnas(filtro) {
   const cont = el("listaAlumnas");
   cont.innerHTML = "";
   const texto = (filtro || "").trim().toLowerCase();
-  const filtradas = texto
-    ? alumnas.filter((a) => a.nombre.toLowerCase().includes(texto))
-    : alumnas;
+
+  // Ya no mostramos el listado completo de alumnas al abrir el portal
+  // (por privacidad, para que un papá no vea los nombres de todas las
+  // demás). Solo aparece algo aquí cuando escriben un nombre a buscar.
+  if (!texto) {
+    const aviso = document.createElement("p");
+    aviso.className = "lista-alumnas-aviso";
+    aviso.textContent = "Escribe el nombre de tu bailarina para buscarla.";
+    cont.appendChild(aviso);
+    return;
+  }
+
+  const filtradas = alumnas.filter((a) => a.nombre.toLowerCase().includes(texto));
+
+  if (filtradas.length === 0) {
+    const vacio = document.createElement("p");
+    vacio.className = "lista-alumnas-aviso";
+    vacio.textContent = "No encontramos ese nombre. Revisa cómo lo escribiste.";
+    cont.appendChild(vacio);
+    return;
+  }
 
   filtradas.slice(0, 30).forEach((a) => {
     const btn = document.createElement("button");
