@@ -15,6 +15,11 @@ let alumnaSeleccionada = null;
 let pagoActual = null;
 let claveActual = ""; // la clave con la que la alumna entró, se usa para confirmar cambios de clave
 
+// Lugar original del botón de historial en el HTML estático, para
+// poder devolverlo ahí antes de cada render (ver renderPerfil).
+let btnHistorialPagosPadreOriginal = null;
+let btnHistorialPagosHermanoOriginal = null;
+
 const TAMANO_MAX_ARCHIVO = 8 * 1024 * 1024; // 8 MB
 
 const ESTADOS_BADGE = {
@@ -301,6 +306,29 @@ function renderPerfil(datos) {
   }
 
   const cont = el("perfilLista");
+
+  // El botón de historial vive en el HTML estático, pero lo movemos
+  // dentro de perfilLista cuando hay cumpleaños (ver más abajo). Si
+  // quedó ahí metido de un render anterior, cont.innerHTML = "" lo
+  // destruiría (no solo lo saca, lo borra de la página), y la próxima
+  // vez que quisiéramos moverlo, el botón ya no existiría en ningún
+  // lado — eso es justo lo que causaba el error intermitente
+  // "Argument 1 ('node') to Node.appendChild must be an instance of
+  // Node" al cambiar de una alumna a otra. Por eso, antes de limpiar,
+  // lo devolvemos siempre a su lugar original en el HTML.
+  const btnHistorial = el("btnHistorialPagos");
+  if (btnHistorial && btnHistorialPagosPadreOriginal === null) {
+    btnHistorialPagosPadreOriginal = btnHistorial.parentNode;
+    btnHistorialPagosHermanoOriginal = btnHistorial.nextSibling;
+  }
+  if (btnHistorial && btnHistorialPagosPadreOriginal) {
+    if (btnHistorialPagosHermanoOriginal) {
+      btnHistorialPagosPadreOriginal.insertBefore(btnHistorial, btnHistorialPagosHermanoOriginal);
+    } else {
+      btnHistorialPagosPadreOriginal.appendChild(btnHistorial);
+    }
+  }
+
   cont.innerHTML = "";
   (datos.perfil || [])
     .filter((f) => f.tipo !== "imagen")
@@ -310,10 +338,13 @@ function renderPerfil(datos) {
       // si quedó mal escrito.
       if (f.campo === "CUMPLEAÑOS") {
         cont.appendChild(construirFilaCumpleanos(f));
-        // El botón de historial ya existe en el HTML; lo movemos aquí
-        // debajo del cumpleaños (appendChild reubica el nodo, no lo
-        // duplica, así que su evento de click sigue funcionando igual).
-        cont.appendChild(el("btnHistorialPagos"));
+        // Movemos el botón de historial aquí debajo del cumpleaños
+        // (appendChild reubica el nodo, no lo duplica, así que su
+        // evento de click sigue funcionando igual). Si por algo no
+        // existiera, simplemente no se agrega, sin romper el render.
+        if (btnHistorial) {
+          cont.appendChild(btnHistorial);
+        }
         return;
       }
 
