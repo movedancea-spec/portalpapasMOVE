@@ -633,12 +633,8 @@ function renderEvaluaciones(lista) {
     titulo.textContent = ev.titulo;
     header.appendChild(titulo);
 
-    if (ev.notaFinal !== null && ev.notaFinal !== undefined) {
-      const nota = document.createElement("span");
-      nota.className = "nota-final-badge";
-      nota.textContent = Math.round(ev.notaFinal) + "%";
-      header.appendChild(nota);
-    }
+    // Nota final oculta a propósito: los papás no deben ver la nota en
+    // porcentaje, solo las estrellitas por área (ver más abajo).
     card.appendChild(header);
 
     const subtitulo = [ev.tipo, ev.anio].filter(Boolean).join(" • ");
