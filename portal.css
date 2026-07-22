@@ -343,6 +343,14 @@ color:#ef4b9b;
 background:rgba(239,75,155,.06);
 }
 
+.lista-alumnas-aviso{
+color:#999;
+font-size:clamp(13px,3.5vw,15px);
+font-weight:600;
+text-align:center;
+padding:18px 8px;
+}
+
 /*=====================================
 ENTRADA DE CLAVE (PIN)
 =====================================*/
