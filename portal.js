@@ -753,8 +753,123 @@ function renderEvaluaciones(lista) {
       card.appendChild(bloque);
     });
 
+    const btnDescargar = document.createElement("button");
+    btnDescargar.className = "btn-secundario btn-descargar-evaluacion";
+    btnDescargar.textContent = "📥 Descargar PDF";
+    btnDescargar.addEventListener("click", () => descargarEvaluacionPDF(ev));
+    card.appendChild(btnDescargar);
+
     cont.appendChild(card);
   });
+}
+
+// -------------------------------------
+// Arma un PDF con las mismas estrellitas y comentarios que ya se ven
+// en la tarjeta de la evaluación, para que los papás puedan
+// guardarlo o imprimirlo. Las calificaciones se dibujan como
+// circulitos (rellenos = calificado) en vez de estrellas de texto,
+// para no depender de que la fuente del PDF tenga ese símbolo.
+// -------------------------------------
+function descargarEvaluacionPDF(ev) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    mostrarError("No se pudo generar el PDF. Intenta de nuevo en unos segundos.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const margenIzq = 50;
+  const anchoPagina = doc.internal.pageSize.getWidth();
+  const altoPagina = doc.internal.pageSize.getHeight();
+  let y = 60;
+
+  function saltoDePaginaSiHaceFalta(alturaNecesaria) {
+    if (y + alturaNecesaria > altoPagina - 40) {
+      doc.addPage();
+      y = 50;
+    }
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(239, 75, 155);
+  doc.text("MOVE Dance Academy", margenIzq, y);
+  y += 24;
+
+  doc.setFontSize(13);
+  doc.setTextColor(90, 90, 90);
+  doc.text("Evaluación de " + (alumnaSeleccionada?.nombre || ""), margenIzq, y);
+  y += 20;
+
+  const subt = [ev.titulo, ev.tipo, ev.anio].filter(Boolean).join("  •  ");
+  if (subt) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(120, 120, 120);
+    doc.text(subt, margenIzq, y);
+    y += 26;
+  } else {
+    y += 10;
+  }
+
+  (ev.grupos || []).forEach((g) => {
+    saltoDePaginaSiHaceFalta(30);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(239, 75, 155);
+    doc.text(g.titulo, margenIzq, y);
+    y += 18;
+
+    g.items.forEach((it) => {
+      saltoDePaginaSiHaceFalta(18);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      doc.setTextColor(70, 70, 70);
+      doc.text(it.label, margenIzq + 10, y);
+
+      const n = Math.max(0, Math.min(5, Math.round(Number(it.valor) || 0)));
+      const xCirculos = anchoPagina - margenIzq - 5 * 14;
+      for (let i = 0; i < 5; i++) {
+        const cx = xCirculos + i * 14;
+        if (i < n) {
+          doc.setFillColor(239, 75, 155);
+          doc.circle(cx, y - 3, 4, "F");
+        } else {
+          doc.setDrawColor(230, 200, 215);
+          doc.circle(cx, y - 3, 4, "S");
+        }
+      }
+      y += 16;
+    });
+    y += 10;
+  });
+
+  (ev.comentarios || []).forEach((c) => {
+    saltoDePaginaSiHaceFalta(30);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(239, 75, 155);
+    doc.text(c.label, margenIzq, y);
+    y += 16;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10.5);
+    doc.setTextColor(70, 70, 70);
+    const lineas = doc.splitTextToSize(c.valor || "", anchoPagina - margenIzq * 2);
+    lineas.forEach((linea) => {
+      saltoDePaginaSiHaceFalta(14);
+      doc.text(linea, margenIzq, y);
+      y += 14;
+    });
+    y += 10;
+  });
+
+  const nombreArchivo =
+    "Evaluacion_" +
+    (alumnaSeleccionada?.nombre || "alumna").toString().trim().replace(/[^a-zA-Z0-9]+/g, "_") +
+    (ev.anio ? "_" + ev.anio : "") +
+    ".pdf";
+  doc.save(nombreArchivo);
 }
 
 async function generarLinkPago() {
