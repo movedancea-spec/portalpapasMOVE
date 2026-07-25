@@ -428,6 +428,12 @@ transition:.18s;
 
 .btn-secundario:active{ transform:scale(.97); }
 
+.btn-descargar-evaluacion{
+display:block;
+width:100%;
+margin-top:16px;
+}
+
 .nav-botones{
 display:flex;
 gap:12px;
