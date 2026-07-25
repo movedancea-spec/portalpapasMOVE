@@ -770,6 +770,18 @@ function renderEvaluaciones(lista) {
 // circulitos (rellenos = calificado) en vez de estrellas de texto,
 // para no depender de que la fuente del PDF tenga ese símbolo.
 // -------------------------------------
+// La fuente que usa el PDF (helvetica) no sabe dibujar emojis — sin
+// esto, títulos como "💪 Técnica Corporal" salían como símbolos
+// rotos ("Ø=Üª..."). Quitamos emojis y símbolos raros, pero dejamos
+// intactas las tildes/ñ (esas sí las dibuja bien).
+function limpiarTextoPDF(texto) {
+  return (texto || "")
+    .toString()
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2190}-\u{2BFF}\u{2600}-\u{27BF}️]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function descargarEvaluacionPDF(ev) {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     mostrarError("No se pudo generar el PDF. Intenta de nuevo en unos segundos.");
@@ -798,10 +810,10 @@ function descargarEvaluacionPDF(ev) {
 
   doc.setFontSize(13);
   doc.setTextColor(90, 90, 90);
-  doc.text("Evaluación de " + (alumnaSeleccionada?.nombre || ""), margenIzq, y);
+  doc.text("Evaluación de " + limpiarTextoPDF(alumnaSeleccionada?.nombre || ""), margenIzq, y);
   y += 20;
 
-  const subt = [ev.titulo, ev.tipo, ev.anio].filter(Boolean).join("  •  ");
+  const subt = [ev.titulo, ev.tipo, ev.anio].filter(Boolean).map(limpiarTextoPDF).join("  •  ");
   if (subt) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
@@ -817,7 +829,7 @@ function descargarEvaluacionPDF(ev) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(239, 75, 155);
-    doc.text(g.titulo, margenIzq, y);
+    doc.text(limpiarTextoPDF(g.titulo), margenIzq, y);
     y += 18;
 
     g.items.forEach((it) => {
@@ -825,7 +837,7 @@ function descargarEvaluacionPDF(ev) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10.5);
       doc.setTextColor(70, 70, 70);
-      doc.text(it.label, margenIzq + 10, y);
+      doc.text(limpiarTextoPDF(it.label), margenIzq + 10, y);
 
       const n = Math.max(0, Math.min(5, Math.round(Number(it.valor) || 0)));
       const xCirculos = anchoPagina - margenIzq - 5 * 14;
@@ -849,13 +861,13 @@ function descargarEvaluacionPDF(ev) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(239, 75, 155);
-    doc.text(c.label, margenIzq, y);
+    doc.text(limpiarTextoPDF(c.label), margenIzq, y);
     y += 16;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10.5);
     doc.setTextColor(70, 70, 70);
-    const lineas = doc.splitTextToSize(c.valor || "", anchoPagina - margenIzq * 2);
+    const lineas = doc.splitTextToSize(limpiarTextoPDF(c.valor || ""), anchoPagina - margenIzq * 2);
     lineas.forEach((linea) => {
       saltoDePaginaSiHaceFalta(14);
       doc.text(linea, margenIzq, y);
