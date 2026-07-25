@@ -20,6 +20,10 @@ let claveActual = ""; // la clave con la que la alumna entró, se usa para confi
 let btnHistorialPagosPadreOriginal = null;
 let btnHistorialPagosHermanoOriginal = null;
 
+// Intervalo para revisar mensajes nuevos del chat mientras esa
+// pantalla está abierta (se detiene al salir, ver mostrarPantalla).
+let chatPollingInterval = null;
+
 const TAMANO_MAX_ARCHIVO = 8 * 1024 * 1024; // 8 MB
 
 const ESTADOS_BADGE = {
@@ -186,10 +190,17 @@ function mostrarPantalla(id) {
     "pantallaPerfil",
     "pantallaEvaluaciones",
     "pantallaHistorialPagos",
+    "pantallaChat",
   ];
   pantallas.forEach((p) => {
     el(p).hidden = p !== id;
   });
+  // Si nos vamos de la pantalla de chat, dejamos de revisar mensajes
+  // nuevos cada pocos segundos (no tiene sentido seguir preguntando
+  // si ya no se está viendo).
+  if (id !== "pantallaChat") {
+    detenerPollingChat();
+  }
   mostrarError("");
 }
 
@@ -1061,6 +1072,121 @@ async function subirComprobanteHistorial(pagoId, archivo, spanTexto) {
   }
 }
 
+// ---------- chat con las maestras ----------
+
+function formatearHoraChat(fechaIso) {
+  const f = new Date(fechaIso);
+  return f.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+}
+
+function renderChat(mensajes) {
+  const cont = el("chatMensajes");
+  const estabaAbajo =
+    cont.scrollHeight - cont.scrollTop - cont.clientHeight < 40;
+
+  cont.innerHTML = "";
+
+  if (!mensajes || !mensajes.length) {
+    const vacio = document.createElement("p");
+    vacio.className = "chat-vacio";
+    vacio.textContent = "Todavía no hay mensajes. Escribe el primero 👇";
+    cont.appendChild(vacio);
+    return;
+  }
+
+  mensajes.forEach((m) => {
+    const fila = document.createElement("div");
+    fila.className = "chat-fila " + (m.rol === "FAMILIA" ? "chat-fila-familia" : "chat-fila-maestra");
+
+    const burbuja = document.createElement("div");
+    burbuja.className = "chat-burbuja " + (m.rol === "FAMILIA" ? "chat-burbuja-familia" : "chat-burbuja-maestra");
+
+    const autor = document.createElement("p");
+    autor.className = "chat-autor";
+    autor.textContent = m.rol === "FAMILIA" ? "Tú" : m.autor || "Maestras";
+    burbuja.appendChild(autor);
+
+    const texto = document.createElement("p");
+    texto.className = "chat-texto";
+    texto.textContent = m.texto;
+    burbuja.appendChild(texto);
+
+    const hora = document.createElement("p");
+    hora.className = "chat-hora";
+    hora.textContent = formatearHoraChat(m.fecha);
+    burbuja.appendChild(hora);
+
+    fila.appendChild(burbuja);
+    cont.appendChild(fila);
+  });
+
+  // Si ya estaba viendo el final de la conversación, lo dejamos ahí
+  // (auto-scroll); si había subido a leer mensajes viejos, no lo
+  // interrumpimos brincándolo hasta abajo en cada revisión.
+  if (estabaAbajo) {
+    cont.scrollTop = cont.scrollHeight;
+  }
+}
+
+async function cargarChat(mostrarCargando) {
+  if (mostrarCargando) {
+    el("chatMensajes").innerHTML = '<p class="chat-vacio">Cargando mensajes...</p>';
+  }
+  try {
+    const datos = await llamarWorker({
+      accion: "chatObtener",
+      alumnaId: alumnaSeleccionada.id,
+      quien: "familia",
+    });
+    renderChat(datos.mensajes || []);
+  } catch (e) {
+    mostrarError(e.message);
+  }
+}
+
+function detenerPollingChat() {
+  if (chatPollingInterval) {
+    clearInterval(chatPollingInterval);
+    chatPollingInterval = null;
+  }
+}
+
+async function abrirChat() {
+  el("chatTitulo").textContent = "💬 Hablar con las maestras";
+  el("chatInput").value = "";
+  mostrarPantalla("pantallaChat");
+  await cargarChat(true);
+
+  detenerPollingChat();
+  chatPollingInterval = setInterval(() => cargarChat(false), 12000);
+}
+
+async function enviarMensajeChat() {
+  const input = el("chatInput");
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const btn = el("btnChatEnviar");
+  btn.disabled = true;
+  input.value = "";
+
+  try {
+    await llamarWorker({
+      accion: "chatEnviar",
+      alumnaId: alumnaSeleccionada.id,
+      quien: "familia",
+      texto,
+    });
+    await cargarChat(false);
+  } catch (e) {
+    input.value = texto;
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
 // ---------- eventos ----------
 el("buscarAlumna").addEventListener("input", (e) => renderAlumnas(e.target.value));
 
@@ -1108,6 +1234,21 @@ el("btnHistorialPagos").addEventListener("click", verHistorialPagos);
 
 el("btnAtrasHistorial").addEventListener("click", () => {
   mostrarPantalla("pantallaPerfil");
+});
+
+el("btnChat").addEventListener("click", abrirChat);
+
+el("btnAtrasChat").addEventListener("click", () => {
+  mostrarPantalla("pantallaPerfil");
+});
+
+el("btnChatEnviar").addEventListener("click", enviarMensajeChat);
+
+el("chatInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    enviarMensajeChat();
+  }
 });
 
 // ---------- arranque ----------
