@@ -379,6 +379,15 @@ function renderPerfil(datos) {
         return;
       }
 
+      // El correo también se muestra siempre (aunque esté vacío), con
+      // su propio control editable, para que las familias que todavía
+      // no lo tienen registrado lo puedan agregar ellas mismas — así
+      // luego pueden usar la recuperación de clave por correo.
+      if (f.campo === "CORREO") {
+        cont.appendChild(construirFilaCorreo(f));
+        return;
+      }
+
       if (!f.valor) return;
       const fila = document.createElement("div");
       fila.className = "perfil-fila";
@@ -499,6 +508,113 @@ function construirFilaCumpleanos(f) {
       });
       f.valor = nuevaFecha;
       valorTexto.textContent = formatearFechaCorta(nuevaFecha);
+      mensajeOk.hidden = false;
+      bloqueEdicion.hidden = true;
+    } catch (e) {
+      mostrarError(e.message);
+    } finally {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = textoOriginal;
+    }
+  });
+
+  return fila;
+}
+
+// ---------- correo editable ----------
+
+function construirFilaCorreo(f) {
+  const fila = document.createElement("div");
+  fila.className = "perfil-fila";
+
+  const etiqueta = document.createElement("p");
+  etiqueta.className = "perfil-etiqueta";
+  etiqueta.textContent = f.etiqueta || "✉️ Correo";
+  fila.appendChild(etiqueta);
+
+  const filaValor = document.createElement("div");
+  filaValor.className = "cumple-fila-valor";
+
+  const valorTexto = document.createElement("p");
+  valorTexto.className = "perfil-valor";
+  valorTexto.textContent = f.valor || "Sin registrar";
+  filaValor.appendChild(valorTexto);
+
+  const btnEditar = document.createElement("button");
+  btnEditar.className = "btn-editar-cumple";
+  btnEditar.type = "button";
+  btnEditar.textContent = "✏️ Editar";
+  filaValor.appendChild(btnEditar);
+
+  fila.appendChild(filaValor);
+
+  const bloqueEdicion = document.createElement("div");
+  bloqueEdicion.className = "cumple-edicion";
+  bloqueEdicion.hidden = true;
+
+  const input = document.createElement("input");
+  input.type = "email";
+  input.className = "input-cumple";
+  input.placeholder = "tucorreo@ejemplo.com";
+  if (f.valor) input.value = f.valor;
+
+  const filaBotones = document.createElement("div");
+  filaBotones.className = "cumple-botones";
+
+  const btnGuardar = document.createElement("button");
+  btnGuardar.className = "btn-secundario";
+  btnGuardar.type = "button";
+  btnGuardar.textContent = "Guardar";
+
+  const btnCancelar = document.createElement("button");
+  btnCancelar.className = "btn-cancelar-cumple";
+  btnCancelar.type = "button";
+  btnCancelar.textContent = "Cancelar";
+
+  filaBotones.appendChild(btnGuardar);
+  filaBotones.appendChild(btnCancelar);
+
+  const mensajeOk = document.createElement("p");
+  mensajeOk.className = "mensaje-clave-ok";
+  mensajeOk.hidden = true;
+  mensajeOk.textContent = "✅ Correo actualizado.";
+
+  bloqueEdicion.appendChild(input);
+  bloqueEdicion.appendChild(filaBotones);
+  bloqueEdicion.appendChild(mensajeOk);
+  fila.appendChild(bloqueEdicion);
+
+  btnEditar.addEventListener("click", () => {
+    mensajeOk.hidden = true;
+    bloqueEdicion.hidden = !bloqueEdicion.hidden;
+  });
+
+  btnCancelar.addEventListener("click", () => {
+    input.value = f.valor || "";
+    mensajeOk.hidden = true;
+    bloqueEdicion.hidden = true;
+  });
+
+  btnGuardar.addEventListener("click", async () => {
+    const nuevoCorreo = input.value.trim();
+    if (!nuevoCorreo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCorreo)) {
+      mostrarError("Escribe un correo válido.");
+      return;
+    }
+
+    btnGuardar.disabled = true;
+    const textoOriginal = btnGuardar.textContent;
+    btnGuardar.textContent = "Guardando...";
+    mostrarError("");
+
+    try {
+      await llamarWorker({
+        accion: "actualizarCorreo",
+        alumnaId: alumnaSeleccionada.id,
+        nuevoCorreo,
+      });
+      f.valor = nuevoCorreo;
+      valorTexto.textContent = nuevoCorreo;
       mensajeOk.hidden = false;
       bloqueEdicion.hidden = true;
     } catch (e) {
@@ -949,7 +1065,7 @@ async function subirComprobante(archivo) {
 // ---------- recuperar clave (pantalla de clave) ----------
 
 async function recuperarClave() {
-  const btn = el("btnOlvideClave");
+  const btn = el("btnRecuperarWhatsapp");
   const msg = el("mensajeRecuperarClave");
   btn.disabled = true;
   const textoOriginal = btn.textContent;
@@ -966,6 +1082,38 @@ async function recuperarClave() {
       "✅ Te enviamos tu clave por WhatsApp al número terminado en " +
       (datos.ultimosDigitos || "****") +
       ".";
+    msg.hidden = false;
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+async function recuperarClavePorCorreo() {
+  const btn = el("btnEnviarRecuperarCorreo");
+  const msg = el("mensajeRecuperarClave");
+  const correo = el("inputRecuperarCorreo").value.trim();
+  msg.hidden = true;
+  mostrarError("");
+
+  if (!correo) {
+    mostrarError("Escribe tu correo.");
+    return;
+  }
+
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Enviando...";
+
+  try {
+    await llamarWorker({
+      accion: "recuperarClavePorCorreo",
+      alumnaId: alumnaSeleccionada.id,
+      correo,
+    });
+    msg.textContent = "✅ Te enviamos tu clave a tu correo. Revisa tu bandeja de entrada (y la carpeta de spam).";
     msg.hidden = false;
   } catch (e) {
     mostrarError(e.message);
@@ -1397,7 +1545,22 @@ el("btnAtrasEvaluaciones").addEventListener("click", () => {
   mostrarPantalla("pantallaPerfil");
 });
 
-el("btnOlvideClave").addEventListener("click", recuperarClave);
+el("btnMostrarRecuperar").addEventListener("click", () => {
+  const bloque = el("bloqueRecuperar");
+  bloque.hidden = !bloque.hidden;
+});
+
+el("btnRecuperarWhatsapp").addEventListener("click", recuperarClave);
+
+el("btnMostrarRecuperarCorreo").addEventListener("click", () => {
+  el("bloqueRecuperarCorreo").hidden = !el("bloqueRecuperarCorreo").hidden;
+});
+
+el("btnEnviarRecuperarCorreo").addEventListener("click", recuperarClavePorCorreo);
+
+el("inputRecuperarCorreo").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") recuperarClavePorCorreo();
+});
 
 el("btnGuardarClave").addEventListener("click", guardarNuevaClave);
 
