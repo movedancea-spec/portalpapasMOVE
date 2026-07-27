@@ -824,6 +824,19 @@ font-weight:700;
 font-size:clamp(13px,3.6vw,15px);
 }
 
+.recuperar-opciones{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
+
+#bloqueRecuperarCorreo{
+margin-top:12px;
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
 .input-clave-chica{
 width:100%;
 border:2px solid #ffd8ea;
