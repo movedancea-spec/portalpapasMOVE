@@ -275,6 +275,13 @@ color:#777;
 margin-bottom:14px;
 }
 
+.subtitulo-chico{
+font-size:clamp(12px,3.3vw,14px);
+font-weight:700;
+color:#a15277;
+margin-bottom:8px;
+}
+
 .message{
 font-size:clamp(15px,4vw,18px);
 color:#666;
@@ -465,6 +472,79 @@ font-size:clamp(20px,5.5vw,26px);
 font-weight:800;
 color:#ef4b9b;
 margin-bottom:18px;
+}
+
+/*=====================================
+PERFIL FAMILIAR (hermanas en el mismo dispositivo)
+=====================================*/
+
+.bloque-familia{
+margin-bottom:18px;
+}
+
+.chips-familia{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+justify-content:center;
+margin-bottom:8px;
+}
+
+.chip-familia{
+display:flex;
+align-items:center;
+gap:6px;
+border:2px solid #ffd8ea;
+background:white;
+color:#a15277;
+border-radius:999px;
+padding:8px 14px;
+font-size:clamp(12.5px,3.3vw,14px);
+font-weight:700;
+font-family:inherit;
+cursor:pointer;
+transition:.18s;
+}
+
+.chip-familia:hover{
+border-color:#ef4b9b;
+}
+
+.chip-familia.activa{
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+border-color:transparent;
+color:white;
+box-shadow:0 6px 14px rgba(239,75,155,.30);
+}
+
+.chip-familia .quitar-chip{
+font-size:14px;
+line-height:1;
+opacity:.7;
+padding:0 2px;
+}
+
+.chip-familia .quitar-chip:hover{
+opacity:1;
+}
+
+.chip-familia-guardada{
+display:block;
+margin:0 auto 14px;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+border-color:transparent;
+color:white;
+box-shadow:0 6px 14px rgba(239,75,155,.30);
+}
+
+.aviso-familia{
+font-size:clamp(12px,3.3vw,13.5px);
+font-weight:600;
+color:#a15277;
+background:#fff0f6;
+border-radius:12px;
+padding:10px 12px;
+margin-bottom:10px;
 }
 
 .perfil-lista{

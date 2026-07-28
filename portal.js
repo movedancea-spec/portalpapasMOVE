@@ -15,6 +15,101 @@ let alumnaSeleccionada = null;
 let pagoActual = null;
 let claveActual = ""; // la clave con la que la alumna entró, se usa para confirmar cambios de clave
 
+// ---------- perfil familiar (hermanas en el mismo dispositivo) ----------
+// Guardamos en este navegador (localStorage, nunca en Airtable ni en
+// el Worker) la lista de hijas que un papá/mamá ya desbloqueó con su
+// clave, para que pueda cambiar entre ellas sin escribir la clave de
+// cada una otra vez. Solo vive en ESTE dispositivo/navegador — si
+// entra desde otro celular, tiene que volver a escribir la clave.
+const LLAVE_FAMILIA = "moveFamiliaAlumnas";
+
+function cargarFamilia() {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(LLAVE_FAMILIA) || "[]");
+    return Array.isArray(guardado) ? guardado : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+let familiaAlumnas = cargarFamilia();
+
+function guardarFamilia() {
+  try {
+    localStorage.setItem(LLAVE_FAMILIA, JSON.stringify(familiaAlumnas));
+  } catch (e) {
+    // Si el navegador bloquea localStorage (modo privado, etc.) el
+    // portal sigue funcionando normal, solo no recuerda a las hermanas.
+  }
+}
+
+function agregarAFamilia(id, nombre, clave) {
+  const existente = familiaAlumnas.find((f) => f.id === id);
+  if (existente) {
+    existente.nombre = nombre;
+    existente.clave = clave;
+  } else {
+    familiaAlumnas.push({ id, nombre, clave });
+  }
+  guardarFamilia();
+}
+
+function quitarDeFamilia(id) {
+  familiaAlumnas = familiaAlumnas.filter((f) => f.id !== id);
+  guardarFamilia();
+}
+
+// ---------- clave familiar compartida (funciona en CUALQUIER dispositivo) ----------
+// A diferencia del bloque de arriba (que solo recuerda cosas en ESTE
+// navegador), la clave familiar vive en Airtable (tabla FAMILIAS
+// PORTAL): con ella se ve a todas las hermanas juntas sin importar
+// desde qué celular o computadora se entre. Aquí solo guardamos, de
+// forma opcional, la ÚLTIMA clave familiar usada en este navegador
+// para ofrecer un botón de acceso rápido — pero si no está guardada,
+// de todos modos se puede escribir la clave desde cualquier lado.
+const LLAVE_CLAVE_FAMILIAR = "moveClaveFamiliarGuardada";
+
+let modoFamilia = false; // true mientras se está viendo el perfil vía clave familiar
+let datosHijasFamilia = []; // perfiles completos de las hermanas (ya cargados, sin llamadas extra)
+let nombreFamiliaActual = "";
+let familiaIdActual = null; // ID del registro en FAMILIAS PORTAL, para poder cambiar su clave
+let claveFamiliarActual = ""; // la clave familiar con la que se entró, se usa para confirmar el cambio
+
+function guardarClaveFamiliarLocal(clave, nombreFamilia) {
+  try {
+    localStorage.setItem(LLAVE_CLAVE_FAMILIAR, JSON.stringify({ clave, nombreFamilia }));
+  } catch (e) {
+    // Igual que arriba: si no se puede guardar, el portal sigue
+    // funcionando, solo no ofrece el atajo la próxima vez.
+  }
+}
+
+function cargarClaveFamiliarLocal() {
+  try {
+    return JSON.parse(localStorage.getItem(LLAVE_CLAVE_FAMILIAR) || "null");
+  } catch (e) {
+    return null;
+  }
+}
+
+function borrarClaveFamiliarLocal() {
+  try {
+    localStorage.removeItem(LLAVE_CLAVE_FAMILIAR);
+  } catch (e) {}
+}
+
+function actualizarBotonFamiliaGuardada() {
+  const btn = el("btnEntrarFamiliaGuardada");
+  if (!btn) return;
+  const guardado = cargarClaveFamiliarLocal();
+  if (guardado && guardado.clave) {
+    btn.hidden = false;
+    btn.textContent = `👨‍👩‍👧‍👦 Entrar como ${guardado.nombreFamilia || "familia"}`;
+  } else {
+    btn.hidden = true;
+  }
+}
+
 // Lugar original del botón de historial en el HTML estático, para
 // poder devolverlo ahí antes de cada render (ver renderPerfil).
 let btnHistorialPagosPadreOriginal = null;
@@ -226,6 +321,8 @@ async function llamarWorker(payload) {
 async function iniciar() {
   aplicarDecoracion(obtenerTemaDelDia());
   mostrarPantalla("pantallaCargando");
+  renderChipsFamiliaInicio();
+  actualizarBotonFamiliaGuardada();
   try {
     const datos = await llamarWorker({ accion: "alumnas" });
     alumnas = datos.alumnas || [];
@@ -300,27 +397,227 @@ async function entrar() {
       clave,
     });
     claveActual = clave;
-    renderPerfil(datos);
-    renderPago(datos.pago);
-    renderPagosEspeciales(datos.pagosEspeciales);
-    el("inputClaveNueva").value = "";
-    el("inputClaveConfirmar").value = "";
-    el("mensajeClaveOk").hidden = true;
+    modoFamilia = false;
+    datosHijasFamilia = [];
+    familiaIdActual = null;
+    claveFamiliarActual = "";
 
-    // El cumpleaños de HOY es más especial que el tema del mes, así
-    // que si es su día, ese decora por encima de Halloween/Navidad.
-    const filaCumple = (datos.perfil || []).find((f) => f.campo === "CUMPLEAÑOS");
-    const esCumpleHoy = filaCumple && esHoyElCumpleanos(filaCumple.valor);
-    const tema = esCumpleHoy ? "cumple" : obtenerTemaDelDia();
-    aplicarDecoracion(tema, datos.nombre || alumnaSeleccionada.nombre);
+    // La guardamos (o actualizamos) en el perfil familiar de este
+    // dispositivo, para que la próxima vez pueda cambiar entre
+    // hermanas sin volver a escribir la clave de cada una.
+    agregarAFamilia(alumnaSeleccionada.id, datos.nombre || alumnaSeleccionada.nombre, clave);
+    renderChipsFamiliaInicio();
 
-    mostrarPantalla("pantallaPerfil");
+    mostrarPerfilDesdeDatos(datos);
   } catch (e) {
     mostrarError(e.message);
     el("inputClave").value = "";
   } finally {
     btn.disabled = false;
     btn.textContent = textoOriginal;
+  }
+}
+
+// ---------- entrar con clave familiar (funciona en cualquier dispositivo) ----------
+
+async function entrarConClaveFamiliar(claveGuardada) {
+  const esAtajo = claveGuardada !== undefined;
+  const clave = (esAtajo ? claveGuardada : el("inputClaveFamiliar").value).toString().trim();
+
+  if (!clave) {
+    mostrarError("Escribe la clave familiar.");
+    return;
+  }
+
+  const btn = esAtajo ? el("btnEntrarFamiliaGuardada") : el("btnEntrarFamilia");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Entrando...";
+  mostrarError("");
+
+  try {
+    const datos = await llamarWorker({ accion: "entrarFamilia", claveFamiliar: clave });
+    const hijas = datos.hijas || [];
+    if (!hijas.length) {
+      throw new Error("Esta familia no tiene hijas para mostrar.");
+    }
+
+    modoFamilia = true;
+    datosHijasFamilia = hijas;
+    nombreFamiliaActual = datos.nombreFamilia || "";
+    familiaIdActual = datos.familiaId || null;
+    claveFamiliarActual = clave;
+    guardarClaveFamiliarLocal(clave, nombreFamiliaActual);
+    actualizarBotonFamiliaGuardada();
+
+    el("inputClaveFamiliar").value = "";
+    el("bloqueClaveFamiliar").hidden = true;
+
+    mostrarPerfilDesdeDatos(hijas[0]);
+  } catch (e) {
+    if (esAtajo) {
+      // La clave guardada ya no sirve (la cambiaron en Airtable) —
+      // la quitamos para no seguir ofreciéndola sola.
+      borrarClaveFamiliarLocal();
+      actualizarBotonFamiliaGuardada();
+    }
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+// ---------- pinta en pantalla el perfil ya cargado de una alumna ----------
+// La usan "entrar" (login individual), "entrarConClaveFamiliar"
+// (varias hermanas de una vez) y "cambiarAHermana" (perfil familiar
+// guardado en este dispositivo) — así el render queda en un solo
+// lugar sin importar de dónde vinieron los datos.
+function mostrarPerfilDesdeDatos(datos) {
+  alumnaSeleccionada = { id: datos.id, nombre: datos.nombre };
+
+  renderChipsFamilia();
+  renderPerfil(datos);
+  renderPago(datos.pago);
+  renderPagosEspeciales(datos.pagosEspeciales);
+  el("inputClaveNueva").value = "";
+  el("inputClaveConfirmar").value = "";
+  el("mensajeClaveOk").hidden = true;
+  el("inputClaveFamiliarNueva").value = "";
+  el("inputClaveFamiliarConfirmar").value = "";
+  el("mensajeClaveFamiliarOk").hidden = true;
+  el("btnVolverPerfilDesdeAlumna").hidden = true;
+  actualizarSeccionCambiarClave();
+
+  // El cumpleaños de HOY es más especial que el tema del mes, así
+  // que si es su día, ese decora por encima de Halloween/Navidad.
+  const filaCumple = (datos.perfil || []).find((f) => f.campo === "CUMPLEAÑOS");
+  const esCumpleHoy = filaCumple && esHoyElCumpleanos(filaCumple.valor);
+  const tema = esCumpleHoy ? "cumple" : obtenerTemaDelDia();
+  aplicarDecoracion(tema, datos.nombre || alumnaSeleccionada.nombre);
+
+  mostrarPantalla("pantallaPerfil");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Cuando se entró con la clave FAMILIAR (no la individual de esta
+// hija), no sabemos su clave personal — así que en vez de dejar
+// intentar cambiarla ahí (lo que confundiría con un "clave
+// incorrecta" que en realidad es solo que no la tenemos a mano),
+// mostramos el bloque para cambiar la CLAVE FAMILIAR en su lugar.
+function actualizarSeccionCambiarClave() {
+  const bloqueIndividual = el("bloqueCambiarClaveIndividual");
+  const bloqueFamiliar = el("bloqueCambiarClaveFamiliar");
+  const titulo = el("tituloCambiarClave");
+  if (!bloqueIndividual || !bloqueFamiliar) return;
+  bloqueIndividual.hidden = modoFamilia;
+  bloqueFamiliar.hidden = !modoFamilia;
+  if (titulo) {
+    titulo.textContent = modoFamilia ? "🔒 Cambiar la clave familiar" : "🔒 Cambiar mi clave";
+  }
+}
+
+// ---------- chips del perfil familiar ----------
+
+function construirChipFamilia(entry, activa) {
+  const chip = document.createElement("button");
+  chip.type = "button";
+  chip.className = "chip-familia" + (activa ? " activa" : "");
+
+  const nombre = document.createElement("span");
+  nombre.textContent = entry.nombre;
+  chip.appendChild(nombre);
+
+  const quitar = document.createElement("span");
+  quitar.className = "quitar-chip";
+  quitar.textContent = "✕";
+  quitar.title = "Quitar de este dispositivo";
+  quitar.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    quitarDeFamilia(entry.id);
+    renderChipsFamilia();
+    renderChipsFamiliaInicio();
+  });
+  chip.appendChild(quitar);
+
+  chip.addEventListener("click", () => cambiarAHermana(entry));
+  return chip;
+}
+
+function renderChipsFamilia() {
+  const cont = el("chipsFamilia");
+  cont.innerHTML = "";
+
+  // Si entramos con la clave FAMILIAR, ya tenemos el perfil completo
+  // de todas las hermanas en memoria — cambiar de una a otra es
+  // instantáneo, sin volver a llamar al Worker.
+  if (modoFamilia) {
+    if (datosHijasFamilia.length < 2) return;
+    datosHijasFamilia.forEach((d) => {
+      const activa = alumnaSeleccionada && d.id === alumnaSeleccionada.id;
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip-familia" + (activa ? " activa" : "");
+      chip.textContent = d.nombre;
+      chip.addEventListener("click", () => {
+        if (alumnaSeleccionada && d.id === alumnaSeleccionada.id) return;
+        mostrarPerfilDesdeDatos(d);
+      });
+      cont.appendChild(chip);
+    });
+    return;
+  }
+
+  // Si no, es el perfil familiar guardado en ESTE dispositivo (una
+  // clave individual por hermana) — cambiar sí pide al Worker.
+  // Con una sola hija guardada no hace falta mostrar el selector,
+  // solo el botón de "agregar otra" (ya está fuera de este bloque).
+  if (familiaAlumnas.length < 2) return;
+
+  familiaAlumnas.forEach((f) => {
+    const activa = alumnaSeleccionada && f.id === alumnaSeleccionada.id;
+    cont.appendChild(construirChipFamilia(f, activa));
+  });
+}
+
+// Mismo listado, pero en la pantalla inicial de "busca tu nombre" —
+// así, en visitas siguientes desde el mismo dispositivo, ni siquiera
+// hace falta buscar ni escribir la clave para entrar a una hija que
+// ya se agregó antes.
+function renderChipsFamiliaInicio() {
+  const cont = el("chipsFamiliaInicio");
+  const label = el("labelChipsFamiliaInicio");
+  if (!cont || !label) return;
+  cont.innerHTML = "";
+  label.hidden = familiaAlumnas.length === 0;
+  if (!familiaAlumnas.length) return;
+
+  familiaAlumnas.forEach((f) => {
+    cont.appendChild(construirChipFamilia(f, false));
+  });
+}
+
+async function cambiarAHermana(entry) {
+  if (!modoFamilia && alumnaSeleccionada && entry.id === alumnaSeleccionada.id) return;
+  mostrarError("");
+
+  try {
+    const datos = await llamarWorker({ accion: "entrar", alumnaId: entry.id, clave: entry.clave });
+    claveActual = entry.clave;
+    modoFamilia = false;
+    datosHijasFamilia = [];
+    familiaIdActual = null;
+    claveFamiliarActual = "";
+
+    mostrarPerfilDesdeDatos(datos);
+    renderChipsFamiliaInicio();
+  } catch (e) {
+    // Es probable que le hayan cambiado la clave desde que la
+    // guardamos — la quitamos de la lista y que entre de nuevo.
+    quitarDeFamilia(entry.id);
+    renderChipsFamilia();
+    renderChipsFamiliaInicio();
+    mostrarError(`No se pudo entrar a ${entry.nombre} automáticamente (puede que su clave haya cambiado). Búscala y entra de nuevo.`);
   }
 }
 
@@ -1168,6 +1465,55 @@ async function guardarNuevaClave() {
   }
 }
 
+// ---------- cambiar clave familiar (dentro del perfil, en modo familia) ----------
+
+async function guardarNuevaClaveFamiliar() {
+  const nueva = el("inputClaveFamiliarNueva").value.trim();
+  const confirmar = el("inputClaveFamiliarConfirmar").value.trim();
+  mostrarError("");
+  el("mensajeClaveFamiliarOk").hidden = true;
+
+  if (!nueva || !confirmar) {
+    mostrarError("Escribe la nueva clave familiar y confírmala.");
+    return;
+  }
+  if (nueva.length < 6) {
+    mostrarError("La nueva clave familiar debe tener al menos 6 caracteres.");
+    return;
+  }
+  if (nueva !== confirmar) {
+    mostrarError("Las dos claves familiares no coinciden.");
+    return;
+  }
+
+  const btn = el("btnGuardarClaveFamiliar");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Guardando...";
+
+  try {
+    await llamarWorker({
+      accion: "cambiarClaveFamiliar",
+      familiaId: familiaIdActual,
+      claveActual: claveFamiliarActual,
+      claveNueva: nueva,
+    });
+    claveFamiliarActual = nueva;
+    // Actualizamos también el atajo guardado en este dispositivo, para
+    // que "Entrar como [familia]" siga funcionando con la clave nueva.
+    guardarClaveFamiliarLocal(nueva, nombreFamiliaActual);
+    actualizarBotonFamiliaGuardada();
+    el("inputClaveFamiliarNueva").value = "";
+    el("inputClaveFamiliarConfirmar").value = "";
+    el("mensajeClaveFamiliarOk").hidden = false;
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
 // ---------- historial de mensualidades ----------
 
 async function verHistorialPagos() {
@@ -1510,7 +1856,12 @@ async function enviarMensajeChat() {
 el("buscarAlumna").addEventListener("input", (e) => renderAlumnas(e.target.value));
 
 el("btnAtrasClave").addEventListener("click", () => {
-  alumnaSeleccionada = null;
+  // Si veníamos de "Agregar otra hija" (ya hay un perfil abierto
+  // esperando), no perdemos esa sesión — solo cancela la búsqueda
+  // de la nueva hija y la deja donde estaba.
+  if (el("btnVolverPerfilDesdeAlumna").hidden) {
+    alumnaSeleccionada = null;
+  }
   mostrarPantalla("pantallaAlumna");
 });
 
@@ -1524,12 +1875,63 @@ el("btnSalir").addEventListener("click", () => {
   alumnaSeleccionada = null;
   pagoActual = null;
   claveActual = "";
+  modoFamilia = false;
+  datosHijasFamilia = [];
+  familiaIdActual = null;
+  claveFamiliarActual = "";
   el("buscarAlumna").value = "";
+  el("btnVolverPerfilDesdeAlumna").hidden = true;
   renderAlumnas("");
   // Quitamos la decoración de cumpleaños (era de esa alumna en
   // particular); si es octubre o diciembre, vuelve el tema del mes.
   aplicarDecoracion(obtenerTemaDelDia());
   mostrarPantalla("pantallaAlumna");
+});
+
+// ---------- perfil familiar: agregar / cambiar / olvidar ----------
+
+el("btnAgregarHermana").addEventListener("click", () => {
+  el("buscarAlumna").value = "";
+  renderAlumnas("");
+  el("btnVolverPerfilDesdeAlumna").hidden = false;
+  mostrarPantalla("pantallaAlumna");
+});
+
+el("btnVolverPerfilDesdeAlumna").addEventListener("click", () => {
+  el("btnVolverPerfilDesdeAlumna").hidden = true;
+  mostrarPantalla("pantallaPerfil");
+});
+
+el("btnOlvidarDispositivo").addEventListener("click", () => {
+  const conFirmar = window.confirm(
+    "¿Olvidar a todas las hijas guardadas en este dispositivo (y la clave familiar guardada, si hay una)? La próxima vez van a necesitar escribir la clave otra vez."
+  );
+  if (!conFirmar) return;
+  familiaAlumnas = [];
+  guardarFamilia();
+  borrarClaveFamiliarLocal();
+  renderChipsFamilia();
+  renderChipsFamiliaInicio();
+  actualizarBotonFamiliaGuardada();
+});
+
+// ---------- entrar con clave familiar ----------
+
+el("btnMostrarClaveFamiliar").addEventListener("click", () => {
+  const bloque = el("bloqueClaveFamiliar");
+  bloque.hidden = !bloque.hidden;
+  if (!bloque.hidden) el("inputClaveFamiliar").focus();
+});
+
+el("btnEntrarFamilia").addEventListener("click", () => entrarConClaveFamiliar());
+
+el("inputClaveFamiliar").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") entrarConClaveFamiliar();
+});
+
+el("btnEntrarFamiliaGuardada").addEventListener("click", () => {
+  const guardado = cargarClaveFamiliarLocal();
+  if (guardado && guardado.clave) entrarConClaveFamiliar(guardado.clave);
 });
 
 el("btnGenerarLink").addEventListener("click", generarLinkPago);
@@ -1563,6 +1965,7 @@ el("inputRecuperarCorreo").addEventListener("keydown", (e) => {
 });
 
 el("btnGuardarClave").addEventListener("click", guardarNuevaClave);
+el("btnGuardarClaveFamiliar").addEventListener("click", guardarNuevaClaveFamiliar);
 
 el("btnHistorialPagos").addEventListener("click", verHistorialPagos);
 
