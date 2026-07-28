@@ -74,6 +74,7 @@ let datosHijasFamilia = []; // perfiles completos de las hermanas (ya cargados, 
 let nombreFamiliaActual = "";
 let familiaIdActual = null; // ID del registro en FAMILIAS PORTAL, para poder cambiar su clave
 let claveFamiliarActual = ""; // la clave familiar con la que se entró, se usa para confirmar el cambio
+let hermanaSeleccionadaUnir = null; // hermana elegida en el buscador de "unir con otra hija"
 
 function guardarClaveFamiliarLocal(clave, nombreFamilia) {
   try {
@@ -487,6 +488,11 @@ function mostrarPerfilDesdeDatos(datos) {
   el("inputClaveFamiliarConfirmar").value = "";
   el("mensajeClaveFamiliarOk").hidden = true;
   el("btnVolverPerfilDesdeAlumna").hidden = true;
+  el("bloqueUnirFamilia").hidden = true;
+  el("bloqueConfirmarUnir").hidden = true;
+  el("buscarHermanaUnir").value = "";
+  el("listaHermanaUnir").innerHTML = "";
+  hermanaSeleccionadaUnir = null;
   actualizarSeccionCambiarClave();
 
   // El cumpleaños de HOY es más especial que el tema del mes, así
@@ -1514,6 +1520,145 @@ async function guardarNuevaClaveFamiliar() {
   }
 }
 
+// ---------- unir con otra hija (grupo familiar permanente) ----------
+// A diferencia de "Agregar a otra hija" (que solo recuerda cosas en
+// ESTE dispositivo), esto crea/actualiza de verdad la relación en la
+// tabla FAMILIAS PORTAL de Airtable, para que quede igual desde
+// cualquier celular o computadora. No depende de la academia: basta
+// con que quien lo haga sepa las claves individuales de las dos hijas
+// que quiere unir (o la clave familiar, si ya está en modo familia).
+
+// IDs que ya se están mostrando en el perfil actual, para no
+// ofrecerlos de nuevo en el buscador.
+function idsYaEnPerfilActual() {
+  if (modoFamilia) return datosHijasFamilia.map((d) => d.id);
+  return alumnaSeleccionada ? [alumnaSeleccionada.id] : [];
+}
+
+function renderListaHermanaUnir(filtro) {
+  const cont = el("listaHermanaUnir");
+  cont.innerHTML = "";
+  const texto = (filtro || "").trim().toLowerCase();
+
+  if (!texto) {
+    const aviso = document.createElement("p");
+    aviso.className = "lista-alumnas-aviso";
+    aviso.textContent = "Escribe el nombre de tu otra hija para buscarla.";
+    cont.appendChild(aviso);
+    return;
+  }
+
+  const yaIncluidas = idsYaEnPerfilActual();
+  const filtradas = alumnas.filter(
+    (a) => a.nombre.toLowerCase().includes(texto) && !yaIncluidas.includes(a.id)
+  );
+
+  if (filtradas.length === 0) {
+    const vacio = document.createElement("p");
+    vacio.className = "lista-alumnas-aviso";
+    vacio.textContent = "No encontramos ese nombre. Revisa cómo lo escribiste.";
+    cont.appendChild(vacio);
+    return;
+  }
+
+  filtradas.slice(0, 30).forEach((a) => {
+    const btn = document.createElement("button");
+    btn.textContent = a.nombre;
+    btn.addEventListener("click", () => seleccionarHermanaUnir(a));
+    cont.appendChild(btn);
+  });
+}
+
+function seleccionarHermanaUnir(a) {
+  hermanaSeleccionadaUnir = a;
+  el("nombreHermanaUnirElegida").textContent = a.nombre;
+  el("inputClaveHermanaUnir").value = "";
+  el("inputClaveFamiliarNuevaUnir").value = "";
+  el("inputClaveFamiliarNuevaUnirConfirmar").value = "";
+  el("buscarHermanaUnir").value = "";
+  el("listaHermanaUnir").innerHTML = "";
+  el("bloqueConfirmarUnir").hidden = false;
+  el("inputClaveHermanaUnir").focus();
+}
+
+async function confirmarUnirFamilia() {
+  if (!hermanaSeleccionadaUnir) return;
+
+  const claveHermana = el("inputClaveHermanaUnir").value.trim();
+  const nuevaClave = el("inputClaveFamiliarNuevaUnir").value.trim();
+  const nuevaClaveConfirmar = el("inputClaveFamiliarNuevaUnirConfirmar").value.trim();
+
+  mostrarError("");
+  el("mensajeUnirFamiliaOk").hidden = true;
+
+  if (!claveHermana) {
+    mostrarError("Escribe la clave de tu otra hija.");
+    return;
+  }
+  if (nuevaClave || nuevaClaveConfirmar) {
+    if (nuevaClave.length < 6) {
+      mostrarError("La nueva clave familiar debe tener al menos 6 caracteres.");
+      return;
+    }
+    if (nuevaClave !== nuevaClaveConfirmar) {
+      mostrarError("Las dos claves familiares no coinciden.");
+      return;
+    }
+  }
+
+  const btn = el("btnConfirmarUnirFamilia");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Uniendo...";
+
+  const nombreHermanaUnida = hermanaSeleccionadaUnir.nombre;
+
+  try {
+    const payload = {
+      accion: "agregarHermanaAFamilia",
+      hermanaId: hermanaSeleccionadaUnir.id,
+      claveHermana,
+    };
+    if (nuevaClave) payload.claveFamiliarNueva = nuevaClave;
+
+    if (modoFamilia) {
+      payload.familiaId = familiaIdActual;
+      payload.claveFamiliar = claveFamiliarActual;
+    } else {
+      payload.alumnaId = alumnaSeleccionada.id;
+      payload.claveAlumna = claveActual;
+    }
+
+    const resp = await llamarWorker(payload);
+
+    hermanaSeleccionadaUnir = null;
+    el("bloqueUnirFamilia").hidden = true;
+    el("bloqueConfirmarUnir").hidden = true;
+    el("buscarHermanaUnir").value = "";
+    el("listaHermanaUnir").innerHTML = "";
+    el("inputClaveHermanaUnir").value = "";
+    el("inputClaveFamiliarNuevaUnir").value = "";
+    el("inputClaveFamiliarNuevaUnirConfirmar").value = "";
+
+    // Recargamos el grupo familiar completo (todas las hermanas juntas)
+    // usando la clave familiar que se acaba de confirmar o crear —
+    // así el perfil que se ve ya queda en modo familia, actualizado.
+    await entrarConClaveFamiliar(resp.claveFamiliar);
+
+    if (resp.claveFamiliar) {
+      const mensajeClave = resp.esNueva
+        ? `✅ ¡Listo! Unieron a ${nombreHermanaUnida}. Guarda esta clave familiar — la van a necesitar para entrar juntas desde cualquier celular o computadora:\n\n${resp.claveFamiliar}`
+        : `✅ ¡Listo! Unieron a ${nombreHermanaUnida} a su grupo familiar.\n\nLa clave familiar es: ${resp.claveFamiliar}`;
+      window.alert(mensajeClave);
+    }
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
 // ---------- historial de mensualidades ----------
 
 async function verHistorialPagos() {
@@ -1901,6 +2046,31 @@ el("btnVolverPerfilDesdeAlumna").addEventListener("click", () => {
   el("btnVolverPerfilDesdeAlumna").hidden = true;
   mostrarPantalla("pantallaPerfil");
 });
+
+el("btnUnirFamilia").addEventListener("click", () => {
+  const bloque = el("bloqueUnirFamilia");
+  bloque.hidden = !bloque.hidden;
+  if (!bloque.hidden) {
+    el("buscarHermanaUnir").value = "";
+    el("listaHermanaUnir").innerHTML = "";
+    el("bloqueConfirmarUnir").hidden = true;
+    hermanaSeleccionadaUnir = null;
+    el("mensajeUnirFamiliaOk").hidden = true;
+    el("buscarHermanaUnir").focus();
+  }
+});
+
+el("buscarHermanaUnir").addEventListener("input", (e) => renderListaHermanaUnir(e.target.value));
+
+el("btnCancelarUnirFamilia").addEventListener("click", () => {
+  hermanaSeleccionadaUnir = null;
+  el("bloqueConfirmarUnir").hidden = true;
+  el("buscarHermanaUnir").value = "";
+  el("listaHermanaUnir").innerHTML = "";
+  el("buscarHermanaUnir").focus();
+});
+
+el("btnConfirmarUnirFamilia").addEventListener("click", confirmarUnirFamilia);
 
 el("btnOlvidarDispositivo").addEventListener("click", () => {
   const conFirmar = window.confirm(

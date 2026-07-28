@@ -94,7 +94,28 @@
 
     <div id="bloqueFamilia" class="bloque-familia">
       <div id="chipsFamilia" class="chips-familia"></div>
-      <button class="btn-enlace" id="btnAgregarHermana" type="button">➕ Agregar a otra hija a este perfil</button>
+      <button class="btn-enlace" id="btnAgregarHermana" type="button">➕ Agregar a otra hija (solo en este dispositivo)</button>
+
+      <button class="btn-enlace" id="btnUnirFamilia" type="button">🔗 Unir con otra hija (funciona en cualquier dispositivo)</button>
+      <div id="bloqueUnirFamilia" hidden>
+        <p class="aviso-familia">Busca a tu otra hija y escribe su clave para unirlas en el mismo grupo familiar permanente.</p>
+        <input type="text" id="buscarHermanaUnir" class="buscador" placeholder="Escribe su nombre..." autocomplete="off" />
+        <div id="listaHermanaUnir" class="lista-alumnas"></div>
+
+        <div id="bloqueConfirmarUnir" hidden>
+          <p class="nombre-elegido" id="nombreHermanaUnirElegida"></p>
+          <input type="password" id="inputClaveHermanaUnir" class="input-clave-chica" placeholder="Clave de tu otra hija" autocomplete="off" />
+
+          <p class="aviso-familia">Si es la primera vez que unen a dos hijas, elige aquí la clave familiar que van a usar juntas. Si ya tienen una clave familiar, déjalo en blanco.</p>
+          <input type="password" id="inputClaveFamiliarNuevaUnir" class="input-clave-chica" placeholder="Nueva clave familiar (opcional)" autocomplete="new-password" minlength="6" />
+          <input type="password" id="inputClaveFamiliarNuevaUnirConfirmar" class="input-clave-chica" placeholder="Confirmar clave familiar (opcional)" autocomplete="new-password" minlength="6" />
+
+          <button class="btn-secundario btn-ancho" id="btnConfirmarUnirFamilia" type="button">Unir a las dos</button>
+          <button class="btn-enlace" id="btnCancelarUnirFamilia" type="button">Cancelar</button>
+        </div>
+
+        <p class="mensaje-clave-ok" id="mensajeUnirFamiliaOk" hidden></p>
+      </div>
     </div>
 
     <div id="perfilLista" class="perfil-lista"></div>
