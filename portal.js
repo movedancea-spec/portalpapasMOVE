@@ -31,6 +31,7 @@ let nombreFamiliaActual = "";
 let familiaIdActual = null; // ID del registro en FAMILIAS PORTAL, para poder cambiar su clave
 let claveFamiliarActual = ""; // la clave familiar con la que se entró, se usa para confirmar el cambio
 let hermanaSeleccionadaUnir = null; // hermana elegida en el buscador de "unir con otra hija"
+let hijaSeleccionadaRecuperarFamiliar = null; // hija elegida en el buscador de "olvidé la clave familiar"
 
 function guardarClaveFamiliarLocal(clave, nombreFamilia) {
   try {
@@ -1294,6 +1295,114 @@ async function recuperarClavePorCorreo() {
   }
 }
 
+// ---------- recuperar clave FAMILIAR (pantalla inicial) ----------
+// Como la "familia" no tiene su propio WhatsApp/correo en Airtable,
+// piden buscar a UNA de sus hijas y le reenviamos la clave familiar
+// al contacto que ya tenemos registrado para ella.
+
+function renderListaHijaRecuperarFamiliar(filtro) {
+  const cont = el("listaHijaRecuperarFamiliar");
+  cont.innerHTML = "";
+  const texto = (filtro || "").trim().toLowerCase();
+
+  if (!texto) {
+    const aviso = document.createElement("p");
+    aviso.className = "lista-alumnas-aviso";
+    aviso.textContent = "Escribe el nombre de tu hija para buscarla.";
+    cont.appendChild(aviso);
+    return;
+  }
+
+  const filtradas = alumnas.filter((a) => a.nombre.toLowerCase().includes(texto));
+
+  if (filtradas.length === 0) {
+    const vacio = document.createElement("p");
+    vacio.className = "lista-alumnas-aviso";
+    vacio.textContent = "No encontramos ese nombre. Revisa cómo lo escribiste.";
+    cont.appendChild(vacio);
+    return;
+  }
+
+  filtradas.slice(0, 30).forEach((a) => {
+    const btn = document.createElement("button");
+    btn.textContent = a.nombre;
+    btn.addEventListener("click", () => seleccionarHijaRecuperarFamiliar(a));
+    cont.appendChild(btn);
+  });
+}
+
+function seleccionarHijaRecuperarFamiliar(a) {
+  hijaSeleccionadaRecuperarFamiliar = a;
+  el("nombreHijaRecuperarFamiliar").textContent = a.nombre;
+  el("buscarHijaRecuperarFamiliar").value = "";
+  el("listaHijaRecuperarFamiliar").innerHTML = "";
+  el("bloqueOpcionesRecuperarFamiliar").hidden = false;
+  el("bloqueRecuperarFamiliarCorreo").hidden = true;
+  el("inputRecuperarFamiliarCorreo").value = "";
+  el("mensajeRecuperarFamiliar").hidden = true;
+}
+
+async function recuperarClaveFamiliarPorWhatsapp() {
+  if (!hijaSeleccionadaRecuperarFamiliar) return;
+  const btn = el("btnRecuperarFamiliarWhatsapp");
+  const msg = el("mensajeRecuperarFamiliar");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Enviando...";
+  msg.hidden = true;
+  mostrarError("");
+
+  try {
+    const datos = await llamarWorker({
+      accion: "recuperarClaveFamiliar",
+      alumnaId: hijaSeleccionadaRecuperarFamiliar.id,
+    });
+    msg.textContent =
+      "✅ Te enviamos la clave familiar por WhatsApp al número terminado en " +
+      (datos.ultimosDigitos || "****") +
+      ".";
+    msg.hidden = false;
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+async function recuperarClaveFamiliarPorCorreo() {
+  if (!hijaSeleccionadaRecuperarFamiliar) return;
+  const btn = el("btnEnviarRecuperarFamiliarCorreo");
+  const msg = el("mensajeRecuperarFamiliar");
+  const correo = el("inputRecuperarFamiliarCorreo").value.trim();
+  msg.hidden = true;
+  mostrarError("");
+
+  if (!correo) {
+    mostrarError("Escribe tu correo.");
+    return;
+  }
+
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Enviando...";
+
+  try {
+    await llamarWorker({
+      accion: "recuperarClaveFamiliarPorCorreo",
+      alumnaId: hijaSeleccionadaRecuperarFamiliar.id,
+      correo,
+    });
+    msg.textContent = "✅ Te enviamos la clave familiar a tu correo. Revisa tu bandeja de entrada (y la carpeta de spam).";
+    msg.hidden = false;
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
 // ---------- cambiar clave (dentro del perfil) ----------
 
 async function guardarNuevaClave() {
@@ -1940,6 +2049,35 @@ el("btnMostrarClaveFamiliar").addEventListener("click", () => {
 });
 
 el("btnEntrarFamilia").addEventListener("click", () => entrarConClaveFamiliar());
+
+el("btnMostrarRecuperarFamiliar").addEventListener("click", () => {
+  const bloque = el("bloqueRecuperarFamiliar");
+  bloque.hidden = !bloque.hidden;
+  if (!bloque.hidden) {
+    hijaSeleccionadaRecuperarFamiliar = null;
+    el("buscarHijaRecuperarFamiliar").value = "";
+    el("listaHijaRecuperarFamiliar").innerHTML = "";
+    el("bloqueOpcionesRecuperarFamiliar").hidden = true;
+    el("mensajeRecuperarFamiliar").hidden = true;
+    el("buscarHijaRecuperarFamiliar").focus();
+  }
+});
+
+el("buscarHijaRecuperarFamiliar").addEventListener("input", (e) =>
+  renderListaHijaRecuperarFamiliar(e.target.value)
+);
+
+el("btnRecuperarFamiliarWhatsapp").addEventListener("click", recuperarClaveFamiliarPorWhatsapp);
+
+el("btnMostrarRecuperarFamiliarCorreo").addEventListener("click", () => {
+  el("bloqueRecuperarFamiliarCorreo").hidden = !el("bloqueRecuperarFamiliarCorreo").hidden;
+});
+
+el("btnEnviarRecuperarFamiliarCorreo").addEventListener("click", recuperarClaveFamiliarPorCorreo);
+
+el("inputRecuperarFamiliarCorreo").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") recuperarClaveFamiliarPorCorreo();
+});
 
 el("inputClaveFamiliar").addEventListener("keydown", (e) => {
   if (e.key === "Enter") entrarConClaveFamiliar();

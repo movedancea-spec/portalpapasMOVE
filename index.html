@@ -51,6 +51,28 @@
     <div id="bloqueClaveFamiliar" hidden>
       <input type="text" id="inputClaveFamiliar" class="input-clave-chica" placeholder="Escribe la clave familiar" autocomplete="off" />
       <button class="btn-secundario btn-ancho" id="btnEntrarFamilia" type="button">Entrar</button>
+
+      <button class="btn-enlace" id="btnMostrarRecuperarFamiliar" type="button">¿Olvidaste la clave familiar?</button>
+      <div id="bloqueRecuperarFamiliar" hidden>
+        <p class="aviso-familia">Busca a una de tus hijas: te enviamos la clave familiar al WhatsApp o correo que ya tenemos registrado para ella.</p>
+        <input type="text" id="buscarHijaRecuperarFamiliar" class="buscador" placeholder="Escribe su nombre..." autocomplete="off" />
+        <div id="listaHijaRecuperarFamiliar" class="lista-alumnas"></div>
+
+        <div id="bloqueOpcionesRecuperarFamiliar" hidden>
+          <p class="nombre-elegido" id="nombreHijaRecuperarFamiliar"></p>
+          <div class="recuperar-opciones">
+            <button class="btn-secundario" id="btnRecuperarFamiliarWhatsapp" type="button">📲 Por WhatsApp</button>
+            <button class="btn-secundario" id="btnMostrarRecuperarFamiliarCorreo" type="button">✉️ Por correo</button>
+          </div>
+
+          <div id="bloqueRecuperarFamiliarCorreo" hidden>
+            <input type="email" id="inputRecuperarFamiliarCorreo" class="input-clave-chica" placeholder="Escribe tu correo registrado" autocomplete="email" />
+            <button class="btn-secundario btn-ancho" id="btnEnviarRecuperarFamiliarCorreo" type="button">Enviar clave familiar a mi correo</button>
+          </div>
+        </div>
+
+        <p class="mensaje-recuperar" id="mensajeRecuperarFamiliar" hidden></p>
+      </div>
     </div>
   </section>
 
