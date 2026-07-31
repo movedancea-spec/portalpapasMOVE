@@ -13,6 +13,7 @@ const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 let alumnas = [];
 let alumnaSeleccionada = null;
 let pagoActual = null;
+let pagosEspecialesActuales = []; // lista actual de Pagos Especiales, para poder refrescar un solo botón sin recargar todo el perfil
 let claveActual = ""; // la clave con la que la alumna entró, se usa para confirmar cambios de clave
 
 // ---------- clave familiar compartida (funciona en CUALQUIER dispositivo) ----------
@@ -870,6 +871,8 @@ function formatearFechaCorta(fechaISO) {
 }
 
 function renderPagosEspeciales(lista) {
+  pagosEspecialesActuales = lista || [];
+
   const seccion = el("seccionPagosEspeciales");
   const cont = el("listaPagosEspeciales");
   cont.innerHTML = "";
@@ -925,8 +928,202 @@ function renderPagosEspeciales(lista) {
       card.appendChild(limite);
     }
 
+    // Pagar el saldo pendiente de este pago especial (cuenta nueva de
+    // Paggo) — dejamos elegir el monto para poder hacer abonos
+    // parciales, no solo el saldo completo de una vez.
+    const yaPagado = (p.estado || "").toUpperCase() === "PAGADO";
+    if (!yaPagado) {
+      const saldoNum = Number(p.saldo) || 0;
+
+      // Si ya hay un link generado y pendiente, mostramos su botón de
+      // pago (con el monto exacto de ESE link, que puede ser un abono
+      // parcial distinto al saldo total).
+      if (p.linkPago) {
+        const link = document.createElement("a");
+        link.className = "btn-secundario btn-link-pago-chico";
+        link.href = p.linkPago;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent =
+          "💳 Pagar" + (p.montoLink != null ? " Q" + Number(p.montoLink).toFixed(2) : "") + " ahora";
+        card.appendChild(link);
+      }
+
+      // Y siempre dejamos abierta la opción de generar un link nuevo
+      // (por el saldo completo, o por el monto que quieran abonar).
+      const bloqueAbono = document.createElement("div");
+      bloqueAbono.className = "pago-especial-abono";
+
+      const labelMonto = document.createElement("label");
+      labelMonto.className = "pago-especial-label-monto";
+      labelMonto.textContent = "¿Cuánto quieres abonar?";
+
+      const inputMonto = document.createElement("input");
+      inputMonto.type = "number";
+      inputMonto.className = "pago-especial-input-monto";
+      inputMonto.min = "2";
+      inputMonto.max = String(saldoNum);
+      inputMonto.step = "0.01";
+      inputMonto.inputMode = "decimal";
+      inputMonto.value = saldoNum > 0 ? saldoNum.toFixed(2) : "";
+
+      const btnGenerar = document.createElement("button");
+      btnGenerar.className = "btn-secundario btn-generar-chico";
+      btnGenerar.textContent = p.linkPago ? "Generar link por otro monto" : "Generar link de pago";
+      btnGenerar.addEventListener("click", () => {
+        const monto = Number(inputMonto.value);
+        if (!monto || monto < 2) {
+          mostrarError("Ingresa un monto válido para abonar (mínimo Q2.00).");
+          return;
+        }
+        if (monto > saldoNum + 0.01) {
+          mostrarError(`El monto no puede ser mayor al saldo pendiente (Q${saldoNum.toFixed(2)}).`);
+          return;
+        }
+        generarLinkPagoEspecial(p.id, monto, btnGenerar);
+      });
+
+      bloqueAbono.appendChild(labelMonto);
+      bloqueAbono.appendChild(inputMonto);
+      bloqueAbono.appendChild(btnGenerar);
+      card.appendChild(bloqueAbono);
+
+      // Pagaron por OTRO medio (transferencia, depósito, etc.), no con
+      // el link — pueden subir su comprobante para que la academia lo
+      // revise. No descuenta el saldo hasta que lo confirmen.
+      if (p.tieneComprobantePendiente) {
+        const aviso = document.createElement("p");
+        aviso.className = "pago-especial-comprobante-pendiente";
+        aviso.textContent = "📎 Ya enviaste un comprobante — está pendiente de revisión por la academia.";
+        card.appendChild(aviso);
+      } else {
+        const detalleComprobante = document.createElement("details");
+        detalleComprobante.className = "pago-especial-detalle-comprobante";
+
+        const resumen = document.createElement("summary");
+        resumen.textContent = "¿Ya pagaste por transferencia u otro medio? Sube tu comprobante";
+        detalleComprobante.appendChild(resumen);
+
+        const labelMontoComprobante = document.createElement("label");
+        labelMontoComprobante.className = "pago-especial-label-monto";
+        labelMontoComprobante.textContent = "¿Cuánto abonaste?";
+
+        const inputMontoComprobante = document.createElement("input");
+        inputMontoComprobante.type = "number";
+        inputMontoComprobante.className = "pago-especial-input-monto";
+        inputMontoComprobante.min = "2";
+        inputMontoComprobante.max = String(saldoNum);
+        inputMontoComprobante.step = "0.01";
+        inputMontoComprobante.inputMode = "decimal";
+        inputMontoComprobante.value = saldoNum > 0 ? saldoNum.toFixed(2) : "";
+
+        const selectMetodo = document.createElement("select");
+        selectMetodo.className = "pago-especial-select-metodo";
+        [
+          ["TRANSFERENCIA", "Transferencia"],
+          ["EFECTIVO", "Efectivo"],
+          ["TARJETA", "Tarjeta"],
+        ].forEach(([valor, texto]) => {
+          const opcion = document.createElement("option");
+          opcion.value = valor;
+          opcion.textContent = texto;
+          selectMetodo.appendChild(opcion);
+        });
+
+        const labelArchivo = document.createElement("label");
+        labelArchivo.className = "btn-secundario btn-subir-archivo-historial";
+        const spanArchivo = document.createElement("span");
+        spanArchivo.textContent = "📎 Elegir foto o PDF del comprobante";
+        const inputArchivo = document.createElement("input");
+        inputArchivo.type = "file";
+        inputArchivo.accept = "image/*,.pdf";
+        inputArchivo.hidden = true;
+        labelArchivo.appendChild(spanArchivo);
+        labelArchivo.appendChild(inputArchivo);
+
+        const btnEnviarComprobante = document.createElement("button");
+        btnEnviarComprobante.type = "button";
+        btnEnviarComprobante.className = "btn-secundario btn-generar-chico";
+        btnEnviarComprobante.textContent = "Enviar comprobante";
+        btnEnviarComprobante.addEventListener("click", () => {
+          const archivo = inputArchivo.files && inputArchivo.files[0];
+          const monto = Number(inputMontoComprobante.value);
+          if (!monto || monto < 2) {
+            mostrarError("Ingresa el monto que abonaste (mínimo Q2.00).");
+            return;
+          }
+          if (monto > saldoNum + 0.01) {
+            mostrarError(`El monto no puede ser mayor al saldo pendiente (Q${saldoNum.toFixed(2)}).`);
+            return;
+          }
+          if (!archivo) {
+            mostrarError("Elige la foto o el PDF de tu comprobante.");
+            return;
+          }
+          enviarComprobantePagoEspecial(p.id, monto, selectMetodo.value, archivo, btnEnviarComprobante);
+        });
+
+        detalleComprobante.appendChild(labelMontoComprobante);
+        detalleComprobante.appendChild(inputMontoComprobante);
+        detalleComprobante.appendChild(selectMetodo);
+        detalleComprobante.appendChild(labelArchivo);
+        detalleComprobante.appendChild(btnEnviarComprobante);
+        card.appendChild(detalleComprobante);
+      }
+    }
+
     cont.appendChild(card);
   });
+}
+
+async function generarLinkPagoEspecial(pagoEspecialId, monto, boton) {
+  boton.disabled = true;
+  const textoOriginal = boton.textContent;
+  boton.textContent = "Generando... espera un momento";
+  mostrarError("");
+
+  try {
+    const datos = await llamarWorker({ accion: "generarLinkEspecial", pagoEspecialId, monto });
+    const idx = pagosEspecialesActuales.findIndex((p) => p.id === pagoEspecialId);
+    if (idx !== -1) pagosEspecialesActuales[idx] = datos.pagoEspecial;
+    renderPagosEspeciales(pagosEspecialesActuales);
+  } catch (e) {
+    mostrarError(e.message);
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  }
+}
+
+async function enviarComprobantePagoEspecial(pagoEspecialId, monto, metodo, archivo, boton) {
+  if (archivo.size > TAMANO_MAX_ARCHIVO) {
+    mostrarError("El archivo es muy grande (máximo 8 MB). Intenta con una foto más liviana.");
+    return;
+  }
+
+  boton.disabled = true;
+  const textoOriginal = boton.textContent;
+  boton.textContent = "Enviando...";
+  mostrarError("");
+
+  try {
+    const archivoBase64 = await leerArchivoBase64(archivo);
+    const datos = await llamarWorker({
+      accion: "subirComprobantePagoEspecial",
+      pagoEspecialId,
+      monto,
+      metodo,
+      archivoBase64,
+      nombreArchivo: archivo.name,
+      tipoArchivo: archivo.type,
+    });
+    const idx = pagosEspecialesActuales.findIndex((p) => p.id === pagoEspecialId);
+    if (idx !== -1) pagosEspecialesActuales[idx] = datos.pagoEspecial;
+    renderPagosEspeciales(pagosEspecialesActuales);
+  } catch (e) {
+    mostrarError(e.message);
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  }
 }
 
 // ---------- evaluaciones ----------

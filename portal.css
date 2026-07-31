@@ -774,6 +774,85 @@ font-weight:600;
 margin-top:4px;
 }
 
+.pago-especial-abono{
+margin-top:10px;
+padding-top:10px;
+border-top:1px dashed #ffe3f0;
+display:flex;
+flex-direction:column;
+gap:6px;
+}
+
+.pago-especial-label-monto{
+font-size:clamp(12px,3.3vw,13.5px);
+font-weight:700;
+color:#a15277;
+}
+
+.pago-especial-input-monto{
+border:2px solid #ffd8ea;
+border-radius:12px;
+padding:clamp(9px,2.8vw,11px);
+font-size:clamp(14px,3.8vw,15px);
+font-family:inherit;
+color:#555;
+background:white;
+outline:none;
+width:100%;
+box-sizing:border-box;
+transition:.18s;
+}
+
+.pago-especial-input-monto:focus{
+border-color:#ef4b9b;
+box-shadow:0 0 0 3px rgba(239,75,155,.15);
+}
+
+.pago-especial-detalle-comprobante{
+margin-top:10px;
+padding-top:10px;
+border-top:1px dashed #ffe3f0;
+}
+
+.pago-especial-detalle-comprobante summary{
+font-size:clamp(12.5px,3.4vw,14px);
+font-weight:700;
+color:#a15277;
+cursor:pointer;
+margin-bottom:8px;
+}
+
+.pago-especial-detalle-comprobante .pago-especial-label-monto,
+.pago-especial-detalle-comprobante .pago-especial-input-monto,
+.pago-especial-detalle-comprobante .pago-especial-select-metodo,
+.pago-especial-detalle-comprobante .btn-subir-archivo-historial,
+.pago-especial-detalle-comprobante .btn-generar-chico{
+margin-top:6px;
+}
+
+.pago-especial-select-metodo{
+display:block;
+width:100%;
+border:2px solid #ffd8ea;
+border-radius:12px;
+padding:clamp(9px,2.8vw,11px);
+font-size:clamp(14px,3.8vw,15px);
+font-family:inherit;
+color:#555;
+background:white;
+outline:none;
+box-sizing:border-box;
+}
+
+.pago-especial-comprobante-pendiente{
+margin-top:10px;
+padding-top:10px;
+border-top:1px dashed #ffe3f0;
+font-size:clamp(12.5px,3.4vw,14px);
+font-weight:600;
+color:#c97800;
+}
+
 /*=====================================
 EVALUACIONES
 =====================================*/
