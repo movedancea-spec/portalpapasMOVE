@@ -987,17 +987,70 @@ function renderPagosEspeciales(lista) {
       bloqueAbono.appendChild(inputMonto);
       bloqueAbono.appendChild(btnGenerar);
       card.appendChild(bloqueAbono);
+    }
 
-      // NOTA: se quitó a propósito la opción de subir comprobante para
-      // "otro medio" de pago en Pagos Especiales — generaba riesgo de
-      // que una familia pagara por link (que ya se registra solo) y
-      // ADEMÁS subiera un comprobante del mismo pago, duplicándolo. Si
-      // alguien paga por transferencia/depósito fuera del link, la
-      // academia lo agrega a mano en Airtable como siempre.
+    // Subir comprobante de pago de este pago especial, para cuando
+    // pagan por OTRO medio (transferencia, depósito, etc.), no con el
+    // link de Paggo. A propósito esto SOLO adjunta el archivo para que
+    // la academia lo revise — no crea ningún abono ni cambia el saldo
+    // solo, así no hay riesgo de duplicar un pago que ya se confirmó
+    // automáticamente por link.
+    if (p.tieneComprobante) {
+      const ok = document.createElement("p");
+      ok.className = "comprobante-ok";
+      ok.textContent = "✅ Ya subiste tu comprobante de pago.";
+      card.appendChild(ok);
+    } else {
+      const label = document.createElement("label");
+      label.className = "btn-secundario btn-subir-archivo-historial";
+
+      const span = document.createElement("span");
+      span.textContent = "📎 Subir comprobante de pago";
+
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*,.pdf";
+      input.hidden = true;
+      input.addEventListener("change", (e) => {
+        const archivo = e.target.files && e.target.files[0];
+        if (archivo) subirComprobantePagoEspecial(p.id, archivo, span);
+      });
+
+      label.appendChild(span);
+      label.appendChild(input);
+      card.appendChild(label);
     }
 
     cont.appendChild(card);
   });
+}
+
+async function subirComprobantePagoEspecial(pagoEspecialId, archivo, spanTexto) {
+  if (archivo.size > TAMANO_MAX_ARCHIVO) {
+    mostrarError("El archivo es muy grande (máximo 8 MB). Intenta con una foto más liviana.");
+    return;
+  }
+
+  const textoOriginal = spanTexto.textContent;
+  spanTexto.textContent = "Subiendo...";
+  mostrarError("");
+
+  try {
+    const archivoBase64 = await leerArchivoBase64(archivo);
+    await llamarWorker({
+      accion: "subirComprobantePagoEspecial",
+      pagoEspecialId,
+      archivoBase64,
+      nombreArchivo: archivo.name,
+      tipoArchivo: archivo.type,
+    });
+    const idx = pagosEspecialesActuales.findIndex((p) => p.id === pagoEspecialId);
+    if (idx !== -1) pagosEspecialesActuales[idx].tieneComprobante = true;
+    renderPagosEspeciales(pagosEspecialesActuales);
+  } catch (e) {
+    mostrarError(e.message);
+    spanTexto.textContent = textoOriginal;
+  }
 }
 
 async function generarLinkPagoEspecial(pagoEspecialId, monto, boton) {
@@ -1018,9 +1071,12 @@ async function generarLinkPagoEspecial(pagoEspecialId, monto, boton) {
   }
 }
 
-// NOTA: se quitó a propósito enviarComprobantePagoEspecial() — subía un
-// comprobante para pagos especiales pagados por "otro medio". Ya no hay
-// ningún botón en la interfaz que la llame (ver nota en renderPagosEspeciales).
+// NOTA: se quitó a propósito la vieja enviarComprobantePagoEspecial() —
+// esa subía el comprobante Y ADEMÁS creaba un ABONO nuevo "Pendiente de
+// revisión", con riesgo de duplicar un pago ya confirmado por link. En
+// su lugar, renderPagosEspeciales() usa subirComprobantePagoEspecial()
+// (más abajo), que solo adjunta el archivo al pago especial para que la
+// academia lo revise, sin crear ningún abono ni tocar el saldo.
 
 // ---------- evaluaciones ----------
 
