@@ -3,7 +3,7 @@
 // se vea bien), NUNCA los datos que vienen del Worker (pagos, claves, etc. siempre
 // se piden frescos a Airtable/Worker, jamás desde caché).
 
-const CACHE_NAME = "move-portal-v19";
+const CACHE_NAME = "move-portal-v20";
 
 const ARCHIVOS_APP = [
   "./",
