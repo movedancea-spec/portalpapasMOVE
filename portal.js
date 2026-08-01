@@ -988,88 +988,12 @@ function renderPagosEspeciales(lista) {
       bloqueAbono.appendChild(btnGenerar);
       card.appendChild(bloqueAbono);
 
-      // Pagaron por OTRO medio (transferencia, depósito, etc.), no con
-      // el link — pueden subir su comprobante para que la academia lo
-      // revise. No descuenta el saldo hasta que lo confirmen.
-      if (p.tieneComprobantePendiente) {
-        const aviso = document.createElement("p");
-        aviso.className = "pago-especial-comprobante-pendiente";
-        aviso.textContent = "📎 Ya enviaste un comprobante — está pendiente de revisión por la academia.";
-        card.appendChild(aviso);
-      } else {
-        const detalleComprobante = document.createElement("details");
-        detalleComprobante.className = "pago-especial-detalle-comprobante";
-
-        const resumen = document.createElement("summary");
-        resumen.textContent = "¿Ya pagaste por transferencia u otro medio? Sube tu comprobante";
-        detalleComprobante.appendChild(resumen);
-
-        const labelMontoComprobante = document.createElement("label");
-        labelMontoComprobante.className = "pago-especial-label-monto";
-        labelMontoComprobante.textContent = "¿Cuánto abonaste?";
-
-        const inputMontoComprobante = document.createElement("input");
-        inputMontoComprobante.type = "number";
-        inputMontoComprobante.className = "pago-especial-input-monto";
-        inputMontoComprobante.min = "2";
-        inputMontoComprobante.max = String(saldoNum);
-        inputMontoComprobante.step = "0.01";
-        inputMontoComprobante.inputMode = "decimal";
-        inputMontoComprobante.value = saldoNum > 0 ? saldoNum.toFixed(2) : "";
-
-        const selectMetodo = document.createElement("select");
-        selectMetodo.className = "pago-especial-select-metodo";
-        [
-          ["TRANSFERENCIA", "Transferencia"],
-          ["EFECTIVO", "Efectivo"],
-          ["TARJETA", "Tarjeta"],
-        ].forEach(([valor, texto]) => {
-          const opcion = document.createElement("option");
-          opcion.value = valor;
-          opcion.textContent = texto;
-          selectMetodo.appendChild(opcion);
-        });
-
-        const labelArchivo = document.createElement("label");
-        labelArchivo.className = "btn-secundario btn-subir-archivo-historial";
-        const spanArchivo = document.createElement("span");
-        spanArchivo.textContent = "📎 Elegir foto o PDF del comprobante";
-        const inputArchivo = document.createElement("input");
-        inputArchivo.type = "file";
-        inputArchivo.accept = "image/*,.pdf";
-        inputArchivo.hidden = true;
-        labelArchivo.appendChild(spanArchivo);
-        labelArchivo.appendChild(inputArchivo);
-
-        const btnEnviarComprobante = document.createElement("button");
-        btnEnviarComprobante.type = "button";
-        btnEnviarComprobante.className = "btn-secundario btn-generar-chico";
-        btnEnviarComprobante.textContent = "Enviar comprobante";
-        btnEnviarComprobante.addEventListener("click", () => {
-          const archivo = inputArchivo.files && inputArchivo.files[0];
-          const monto = Number(inputMontoComprobante.value);
-          if (!monto || monto < 2) {
-            mostrarError("Ingresa el monto que abonaste (mínimo Q2.00).");
-            return;
-          }
-          if (monto > saldoNum + 0.01) {
-            mostrarError(`El monto no puede ser mayor al saldo pendiente (Q${saldoNum.toFixed(2)}).`);
-            return;
-          }
-          if (!archivo) {
-            mostrarError("Elige la foto o el PDF de tu comprobante.");
-            return;
-          }
-          enviarComprobantePagoEspecial(p.id, monto, selectMetodo.value, archivo, btnEnviarComprobante);
-        });
-
-        detalleComprobante.appendChild(labelMontoComprobante);
-        detalleComprobante.appendChild(inputMontoComprobante);
-        detalleComprobante.appendChild(selectMetodo);
-        detalleComprobante.appendChild(labelArchivo);
-        detalleComprobante.appendChild(btnEnviarComprobante);
-        card.appendChild(detalleComprobante);
-      }
+      // NOTA: se quitó a propósito la opción de subir comprobante para
+      // "otro medio" de pago en Pagos Especiales — generaba riesgo de
+      // que una familia pagara por link (que ya se registra solo) y
+      // ADEMÁS subiera un comprobante del mismo pago, duplicándolo. Si
+      // alguien paga por transferencia/depósito fuera del link, la
+      // academia lo agrega a mano en Airtable como siempre.
     }
 
     cont.appendChild(card);
@@ -1094,37 +1018,9 @@ async function generarLinkPagoEspecial(pagoEspecialId, monto, boton) {
   }
 }
 
-async function enviarComprobantePagoEspecial(pagoEspecialId, monto, metodo, archivo, boton) {
-  if (archivo.size > TAMANO_MAX_ARCHIVO) {
-    mostrarError("El archivo es muy grande (máximo 8 MB). Intenta con una foto más liviana.");
-    return;
-  }
-
-  boton.disabled = true;
-  const textoOriginal = boton.textContent;
-  boton.textContent = "Enviando...";
-  mostrarError("");
-
-  try {
-    const archivoBase64 = await leerArchivoBase64(archivo);
-    const datos = await llamarWorker({
-      accion: "subirComprobantePagoEspecial",
-      pagoEspecialId,
-      monto,
-      metodo,
-      archivoBase64,
-      nombreArchivo: archivo.name,
-      tipoArchivo: archivo.type,
-    });
-    const idx = pagosEspecialesActuales.findIndex((p) => p.id === pagoEspecialId);
-    if (idx !== -1) pagosEspecialesActuales[idx] = datos.pagoEspecial;
-    renderPagosEspeciales(pagosEspecialesActuales);
-  } catch (e) {
-    mostrarError(e.message);
-    boton.disabled = false;
-    boton.textContent = textoOriginal;
-  }
-}
+// NOTA: se quitó a propósito enviarComprobantePagoEspecial() — subía un
+// comprobante para pagos especiales pagados por "otro medio". Ya no hay
+// ningún botón en la interfaz que la llame (ver nota en renderPagosEspeciales).
 
 // ---------- evaluaciones ----------
 
