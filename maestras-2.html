@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Maestras</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="maestras.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">Chat de Maestras</div>
+
+  <!-- ============ PANTALLA 0: CLAVE DE MAESTRAS ============ -->
+  <section id="pantallaLogin" class="pantalla">
+    <p class="subtitulo">🔒 Escribe tu clave de maestra</p>
+    <input type="password" id="inputClaveMaestra" class="input-clave" placeholder="••••" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnEntrarMaestra">Entrar →</button>
+
+    <button class="btn-enlace" id="btnMostrarRecuperarMaestra" type="button">¿Olvidaste tu clave?</button>
+
+    <div id="bloqueRecuperarMaestra" hidden>
+      <p class="aviso-familia">Busca tu nombre para que te reenviemos tu clave por WhatsApp.</p>
+      <input type="text" id="buscarRecuperarMaestra" class="buscador" placeholder="Escribe tu nombre..." autocomplete="off" />
+      <div id="listaRecuperarMaestra" class="lista-alumnas"></div>
+
+      <div id="bloqueConfirmarRecuperarMaestra" hidden>
+        <p class="nombre-elegido" id="nombreRecuperarMaestraElegida"></p>
+        <button class="btn-secundario btn-ancho" id="btnEnviarRecuperarMaestra" type="button">📲 Enviarme mi clave por WhatsApp</button>
+      </div>
+    </div>
+
+    <p class="mensaje-recuperar" id="mensajeRecuperarMaestra" hidden></p>
+  </section>
+
+  <!-- ============ PANTALLA 1: LISTA DE ALUMNAS ============ -->
+  <section id="pantallaLista" class="pantalla" hidden>
+    <p class="subtitulo">🔎 Busca a la alumna</p>
+    <input type="text" id="buscarAlumnaMaestra" class="buscador" placeholder="Escribe el nombre..." />
+    <div id="listaAlumnasMaestra" class="lista-alumnas"></div>
+
+    <section id="seccionCambiarClaveMaestra" class="seccion-pago">
+      <p class="pago-titulo">🔒 Cambiar mi clave</p>
+      <input type="password" id="inputClaveNuevaMaestra" class="input-clave-chica" placeholder="Nueva clave (mínimo 6 caracteres)" autocomplete="new-password" minlength="6" />
+      <input type="password" id="inputClaveConfirmarMaestra" class="input-clave-chica" placeholder="Confirmar nueva clave" autocomplete="new-password" minlength="6" />
+      <button class="btn-secundario btn-ancho" id="btnGuardarClaveMaestra" type="button">Guardar nueva clave</button>
+      <p class="mensaje-clave-ok" id="mensajeClaveOkMaestra" hidden>✅ Tu clave se actualizó correctamente.</p>
+    </section>
+  </section>
+
+  <!-- ============ PANTALLA 2: CHAT ============ -->
+  <section id="pantallaChatMaestra" class="pantalla" hidden>
+    <p class="perfil-nombre" id="chatMaestraTitulo"></p>
+    <div id="chatMensajesMaestra" class="chat-mensajes"></div>
+    <div class="chat-caja">
+      <textarea id="chatInputMaestra" class="chat-input" placeholder="Escribe tu mensaje..." rows="1"></textarea>
+      <button class="chat-btn-enviar" id="btnChatEnviarMaestra">➤</button>
+    </div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasChatMaestra">← Volver a la lista</button>
+  </section>
+
+  <p class="mensaje-error" id="mensajeErrorMaestra"></p>
+
+</div>
+
+<script src="maestras.js"></script>
+</body>
+</html>
