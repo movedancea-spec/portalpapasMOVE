@@ -10,6 +10,16 @@
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
+// Nombre EXACTO del campo "autorizo el show" en Airtable (tal como está
+// guardado en CONFIGURACION PORTAL ALUMNAS → CAMPO EN ALUMNAS), para
+// reconocer de forma confiable esa fila del perfil y mostrarla con su
+// propio control editable Sí/No, igual que ya se hace con CUMPLEAÑOS y
+// CORREO. Ojo: tiene espacios dobles (después de "ACEPTO", después de
+// la coma tras "MISMO," y después de "TRAJES") — debe coincidir letra
+// por letra con el nombre real del campo.
+const CAMPO_PARTICIPACION_SHOW =
+  "AUTORIZO QUE MI HIJA/O PARTICIPE EN EL SHOW DE FIN DE AÑO Y ACEPTO  LOS REQUISITOS PARA PARTICIPAR EN EL MISMO,  ASIMISMO ACEPTO Y ME COMPROMETO A REALIZAR LOS PAGOS CORRESPONDIENTES DE CADA UNO DE SUS TRAJES  EN LAS FECHAS ESTABLECIDAS.";
+
 let alumnas = [];
 let alumnaSeleccionada = null;
 let pagoActual = null;
@@ -561,6 +571,14 @@ function renderPerfil(datos) {
         return;
       }
 
+      // La participación en el show también se muestra siempre (aunque
+      // todavía no hayan respondido), con botones de Sí/No para que la
+      // familia pueda contestar o cambiar su respuesta ella misma.
+      if (f.campo === CAMPO_PARTICIPACION_SHOW) {
+        cont.appendChild(construirFilaParticipacionShow(f));
+        return;
+      }
+
       if (!f.valor) return;
       const fila = document.createElement("div");
       fila.className = "perfil-fila";
@@ -797,6 +815,109 @@ function construirFilaCorreo(f) {
       btnGuardar.textContent = textoOriginal;
     }
   });
+
+  return fila;
+}
+
+// ---------- participación en el show editable ----------
+
+function construirFilaParticipacionShow(f) {
+  const fila = document.createElement("div");
+  fila.className = "perfil-fila";
+
+  const etiqueta = document.createElement("p");
+  etiqueta.className = "perfil-etiqueta";
+  etiqueta.textContent = f.etiqueta || "🪩 Participación show";
+  fila.appendChild(etiqueta);
+
+  const filaValor = document.createElement("div");
+  filaValor.className = "cumple-fila-valor";
+
+  const valorTexto = document.createElement("p");
+  valorTexto.className = "perfil-valor";
+  valorTexto.textContent = f.valor || "Sin responder";
+  filaValor.appendChild(valorTexto);
+
+  const btnEditar = document.createElement("button");
+  btnEditar.className = "btn-editar-cumple";
+  btnEditar.type = "button";
+  btnEditar.textContent = "✏️ Editar";
+  filaValor.appendChild(btnEditar);
+
+  fila.appendChild(filaValor);
+
+  const bloqueEdicion = document.createElement("div");
+  bloqueEdicion.className = "cumple-edicion";
+  bloqueEdicion.hidden = true;
+
+  const filaOpciones = document.createElement("div");
+  filaOpciones.className = "cumple-botones";
+
+  const btnSi = document.createElement("button");
+  btnSi.className = "btn-secundario";
+  btnSi.type = "button";
+  btnSi.textContent = "Sí participa";
+
+  const btnNo = document.createElement("button");
+  btnNo.className = "btn-secundario";
+  btnNo.type = "button";
+  btnNo.textContent = "No participa";
+
+  filaOpciones.appendChild(btnSi);
+  filaOpciones.appendChild(btnNo);
+
+  const btnCancelar = document.createElement("button");
+  btnCancelar.className = "btn-cancelar-cumple";
+  btnCancelar.type = "button";
+  btnCancelar.textContent = "Cancelar";
+
+  const mensajeOk = document.createElement("p");
+  mensajeOk.className = "mensaje-clave-ok";
+  mensajeOk.hidden = true;
+  mensajeOk.textContent = "✅ Respuesta guardada.";
+
+  bloqueEdicion.appendChild(filaOpciones);
+  bloqueEdicion.appendChild(btnCancelar);
+  bloqueEdicion.appendChild(mensajeOk);
+  fila.appendChild(bloqueEdicion);
+
+  btnEditar.addEventListener("click", () => {
+    mensajeOk.hidden = true;
+    bloqueEdicion.hidden = !bloqueEdicion.hidden;
+  });
+
+  btnCancelar.addEventListener("click", () => {
+    mensajeOk.hidden = true;
+    bloqueEdicion.hidden = true;
+  });
+
+  async function guardarRespuesta(valor, boton) {
+    const botones = [btnSi, btnNo];
+    botones.forEach((b) => (b.disabled = true));
+    const textoOriginal = boton.textContent;
+    boton.textContent = "Guardando...";
+    mostrarError("");
+
+    try {
+      await llamarWorker({
+        accion: "actualizarParticipacionShow",
+        alumnaId: alumnaSeleccionada.id,
+        valor,
+      });
+      f.valor = valor;
+      valorTexto.textContent = valor === "SI" ? "SI" : "NO";
+      mensajeOk.hidden = false;
+      bloqueEdicion.hidden = true;
+    } catch (e) {
+      mostrarError(e.message);
+    } finally {
+      botones.forEach((b) => (b.disabled = false));
+      boton.textContent = textoOriginal;
+    }
+  }
+
+  btnSi.addEventListener("click", () => guardarRespuesta("SI", btnSi));
+  btnNo.addEventListener("click", () => guardarRespuesta("NO", btnNo));
 
   return fila;
 }
