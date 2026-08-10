@@ -371,6 +371,18 @@ background:linear-gradient(180deg,#ff72b7,#ef4b9b);
 color:white;
 }
 
+/* Botón de "Marcar asistencia": no cambia de pestaña, abre el
+   biométrico en una pestaña aparte — por eso se ve distinto (ancho
+   completo, color aparte) a los botones que sí son pestañas. */
+.tab-btn-externo{
+flex:1 1 100%;
+border-color:#bfe8d9;
+background:linear-gradient(180deg,#2fbf83,#1f9d63);
+color:white;
+}
+
+.tab-btn-externo:active{ transform:scale(.98); }
+
 .modo{
 text-align:left;
 }

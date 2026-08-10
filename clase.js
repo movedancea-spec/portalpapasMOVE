@@ -513,6 +513,14 @@ el("tabClase").addEventListener("click", () => cambiarTab("Clase"));
 el("tabCierre").addEventListener("click", () => cambiarTab("Cierre"));
 el("tabBitacora").addEventListener("click", () => cambiarTab("Bitacora"));
 
+// No es una pestaña del panel — abre el biométrico en una pestaña
+// aparte (sin perder el cronómetro, la racha ni el resto del estado
+// del Panel de Clase), para que una alumna pueda marcar su asistencia
+// ahí mismo sin tener que bajar a recepción.
+el("btnMarcarAsistencia").addEventListener("click", () => {
+  window.open("https://movedancea-spec.github.io/BIOMETRICO-V4/", "_blank", "noopener");
+});
+
 function cambiarTab(nombre) {
   ["Bienvenida", "Clase", "Cierre", "Bitacora"].forEach((t) => {
     el("tab" + t).classList.toggle("activo", t === nombre);
