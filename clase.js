@@ -24,6 +24,7 @@ let intervaloBienvenida = null;
 let cronIntervalo = null;
 let cronSegundosTotal = 60;
 let cronSegundosRestantes = 60;
+let cronAlarmaIntervalo = null; // repite el beep hasta que se pause/reinicie
 
 // ---------- ruleta ----------
 let ruletaIntervalo = null;
@@ -162,6 +163,7 @@ async function abrirPanel(grupo) {
   grupoActual = grupo;
   racha = 0;
   detenerCronometro();
+  detenerAlarma();
   poblarSelectorMinutos();
   cronSegundosTotal = 60;
   cronSegundosRestantes = 60;
@@ -311,6 +313,7 @@ el("selectorMinutos").addEventListener("change", () => {
 
 el("btnIniciarCronometro").addEventListener("click", () => {
   asegurarAudioCtx();
+  detenerAlarma();
   if (cronIntervalo) return;
   if (cronSegundosRestantes <= 0) cronSegundosRestantes = cronSegundosTotal;
   el("cronometroNumero").classList.remove("cronometro-terminado");
@@ -322,14 +325,21 @@ el("btnIniciarCronometro").addEventListener("click", () => {
       detenerCronometro();
       el("cronometroNumero").classList.add("cronometro-terminado");
       sonarBeep();
+      // Repite el beep hasta que la maestra toque Pausar o Reiniciar —
+      // así no se pasa por alto en un salón con música o ruido.
+      cronAlarmaIntervalo = setInterval(sonarBeep, 3500);
     }
   }, 1000);
 });
 
-el("btnPausarCronometro").addEventListener("click", detenerCronometro);
+el("btnPausarCronometro").addEventListener("click", () => {
+  detenerCronometro();
+  detenerAlarma();
+});
 
 el("btnReiniciarCronometro").addEventListener("click", () => {
   detenerCronometro();
+  detenerAlarma();
   cronSegundosRestantes = cronSegundosTotal;
   el("cronometroNumero").classList.remove("cronometro-terminado");
   actualizarPantallaCronometro();
@@ -341,6 +351,13 @@ function detenerCronometro() {
     cronIntervalo = null;
   }
   el("selectorMinutos").disabled = false;
+}
+
+function detenerAlarma() {
+  if (cronAlarmaIntervalo) {
+    clearInterval(cronAlarmaIntervalo);
+    cronAlarmaIntervalo = null;
+  }
 }
 
 function sonarBeep() {
@@ -459,6 +476,7 @@ el("btnReiniciarRacha").addEventListener("click", () => {
 el("btnNuevaClase").addEventListener("click", () => {
   if (intervaloBienvenida) clearInterval(intervaloBienvenida);
   detenerCronometro();
+  detenerAlarma();
   reiniciarRuletaVisual();
   grupoActual = null;
   alumnasPanel = [];
@@ -471,6 +489,7 @@ el("btnNuevaClase").addEventListener("click", () => {
 el("btnCerrarSesionPanel").addEventListener("click", () => {
   if (intervaloBienvenida) clearInterval(intervaloBienvenida);
   detenerCronometro();
+  detenerAlarma();
   reiniciarRuletaVisual();
   maestraId = "";
   nombreMaestra = "";
