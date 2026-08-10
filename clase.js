@@ -38,6 +38,11 @@ let cronSegundosTotal = 60;
 let cronSegundosRestantes = 60;
 let cronAlarmaIntervalo = null; // repite el beep hasta que se pause/reinicie
 
+// ---------- horario de la clase (duración + alarma de 5 min antes) ----------
+let horarioHoyActual = null; // { inicioMinutos, finMinutos, inicioTexto, finTexto } o null
+let alarmaFinIntervalo = null; // repite el beep hasta que la maestra la apague
+let alarmaFinApagada = false; // una vez apagada, no vuelve a sonar en esta clase
+
 // ---------- ruleta ----------
 let ruletaIntervalo = null;
 let ruletaGirando = false;
@@ -323,6 +328,10 @@ async function abrirPanel(grupo) {
   el("mensajeBitacora").hidden = true;
   detenerCronometro();
   detenerAlarma();
+  horarioHoyActual = null;
+  alarmaFinApagada = false;
+  detenerAlarmaFin(false);
+  el("bloqueHorarioClase").hidden = true;
   poblarSelectorMinutos();
   cronSegundosTotal = 60;
   cronSegundosRestantes = 60;
@@ -350,8 +359,10 @@ async function cargarPanelClase() {
     alumnasPanel = datos.alumnas || [];
     objetivoMensualActual = datos.objetivoMensual || "";
     ultimaNotaActual = datos.ultimaNota || null;
+    horarioHoyActual = datos.horarioHoy || null;
     renderBienvenida();
     renderObjetivoYNota();
+    actualizarBarraTiempoClase();
   } catch (e) {
     el("contadorLlegadas").textContent = "No se pudo cargar: " + e.message;
   }
@@ -569,6 +580,95 @@ function renderBienvenida() {
 }
 
 el("btnRefrescarBienvenida").addEventListener("click", cargarPanelClase);
+
+// ---------- modo clase: horario y barra de tiempo ----------
+
+// Hora actual en minutos-del-día, en la zona horaria de Guatemala —
+// misma fuente que el horarioHoy que manda el Worker, para que la
+// barra y la alarma cuadren con el horario real de la clase.
+function minutosAhoraGuatemala() {
+  const texto = new Date().toLocaleTimeString("en-US", {
+    timeZone: "America/Guatemala",
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const [h, m] = texto.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function actualizarBarraTiempoClase() {
+  const bloque = el("bloqueHorarioClase");
+  if (!horarioHoyActual) {
+    bloque.hidden = true;
+    return;
+  }
+  bloque.hidden = false;
+
+  const { inicioMinutos, finMinutos, inicioTexto, finTexto } = horarioHoyActual;
+  el("horarioClaseTexto").textContent = `🕒 Horario: ${inicioTexto} – ${finTexto}`;
+
+  const relleno = el("barraTiempoClaseRelleno");
+  const estado = el("horarioClaseEstado");
+  const total = finMinutos - inicioMinutos;
+  const ahoraMin = minutosAhoraGuatemala();
+
+  if (total <= 0) {
+    relleno.style.width = "0%";
+    estado.textContent = "";
+    return;
+  }
+
+  if (ahoraMin < inicioMinutos) {
+    relleno.style.width = "0%";
+    relleno.classList.remove("tiempo-casi-terminado");
+    estado.textContent = `⏳ Empieza en ${inicioMinutos - ahoraMin} min`;
+  } else if (ahoraMin >= finMinutos) {
+    relleno.style.width = "100%";
+    relleno.classList.remove("tiempo-casi-terminado");
+    estado.textContent = "✅ Clase terminada";
+  } else {
+    const transcurrido = ahoraMin - inicioMinutos;
+    const porcentaje = Math.min(100, Math.round((transcurrido / total) * 100));
+    relleno.style.width = porcentaje + "%";
+    const restante = finMinutos - ahoraMin;
+    relleno.classList.toggle("tiempo-casi-terminado", restante <= 5);
+    estado.textContent = restante <= 1 ? "⏰ ¡Último minuto!" : `⏱ Quedan ${restante} min`;
+  }
+
+  // 5 minutos antes de que termine (y hasta una hora después, por si la
+  // maestra no vio el aviso a tiempo) suena la alarma, y no para hasta
+  // que ella la apague con el botón que aparece solo en ese momento.
+  const restanteParaAlarma = finMinutos - ahoraMin;
+  if (!alarmaFinApagada && ahoraMin >= inicioMinutos && restanteParaAlarma <= 5 && restanteParaAlarma > -60) {
+    iniciarAlarmaFin();
+  }
+}
+
+function iniciarAlarmaFin() {
+  el("btnApagarAlarmaFin").hidden = false;
+  if (alarmaFinIntervalo) return; // ya está sonando
+  sonarBeep();
+  alarmaFinIntervalo = setInterval(sonarBeep, 3500);
+}
+
+function detenerAlarmaFin(permanente) {
+  if (alarmaFinIntervalo) {
+    clearInterval(alarmaFinIntervalo);
+    alarmaFinIntervalo = null;
+  }
+  el("btnApagarAlarmaFin").hidden = true;
+  if (permanente) alarmaFinApagada = true;
+}
+
+el("btnApagarAlarmaFin").addEventListener("click", () => {
+  asegurarAudioCtx();
+  detenerAlarmaFin(true);
+});
+
+// Revisa la barra de tiempo y la alarma cada pocos segundos, sin
+// depender de que la maestra esté justo viendo la pestaña de Clase.
+setInterval(actualizarBarraTiempoClase, 5000);
 
 // ---------- modo clase: cronómetro ----------
 
@@ -897,6 +997,7 @@ el("btnNuevaClase").addEventListener("click", () => {
   if (intervaloBienvenida) clearInterval(intervaloBienvenida);
   detenerCronometro();
   detenerAlarma();
+  detenerAlarmaFin(true);
   reiniciarRuletaVisual();
   grupoActual = null;
   alumnasPanel = [];
@@ -911,6 +1012,7 @@ el("btnCerrarSesionPanel").addEventListener("click", () => {
   if (intervaloBienvenida) clearInterval(intervaloBienvenida);
   detenerCronometro();
   detenerAlarma();
+  detenerAlarmaFin(true);
   reiniciarRuletaVisual();
   maestraId = "";
   nombreMaestra = "";
