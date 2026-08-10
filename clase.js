@@ -336,7 +336,7 @@ async function abrirPanel(grupo) {
   el("nombreGrupoPanel").textContent = grupo.nombre;
   renderSaludoBienvenida(grupo);
   renderSaludoAlumnas(grupo);
-  renderDespedidaAlumnas();
+  renderDespedidaAlumnas(grupo);
   mostrarPantalla("pantallaPanel");
   cambiarTab("Bienvenida");
 
@@ -399,6 +399,19 @@ const FRASES_BIENVENIDA = [
   "Que se note la buena vibra desde que entran. 🌸",
 ];
 
+// Convierte un texto (por ejemplo el id o nombre de un grupo) en un
+// número estable, para poder elegir una frase distinta por CLASE y no
+// solo por día — así dos grupos que dan clase el mismo día no repiten
+// exactamente el mismo mensaje ("copy paste").
+function hashTextoSimple(texto) {
+  const str = (texto || "").toString();
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) % 100000;
+  }
+  return Math.abs(hash);
+}
+
 function renderSaludoBienvenida(grupo) {
   const ahora = new Date();
   const hora = ahora.getHours();
@@ -406,7 +419,8 @@ function renderSaludoBienvenida(grupo) {
   const nombre = nombreMaestra ? `, ${nombreMaestra}` : "";
   el("bienvenidaSaludoTitulo").textContent = `${saludoHora}${nombre}! 👋`;
 
-  const frase = FRASES_BIENVENIDA[ahora.getDay() % FRASES_BIENVENIDA.length];
+  const hashGrupo = hashTextoSimple(grupo && (grupo.id || grupo.nombre));
+  const frase = FRASES_BIENVENIDA[(ahora.getDay() + hashGrupo) % FRASES_BIENVENIDA.length];
   const nombreGrupo = grupo && grupo.nombre ? grupo.nombre : "tu grupo";
   el("bienvenidaSaludoTexto").textContent = `Todo listo para ${nombreGrupo}. ${frase}`;
 }
@@ -437,14 +451,16 @@ const FRASES_DESPEDIDA_ALUMNAS = [
 function renderSaludoAlumnas(grupo) {
   const ahora = new Date();
   const nombreGrupo = grupo && grupo.nombre ? grupo.nombre : "equipo";
-  const frase = FRASES_BIENVENIDA_ALUMNAS[ahora.getDay() % FRASES_BIENVENIDA_ALUMNAS.length];
+  const hashGrupo = hashTextoSimple(grupo && (grupo.id || grupo.nombre));
+  const frase = FRASES_BIENVENIDA_ALUMNAS[(ahora.getDay() + hashGrupo + 1) % FRASES_BIENVENIDA_ALUMNAS.length];
   el("bienvenidaAlumnasTitulo").textContent = `💫 ¡Bienvenidas, ${nombreGrupo}!`;
   el("bienvenidaAlumnasTexto").textContent = frase;
 }
 
-function renderDespedidaAlumnas() {
+function renderDespedidaAlumnas(grupo) {
   const ahora = new Date();
-  const frase = FRASES_DESPEDIDA_ALUMNAS[(ahora.getDay() + 3) % FRASES_DESPEDIDA_ALUMNAS.length];
+  const hashGrupo = hashTextoSimple(grupo && (grupo.id || grupo.nombre));
+  const frase = FRASES_DESPEDIDA_ALUMNAS[(ahora.getDay() + hashGrupo + 3) % FRASES_DESPEDIDA_ALUMNAS.length];
   el("cierreDespedidaTexto").textContent = frase;
 }
 
