@@ -1,0 +1,541 @@
+/* ===================================================
+   MOVE — PANEL DE CLASE
+   Mismo lenguaje visual que el resto del portal
+=================================================== */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Poppins",sans-serif;
+}
+
+[hidden]{
+display:none !important;
+}
+
+html{
+width:100%;
+min-height:100%;
+}
+
+body{
+width:100%;
+min-height:100dvh;
+overflow-y:auto;
+overflow-x:hidden;
+display:flex;
+justify-content:center;
+align-items:flex-start;
+padding:24px 16px;
+background:linear-gradient(-45deg,#ffffff,#fff4fb,#ffe9f5,#fff6fc,#ffffff);
+background-size:400% 400%;
+animation:gradientMove 18s ease infinite;
+}
+
+@keyframes gradientMove{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+
+.container{
+width:96%;
+max-width:640px;
+margin:10px auto;
+padding:clamp(18px,5vw,30px);
+border-radius:clamp(20px,5vw,32px);
+background:rgba(255,255,255,.6);
+backdrop-filter:blur(20px);
+-webkit-backdrop-filter:blur(20px);
+box-shadow:0 20px 60px rgba(239,75,155,.18), 0 6px 15px rgba(0,0,0,.05);
+text-align:center;
+position:relative;
+z-index:20;
+}
+
+.logo{
+width:70%;
+max-width:220px;
+margin:auto;
+display:block;
+margin-bottom:4px;
+filter:drop-shadow(0 15px 25px rgba(239,75,155,.25));
+}
+
+.title{
+font-size:clamp(18px,4.5vw,24px);
+font-weight:700;
+color:#ef4b9b;
+margin-top:4px;
+margin-bottom:12px;
+}
+
+.pantalla{
+text-align:left;
+}
+
+.subtitulo{
+font-size:clamp(15px,4vw,19px);
+font-weight:700;
+color:#777;
+margin-bottom:14px;
+text-align:center;
+}
+
+.mensaje-error{
+min-height:22px;
+color:#e0245e;
+font-weight:700;
+font-size:clamp(13px,3.5vw,15px);
+margin-top:10px;
+text-align:center;
+}
+
+.lista-alumnas-aviso{
+color:#999;
+font-size:clamp(13px,3.5vw,15px);
+font-weight:600;
+text-align:center;
+padding:16px 8px;
+}
+
+/*=====================================
+CLAVE / LOGIN
+=====================================*/
+
+.input-clave{
+width:100%;
+border:2px solid #ffd8ea;
+border-radius:16px;
+padding:clamp(16px,4.5vw,20px);
+font-size:clamp(22px,7vw,30px);
+font-weight:700;
+letter-spacing:6px;
+text-align:center;
+color:#555;
+background:white;
+outline:none;
+transition:.18s;
+margin-bottom:14px;
+}
+
+.input-clave:focus{
+border-color:#ef4b9b;
+box-shadow:0 0 0 3px rgba(239,75,155,.15);
+}
+
+/*=====================================
+BOTONES GENERALES
+=====================================*/
+
+.btn-grande{
+width:100%;
+border:none;
+border-radius:18px;
+padding:clamp(14px,4.5vw,18px);
+font-size:clamp(16px,4.5vw,19px);
+font-weight:700;
+color:white;
+cursor:pointer;
+margin-top:12px;
+transition:.15s;
+}
+
+.btn-siguiente{
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+box-shadow:0 8px 20px rgba(239,75,155,.30);
+}
+
+.btn-grande:active{ transform:scale(.97); }
+
+.btn-secundario{
+border:2px solid #ef4b9b;
+background:white;
+color:#ef4b9b;
+border-radius:16px;
+padding:clamp(12px,3.8vw,15px);
+font-size:clamp(14px,4vw,16px);
+font-weight:700;
+cursor:pointer;
+flex:1;
+transition:.18s;
+}
+
+.btn-secundario:active{ transform:scale(.97); }
+
+.btn-cancelar-cumple{
+border:2px solid #ddd;
+background:white;
+color:#888;
+border-radius:16px;
+padding:clamp(12px,3.8vw,15px);
+font-size:clamp(14px,4vw,16px);
+font-weight:700;
+cursor:pointer;
+flex:1;
+transition:.18s;
+}
+
+.btn-cancelar-cumple:active{ transform:scale(.97); }
+
+.btn-ancho{
+width:100%;
+margin-top:12px;
+}
+
+.btn-enlace{
+display:block;
+width:100%;
+margin-top:16px;
+background:none;
+border:none;
+color:#999;
+font-weight:700;
+font-size:clamp(12px,3.3vw,14px);
+text-decoration:underline;
+cursor:pointer;
+text-align:center;
+}
+
+.aviso-familia{
+font-size:clamp(12px,3.3vw,13.5px);
+font-weight:600;
+color:#a15277;
+background:#fff0f6;
+border-radius:12px;
+padding:10px 12px;
+margin-bottom:12px;
+text-align:center;
+}
+
+.pago-titulo{
+font-size:clamp(15px,4.2vw,17px);
+font-weight:800;
+color:#ef4b9b;
+margin:16px 0 10px;
+}
+
+/*=====================================
+ELEGIR GRUPO
+=====================================*/
+
+.lista-grupos{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.btn-grupo{
+display:flex;
+flex-direction:column;
+align-items:flex-start;
+gap:2px;
+border:2px solid #ffe3f0;
+border-radius:16px;
+padding:clamp(14px,4vw,18px);
+background:white;
+cursor:pointer;
+transition:.15s;
+text-align:left;
+}
+
+.btn-grupo:active{ transform:scale(.98); }
+
+.btn-grupo:hover{
+border-color:#ef4b9b;
+background:rgba(239,75,155,.06);
+}
+
+.btn-grupo-nombre{
+font-size:clamp(16px,4.3vw,18px);
+font-weight:800;
+color:#ef4b9b;
+}
+
+.btn-grupo-detalle{
+font-size:clamp(12px,3.3vw,13.5px);
+font-weight:600;
+color:#999;
+}
+
+/*=====================================
+PANEL: encabezado + tabs
+=====================================*/
+
+.nombre-grupo{
+font-size:clamp(19px,5.2vw,24px);
+font-weight:800;
+color:#ef4b9b;
+text-align:center;
+margin-bottom:12px;
+}
+
+.tabs-panel{
+display:flex;
+gap:6px;
+margin-bottom:16px;
+}
+
+.tab-btn{
+flex:1;
+border:2px solid #ffe3f0;
+background:white;
+color:#999;
+border-radius:14px;
+padding:10px 4px;
+font-size:clamp(12px,3.3vw,14px);
+font-weight:700;
+cursor:pointer;
+transition:.15s;
+}
+
+.tab-btn.activo{
+border-color:#ef4b9b;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+}
+
+.modo{
+text-align:left;
+}
+
+/*=====================================
+MODO BIENVENIDA
+=====================================*/
+
+.contador-llegadas{
+text-align:center;
+font-size:clamp(17px,4.6vw,20px);
+font-weight:800;
+color:#ef4b9b;
+background:#fff0f6;
+border-radius:14px;
+padding:12px;
+margin-bottom:14px;
+}
+
+.lista-bienvenida{
+display:flex;
+flex-direction:column;
+gap:6px;
+max-height:48vh;
+overflow-y:auto;
+margin-bottom:12px;
+}
+
+.fila-bienvenida{
+display:flex;
+align-items:center;
+gap:10px;
+border:2px solid #f2f2f2;
+border-radius:12px;
+padding:10px 12px;
+background:white;
+opacity:.55;
+}
+
+.fila-bienvenida.presente{
+opacity:1;
+border-color:#c8f0d8;
+background:#f3fff7;
+}
+
+.icono-bienvenida{
+font-size:16px;
+flex-shrink:0;
+}
+
+.nombre-bienvenida{
+flex:1;
+font-size:clamp(13.5px,3.8vw,15px);
+font-weight:700;
+color:#555;
+}
+
+.cumple-bienvenida{
+font-size:18px;
+}
+
+/*=====================================
+MODO CLASE: cronómetro
+=====================================*/
+
+.bloque-cronometro{
+text-align:center;
+border:2px solid #ffe3f0;
+border-radius:18px;
+padding:clamp(16px,4.5vw,22px);
+margin-bottom:8px;
+background:rgba(255,255,255,.6);
+}
+
+.cronometro-numero{
+font-size:clamp(48px,16vw,72px);
+font-weight:800;
+color:#ef4b9b;
+letter-spacing:2px;
+font-variant-numeric:tabular-nums;
+transition:.2s;
+}
+
+.cronometro-numero.cronometro-terminado{
+color:#1f9d63;
+animation:pulso .6s ease infinite alternate;
+}
+
+@keyframes pulso{
+from{ transform:scale(1); }
+to{ transform:scale(1.08); }
+}
+
+.cronometro-botones-preset{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+justify-content:center;
+margin:14px 0;
+}
+
+.btn-preset{
+border:2px solid #ffd8ea;
+background:white;
+color:#ef4b9b;
+border-radius:12px;
+padding:8px 14px;
+font-size:clamp(13px,3.6vw,15px);
+font-weight:700;
+cursor:pointer;
+transition:.15s;
+}
+
+.btn-preset:active{ transform:scale(.94); background:#fff0f6; }
+
+.cronometro-botones-control{
+display:flex;
+gap:8px;
+}
+
+/*=====================================
+MODO CLASE: puntos
+=====================================*/
+
+.lista-puntos{
+display:flex;
+flex-direction:column;
+gap:8px;
+max-height:44vh;
+overflow-y:auto;
+margin-bottom:6px;
+}
+
+.fila-puntos{
+display:flex;
+align-items:center;
+gap:8px;
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:10px 12px;
+background:white;
+flex-wrap:wrap;
+}
+
+.posicion-puntos{
+width:22px;
+flex-shrink:0;
+font-weight:800;
+color:#ef4b9b;
+text-align:center;
+}
+
+.nombre-puntos{
+flex:1;
+min-width:90px;
+font-size:clamp(13px,3.6vw,14.5px);
+font-weight:700;
+color:#555;
+}
+
+.valor-puntos{
+font-weight:800;
+color:#ef4b9b;
+min-width:24px;
+text-align:center;
+}
+
+.botones-puntos{
+display:flex;
+gap:6px;
+}
+
+.btn-punto{
+border:none;
+border-radius:10px;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+font-weight:800;
+font-size:13px;
+padding:6px 10px;
+cursor:pointer;
+transition:.15s;
+}
+
+.btn-punto:active{ transform:scale(.9); }
+
+/*=====================================
+MODO CIERRE
+=====================================*/
+
+.lista-cierre{
+display:flex;
+flex-direction:column;
+gap:8px;
+margin-bottom:14px;
+}
+
+.fila-cierre{
+display:flex;
+align-items:center;
+gap:10px;
+border:2px solid #f2f2f2;
+border-radius:14px;
+padding:12px;
+background:white;
+}
+
+.fila-cierre.primer-lugar{
+border-color:#ffd88a;
+background:#fffaf0;
+box-shadow:0 6px 16px rgba(255,193,7,.20);
+}
+
+.medalla-cierre{
+width:26px;
+flex-shrink:0;
+font-size:18px;
+text-align:center;
+}
+
+.nombre-cierre{
+flex:1;
+font-size:clamp(14px,3.8vw,15.5px);
+font-weight:700;
+color:#555;
+}
+
+.valor-cierre{
+font-weight:800;
+color:#ef4b9b;
+}
+
+/*=====================================
+RESPONSIVE
+=====================================*/
+
+@media(max-width:360px){
+.container{ width:98%; margin:6px auto; }
+}
+
+@media(min-width:900px){
+.container{ max-width:680px; }
+}
