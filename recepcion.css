@@ -205,26 +205,13 @@ to{ transform:scale(1.03); }
 }
 
 /*=====================================
-SOLICITUDES
+SOLICITUDES (una tarjeta por clase, con su propio hilo de chat)
 =====================================*/
 
-.titulo-seccion{
-font-size:clamp(15px,4.2vw,17px);
-font-weight:800;
-color:#ef4b9b;
-margin-bottom:10px;
-margin-top:6px;
-}
-
-.titulo-seccion-atendidas{
-color:#999;
-margin-top:18px;
-}
-
-.lista-solicitudes{
+.lista-hilos{
 display:flex;
 flex-direction:column;
-gap:10px;
+gap:14px;
 margin-bottom:6px;
 }
 
@@ -236,43 +223,165 @@ text-align:center;
 padding:18px 8px;
 }
 
-.tarjeta-solicitud{
+.tarjeta-hilo{
 border:2px solid #ffe3f0;
-border-radius:16px;
+border-radius:18px;
 padding:clamp(12px,3.5vw,16px);
 background:white;
 text-align:left;
 }
 
-.tarjeta-solicitud.pendiente{
+.tarjeta-hilo.pendiente{
 border-color:#ffb74d;
 box-shadow:0 0 0 2px rgba(255,183,77,.2);
 background:#fff8ef;
 }
 
-.tarjeta-solicitud-grupo{
-font-size:clamp(13px,3.6vw,15px);
-font-weight:800;
-color:#ef4b9b;
-margin-bottom:4px;
-}
-
-.tarjeta-solicitud-texto{
-font-size:clamp(14px,3.8vw,15.5px);
-font-weight:600;
-color:#444;
-line-height:1.4;
-white-space:pre-wrap;
-word-break:break-word;
-margin-bottom:6px;
-}
-
-.tarjeta-solicitud-hora{
-font-size:11px;
-font-weight:600;
-color:#999;
+.tarjeta-hilo-header{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:8px;
 margin-bottom:10px;
 }
+
+.tarjeta-hilo-grupo{
+font-size:clamp(14px,3.8vw,16px);
+font-weight:800;
+color:#ef4b9b;
+}
+
+.etiqueta-pendiente{
+flex-shrink:0;
+display:inline-block;
+font-size:11px;
+font-weight:800;
+color:#a15a00;
+background:#ffe6c2;
+border-radius:999px;
+padding:3px 10px;
+}
+
+.etiqueta-atendida{
+flex-shrink:0;
+display:inline-block;
+font-size:11px;
+font-weight:800;
+color:#1f9d63;
+background:#e8f9f0;
+border-radius:999px;
+padding:3px 10px;
+}
+
+.chat-mensajes-hilo{
+display:flex;
+flex-direction:column;
+gap:8px;
+max-height:38vh;
+overflow-y:auto;
+padding:8px 4px;
+margin-bottom:10px;
+border-radius:14px;
+background:rgba(255,216,234,.25);
+}
+
+.chat-fila{
+display:flex;
+width:100%;
+}
+
+.chat-fila-maestra{
+justify-content:flex-start;
+}
+
+.chat-fila-recepcion{
+justify-content:flex-end;
+}
+
+.chat-burbuja{
+max-width:82%;
+border-radius:16px;
+padding:8px 12px;
+box-shadow:0 4px 10px rgba(0,0,0,.06);
+}
+
+.chat-burbuja-maestra{
+background:white;
+color:#444;
+border:1px solid #ffe3f0;
+border-bottom-left-radius:4px;
+}
+
+.chat-burbuja-recepcion{
+background:#ef4b9b;
+color:white;
+border-bottom-right-radius:4px;
+}
+
+.chat-autor{
+font-size:11px;
+font-weight:800;
+opacity:.75;
+margin-bottom:2px;
+}
+
+.chat-texto{
+font-size:clamp(13.5px,3.6vw,15px);
+font-weight:600;
+line-height:1.35;
+white-space:pre-wrap;
+word-break:break-word;
+}
+
+.chat-hora{
+font-size:10px;
+font-weight:600;
+opacity:.65;
+text-align:right;
+margin-top:4px;
+}
+
+.chat-caja-hilo{
+display:flex;
+align-items:flex-end;
+gap:8px;
+margin-bottom:10px;
+}
+
+.chat-input-hilo{
+flex:1;
+resize:none;
+max-height:90px;
+border:2px solid #ffd8ea;
+border-radius:14px;
+padding:10px 12px;
+font-size:clamp(13.5px,3.6vw,15px);
+font-family:inherit;
+color:#555;
+outline:none;
+transition:.18s;
+}
+
+.chat-input-hilo:focus{
+border-color:#ef4b9b;
+box-shadow:0 0 0 3px rgba(239,75,155,.15);
+}
+
+.chat-btn-enviar-hilo{
+flex-shrink:0;
+width:42px;
+height:42px;
+border:none;
+border-radius:50%;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+font-size:17px;
+cursor:pointer;
+box-shadow:0 6px 14px rgba(239,75,155,.30);
+transition:.15s;
+}
+
+.chat-btn-enviar-hilo:active{ transform:scale(.94); }
 
 .btn-atender{
 width:100%;
@@ -289,18 +398,8 @@ transition:.15s;
 
 .btn-atender:active{ transform:scale(.97); }
 
-.tarjeta-solicitud.atendida{
-opacity:.6;
-}
-
-.etiqueta-atendida{
-display:inline-block;
-font-size:11px;
-font-weight:800;
-color:#1f9d63;
-background:#e8f9f0;
-border-radius:999px;
-padding:3px 10px;
+.tarjeta-hilo.atendida{
+opacity:.75;
 }
 
 /*=====================================

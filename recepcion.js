@@ -193,86 +193,190 @@ function formatearHora(iso) {
   }
 }
 
+// Agrupa todos los mensajes de hoy por grupo (clase), para mostrar
+// un hilo de conversación por clase — así Recepción puede leer el
+// pedido Y contestarlo ahí mismo, en vez de solo marcarlo como
+// atendido.
+function agruparPorGrupo() {
+  const hilos = new Map();
+  mensajesActuales.forEach((m) => {
+    const clave = m.grupoId || m.grupo || "sin-grupo";
+    if (!hilos.has(clave)) {
+      hilos.set(clave, { grupoId: m.grupoId, grupo: m.grupo || "Sin grupo", mensajes: [] });
+    }
+    hilos.get(clave).mensajes.push(m);
+  });
+
+  const lista = Array.from(hilos.values()).map((hilo) => {
+    hilo.mensajes.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    hilo.pendiente = hilo.mensajes.some((m) => m.autor === "Maestra" && !m.atendido);
+    hilo.ultimaFecha = hilo.mensajes.length ? hilo.mensajes[hilo.mensajes.length - 1].fecha : null;
+    return hilo;
+  });
+
+  // Los hilos pendientes primero (el más antiguo pendiente arriba,
+  // para atenderlo en orden de llegada), y después los ya atendidos,
+  // del más reciente al más viejo.
+  const pendientes = lista
+    .filter((h) => h.pendiente)
+    .sort((a, b) => new Date(a.ultimaFecha) - new Date(b.ultimaFecha));
+  const atendidos = lista
+    .filter((h) => !h.pendiente)
+    .sort((a, b) => new Date(b.ultimaFecha) - new Date(a.ultimaFecha));
+
+  return pendientes.concat(atendidos);
+}
+
 function renderSolicitudes() {
-  // Solo interesan a Recepción los mensajes que escribió una
-  // maestra — sus propias respuestas no aparecen aquí como tarjetas.
-  const deMaestras = mensajesActuales.filter((m) => m.autor === "Maestra");
-  const pendientes = deMaestras.filter((m) => !m.atendido);
-  const atendidas = deMaestras.filter((m) => m.atendido);
+  const hilos = agruparPorGrupo();
+  const cont = el("listaHilos");
+  cont.innerHTML = "";
 
-  const contPendientes = el("listaPendientes");
-  contPendientes.innerHTML = "";
-  if (!pendientes.length) {
-    contPendientes.innerHTML = '<p class="lista-vacia">No hay solicitudes pendientes por ahora. 🎉</p>';
+  if (!hilos.length) {
+    cont.innerHTML = '<p class="lista-vacia">No hay mensajes de clases hoy todavía. 🎉</p>';
   } else {
-    pendientes.forEach((m) => contPendientes.appendChild(crearTarjeta(m, true)));
+    hilos.forEach((hilo) => cont.appendChild(crearTarjetaHilo(hilo)));
   }
 
-  const tituloAtendidas = el("tituloAtendidas");
-  const contAtendidas = el("listaAtendidas");
-  contAtendidas.innerHTML = "";
-  if (atendidas.length) {
-    tituloAtendidas.hidden = false;
-    atendidas
-      .slice()
-      .reverse()
-      .forEach((m) => contAtendidas.appendChild(crearTarjeta(m, false)));
-  } else {
-    tituloAtendidas.hidden = true;
-  }
-
-  if (pendientes.length) {
+  const hayPendientes = hilos.some((h) => h.pendiente);
+  if (hayPendientes) {
     iniciarAlarma();
   } else {
     detenerAlarma();
   }
 }
 
-function crearTarjeta(m, pendiente) {
+function crearTarjetaHilo(hilo) {
   const tarjeta = document.createElement("div");
-  tarjeta.className = "tarjeta-solicitud " + (pendiente ? "pendiente" : "atendida");
+  tarjeta.className = "tarjeta-hilo " + (hilo.pendiente ? "pendiente" : "atendida");
 
-  const grupo = document.createElement("p");
-  grupo.className = "tarjeta-solicitud-grupo";
-  grupo.textContent = "🩰 " + (m.grupo || "Sin grupo");
-  tarjeta.appendChild(grupo);
+  const header = document.createElement("div");
+  header.className = "tarjeta-hilo-header";
 
-  const texto = document.createElement("p");
-  texto.className = "tarjeta-solicitud-texto";
-  texto.textContent = m.mensaje;
-  tarjeta.appendChild(texto);
+  const grupo = document.createElement("span");
+  grupo.className = "tarjeta-hilo-grupo";
+  grupo.textContent = "🩰 " + hilo.grupo;
+  header.appendChild(grupo);
 
-  const hora = document.createElement("p");
-  hora.className = "tarjeta-solicitud-hora";
-  hora.textContent = formatearHora(m.fecha);
-  tarjeta.appendChild(hora);
+  const etiqueta = document.createElement("span");
+  etiqueta.className = hilo.pendiente ? "etiqueta-pendiente" : "etiqueta-atendida";
+  etiqueta.textContent = hilo.pendiente ? "🔴 Pendiente" : "✅ Atendido";
+  header.appendChild(etiqueta);
 
-  if (pendiente) {
-    const boton = document.createElement("button");
-    boton.className = "btn-atender";
-    boton.type = "button";
-    boton.textContent = "✅ Marcar como atendido";
-    boton.addEventListener("click", () => marcarAtendido(m.id, boton));
-    tarjeta.appendChild(boton);
-  } else {
-    const etiqueta = document.createElement("span");
-    etiqueta.className = "etiqueta-atendida";
-    etiqueta.textContent = "Atendido";
-    tarjeta.appendChild(etiqueta);
+  tarjeta.appendChild(header);
+
+  const chat = document.createElement("div");
+  chat.className = "chat-mensajes-hilo";
+  hilo.mensajes.forEach((m) => chat.appendChild(crearBurbuja(m)));
+  tarjeta.appendChild(chat);
+
+  // Sin GRUPO ID no se puede contestar ni marcar como atendido con
+  // certeza (mensajes muy viejos, de antes de este campo) — en ese
+  // caso solo se muestra el hilo, de lectura.
+  if (hilo.grupoId) {
+    const caja = document.createElement("div");
+    caja.className = "chat-caja-hilo";
+
+    const input = document.createElement("textarea");
+    input.className = "chat-input-hilo";
+    input.rows = 1;
+    input.placeholder = "Responder a esta clase...";
+    caja.appendChild(input);
+
+    const btnEnviar = document.createElement("button");
+    btnEnviar.className = "chat-btn-enviar-hilo";
+    btnEnviar.type = "button";
+    btnEnviar.textContent = "➤";
+    btnEnviar.addEventListener("click", () => enviarRespuesta(hilo, input, btnEnviar));
+    caja.appendChild(btnEnviar);
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        enviarRespuesta(hilo, input, btnEnviar);
+      }
+    });
+
+    tarjeta.appendChild(caja);
+
+    if (hilo.pendiente) {
+      const btnAtender = document.createElement("button");
+      btnAtender.className = "btn-atender";
+      btnAtender.type = "button";
+      btnAtender.textContent = "✅ Marcar como atendido (sin responder)";
+      btnAtender.addEventListener("click", () => marcarHiloAtendido(hilo, btnAtender));
+      tarjeta.appendChild(btnAtender);
+    }
   }
 
   return tarjeta;
 }
 
-async function marcarAtendido(id, boton) {
+function crearBurbuja(m) {
+  const esMaestra = m.autor === "Maestra";
+  const fila = document.createElement("div");
+  fila.className = "chat-fila " + (esMaestra ? "chat-fila-maestra" : "chat-fila-recepcion");
+
+  const burbuja = document.createElement("div");
+  burbuja.className = "chat-burbuja " + (esMaestra ? "chat-burbuja-maestra" : "chat-burbuja-recepcion");
+
+  const autor = document.createElement("div");
+  autor.className = "chat-autor";
+  autor.textContent = esMaestra ? "🩰 Maestra" : "🏢 Recepción";
+  burbuja.appendChild(autor);
+
+  const texto = document.createElement("div");
+  texto.className = "chat-texto";
+  texto.textContent = m.mensaje;
+  burbuja.appendChild(texto);
+
+  const hora = document.createElement("div");
+  hora.className = "chat-hora";
+  hora.textContent = formatearHora(m.fecha);
+  burbuja.appendChild(hora);
+
+  fila.appendChild(burbuja);
+  return fila;
+}
+
+// Contestar un hilo también marca como atendidos los pedidos
+// pendientes de esa misma clase (lo resuelve el Worker), así la
+// alarma se apaga en cuanto Recepción responde.
+async function enviarRespuesta(hilo, input, boton) {
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  boton.disabled = true;
+  input.disabled = true;
+  try {
+    await llamarWorker({
+      accion: "enviarMensajeRecepcion",
+      grupoId: hilo.grupoId,
+      grupoNombre: hilo.grupo,
+      mensaje: texto,
+      autor: "Recepcion",
+      clave: claveRecepcion,
+    });
+    input.value = "";
+    await cargarMensajes();
+  } catch (e) {
+    el("mensajeErrorLogin").textContent = "";
+    alert(e.message);
+  } finally {
+    boton.disabled = false;
+    input.disabled = false;
+  }
+}
+
+async function marcarHiloAtendido(hilo, boton) {
   boton.disabled = true;
   boton.textContent = "Guardando...";
   try {
-    await llamarWorker({ accion: "marcarMensajeRecepcionAtendido", id });
+    await llamarWorker({ accion: "marcarGrupoRecepcionAtendido", grupoId: hilo.grupoId, clave: claveRecepcion });
     await cargarMensajes();
   } catch (e) {
     boton.disabled = false;
-    boton.textContent = "✅ Marcar como atendido";
+    boton.textContent = "✅ Marcar como atendido (sin responder)";
   }
 }
 
