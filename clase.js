@@ -607,17 +607,32 @@ function minutosAhoraGuatemala() {
 
 function actualizarBarraTiempoClase() {
   const bloque = el("bloqueHorarioClase");
+  const relleno = el("barraTiempoClaseRelleno");
+  const estado = el("horarioClaseEstado");
+
+  // Sin ningún horario cargado en Airtable para este grupo: no hay nada
+  // que mostrar.
   if (!horarioHoyActual) {
     bloque.hidden = true;
     return;
   }
   bloque.hidden = false;
 
-  const { inicioMinutos, finMinutos, inicioTexto, finTexto } = horarioHoyActual;
-  el("horarioClaseTexto").textContent = `🕒 Horario: ${inicioTexto} – ${finTexto}`;
+  // El horario (texto) se muestra SIEMPRE como referencia, sin importar
+  // qué día se abra el Panel de Clase.
+  el("horarioClaseTexto").textContent = `🕒 Horario: ${horarioHoyActual.textoHorario}`;
 
-  const relleno = el("barraTiempoClaseRelleno");
-  const estado = el("horarioClaseEstado");
+  // La barra de progreso y la alarma de los 5 minutos solo tienen
+  // sentido si HOY es un día en que este grupo sí tiene clase.
+  if (!horarioHoyActual.esHoy) {
+    relleno.style.width = "0%";
+    relleno.classList.remove("tiempo-casi-terminado");
+    estado.textContent = "Hoy no hay clase de este grupo.";
+    detenerAlarmaFin(false);
+    return;
+  }
+
+  const { inicioMinutos, finMinutos } = horarioHoyActual;
   const total = finMinutos - inicioMinutos;
   const ahoraMin = minutosAhoraGuatemala();
 
