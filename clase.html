@@ -58,6 +58,7 @@
       <button class="tab-btn" id="tabCierre" type="button">🏆 Cierre</button>
       <button class="tab-btn" id="tabBitacora" type="button">📋 Bitácora</button>
       <button class="tab-btn" id="tabVideo" type="button">🎥 Video</button>
+      <button class="tab-btn" id="tabRecepcion" type="button">📞 Recepción</button>
       <button class="tab-btn tab-btn-externo" id="btnMarcarAsistencia" type="button">👆 Marcar asistencia</button>
     </div>
 
@@ -156,6 +157,36 @@
 
       <p class="pago-titulo" id="tituloVideosSubidos" hidden>📼 Videos ya subidos de esta clase</p>
       <div id="listaVideosClase" class="lista-videos-clase"></div>
+    </div>
+
+    <!-- ---- Modo Recepción (chat rápido con recepción) ---- -->
+    <div id="modoRecepcion" class="modo" hidden>
+      <p class="pago-titulo">📞 Comunicación con Recepción</p>
+      <p class="aviso-familia">
+        Escribe si necesitas algo de Recepción (ej. que un papá suba a llevar a una alumna al baño). Como
+        Recepción está en otro piso, esto le suena fuerte y vibra en su pantalla para que se entere al momento.
+      </p>
+
+      <div class="grid-recepcion-rapidos" id="gridRecepcionRapidos">
+        <button class="btn-recepcion-rapido" type="button" data-texto="Necesito que un papá o mamá suba a llevar a una alumna al baño, por favor.">🚻 Alumna al baño</button>
+        <button class="btn-recepcion-rapido" type="button" data-texto="Necesito que alguien suba a la clase, por favor.">🙋 Necesito ayuda arriba</button>
+        <button class="btn-recepcion-rapido" type="button" data-texto="Una alumna no se siente bien, favor avisar a su papá o mamá.">🤒 Alumna no se siente bien</button>
+        <button class="btn-recepcion-rapido" type="button" data-texto="Ya puede subir el papá o mamá, la clase está por terminar.">✅ Ya puede subir</button>
+      </div>
+
+      <div id="chatMensajesRecepcion" class="chat-mensajes">
+        <p class="chat-vacio">Todavía no hay mensajes con Recepción hoy.</p>
+      </div>
+
+      <button class="btn-alarma-fin" id="btnApagarAlarmaRecepcion" type="button" hidden>
+        🔔 ¡Recepción te contestó! Toca para apagar la alarma
+      </button>
+
+      <div class="chat-caja">
+        <textarea id="inputMensajeRecepcion" class="chat-input" rows="1" placeholder="Escribe tu mensaje para Recepción..."></textarea>
+        <button class="chat-btn-enviar" id="btnEnviarMensajeRecepcion" type="button">➤</button>
+      </div>
+      <p class="mensaje-recuperar" id="mensajeRecepcionPanel" hidden></p>
     </div>
 
     <!-- ---- Modo Cierre ---- -->

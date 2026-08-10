@@ -333,6 +333,10 @@ async function abrirPanel(grupo) {
   detenerAlarmaFin(false);
   el("bloqueHorarioClase").hidden = true;
   detenerCamaraVideo();
+  mensajesRecepcionActual = [];
+  detenerAlarmaRecepcion();
+  el("inputMensajeRecepcion").value = "";
+  renderMensajesRecepcion();
   poblarSelectorMinutos();
   cronSegundosTotal = 60;
   cronSegundosRestantes = 60;
@@ -352,6 +356,8 @@ async function abrirPanel(grupo) {
 
   await cargarPanelClase();
   iniciarAutoRefrescoBienvenida();
+  cargarMensajesRecepcionPanel();
+  iniciarAutoRefrescoRecepcion();
 }
 
 async function cargarPanelClase() {
@@ -515,6 +521,7 @@ el("tabClase").addEventListener("click", () => cambiarTab("Clase"));
 el("tabCierre").addEventListener("click", () => cambiarTab("Cierre"));
 el("tabBitacora").addEventListener("click", () => cambiarTab("Bitacora"));
 el("tabVideo").addEventListener("click", () => cambiarTab("Video"));
+el("tabRecepcion").addEventListener("click", () => cambiarTab("Recepcion"));
 
 // No es una pestaña del panel — abre el biométrico en una pestaña
 // aparte (sin perder el cronómetro, la racha ni el resto del estado
@@ -525,11 +532,14 @@ el("btnMarcarAsistencia").addEventListener("click", () => {
 });
 
 function cambiarTab(nombre) {
-  ["Bienvenida", "Clase", "Cierre", "Bitacora", "Video"].forEach((t) => {
+  ["Bienvenida", "Clase", "Cierre", "Bitacora", "Video", "Recepcion"].forEach((t) => {
     el("tab" + t).classList.toggle("activo", t === nombre);
     el("modo" + t).hidden = t !== nombre;
   });
   if (nombre === "Cierre") renderCierre();
+  // Al entrar a la pestaña de Recepción, la maestra ya "vio" las
+  // respuestas pendientes — se marcan leídas y se apaga la alarma.
+  if (nombre === "Recepcion") marcarLeidosRecepcion();
 }
 
 // ---------- modo bienvenida ----------
@@ -1226,6 +1236,188 @@ el("btnDetenerGrabacionVideo").addEventListener("click", detenerGrabacionVideo);
 el("btnRegrabarVideo").addEventListener("click", regrabarVideo);
 el("btnSubirVideo").addEventListener("click", subirVideoAlPortal);
 
+// ---------- modo recepción: chat rápido con recepción ----------
+// Para pedidos del momento (ej. "que suba un papá a llevar a una
+// alumna al baño"), ya que Recepción está en otro piso. Se consulta
+// en segundo plano cada pocos segundos — no solo cuando la maestra
+// tiene abierta esta pestaña — para que, si Recepción contesta, le
+// suene la alarma (fuerte + vibración, igual que la de fin de clase)
+// hasta que ella la vea o entre a la pestaña de Recepción.
+
+let mensajesRecepcionActual = [];
+let recepcionPollIntervalo = null;
+let alarmaRecepcionIntervalo = null;
+
+async function cargarMensajesRecepcionPanel() {
+  if (!grupoActual) return;
+  try {
+    const datos = await llamarWorker({ accion: "obtenerMensajesRecepcion", grupoId: grupoActual.id });
+    mensajesRecepcionActual = datos.mensajes || [];
+    renderMensajesRecepcion();
+
+    const hayRespuestaSinVer = mensajesRecepcionActual.some((m) => m.autor === "Recepcion" && !m.leidoMaestra);
+    if (hayRespuestaSinVer) {
+      iniciarAlarmaRecepcion();
+    } else {
+      detenerAlarmaRecepcion();
+    }
+  } catch (e) {
+    // Si falla una consulta en segundo plano, no interrumpimos a la
+    // maestra con un error — simplemente se intenta de nuevo en el
+    // siguiente ciclo.
+  }
+}
+
+function formatearHoraRecepcion(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleTimeString("es-GT", {
+      timeZone: "America/Guatemala",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (e) {
+    return "";
+  }
+}
+
+function renderMensajesRecepcion() {
+  const cont = el("chatMensajesRecepcion");
+  cont.innerHTML = "";
+
+  if (!mensajesRecepcionActual.length) {
+    cont.innerHTML = '<p class="chat-vacio">Todavía no hay mensajes con Recepción hoy.</p>';
+    return;
+  }
+
+  mensajesRecepcionActual.forEach((m) => {
+    const esMaestra = m.autor === "Maestra";
+    const fila = document.createElement("div");
+    fila.className = "chat-fila " + (esMaestra ? "chat-fila-maestra" : "chat-fila-recepcion");
+
+    const burbuja = document.createElement("div");
+    burbuja.className =
+      "chat-burbuja " + (esMaestra ? "chat-burbuja-maestra" : "chat-burbuja-recepcion") +
+      (!esMaestra && !m.atendido ? " no-atendido" : "");
+
+    const autor = document.createElement("div");
+    autor.className = "chat-autor";
+    autor.textContent = esMaestra ? "Tú" : "🏢 Recepción";
+    burbuja.appendChild(autor);
+
+    const texto = document.createElement("div");
+    texto.className = "chat-texto";
+    texto.textContent = m.mensaje;
+    burbuja.appendChild(texto);
+
+    const hora = document.createElement("div");
+    hora.className = "chat-hora";
+    hora.textContent = formatearHoraRecepcion(m.fecha);
+    burbuja.appendChild(hora);
+
+    fila.appendChild(burbuja);
+    cont.appendChild(fila);
+  });
+
+  cont.scrollTop = cont.scrollHeight;
+}
+
+function iniciarAlarmaRecepcion() {
+  el("btnApagarAlarmaRecepcion").hidden = false;
+  if (alarmaRecepcionIntervalo) return; // ya está sonando
+  sonarBeep();
+  alarmaRecepcionIntervalo = setInterval(sonarBeep, 3500);
+}
+
+function detenerAlarmaRecepcion() {
+  if (alarmaRecepcionIntervalo) {
+    clearInterval(alarmaRecepcionIntervalo);
+    alarmaRecepcionIntervalo = null;
+  }
+  el("btnApagarAlarmaRecepcion").hidden = true;
+}
+
+async function marcarLeidosRecepcion() {
+  // Se marca a propósito (nunca en la consulta de fondo) — al abrir
+  // la pestaña o al apagar la alarma a mano.
+  mensajesRecepcionActual.forEach((m) => {
+    if (m.autor === "Recepcion") m.leidoMaestra = true;
+  });
+  detenerAlarmaRecepcion();
+  if (!grupoActual) return;
+  try {
+    await llamarWorker({ accion: "marcarMensajesRecepcionLeidosMaestra", grupoId: grupoActual.id });
+  } catch (e) {
+    // No pasa nada si falla — el siguiente ciclo lo vuelve a intentar.
+  }
+}
+
+el("btnApagarAlarmaRecepcion").addEventListener("click", () => {
+  asegurarAudioCtx();
+  marcarLeidosRecepcion();
+});
+
+async function enviarMensajeRecepcionPanel() {
+  const input = el("inputMensajeRecepcion");
+  const texto = input.value.trim();
+  const mensajeEl = el("mensajeRecepcionPanel");
+  mensajeEl.hidden = true;
+
+  if (!texto) return;
+  if (!grupoActual) return;
+
+  const boton = el("btnEnviarMensajeRecepcion");
+  boton.disabled = true;
+
+  try {
+    await llamarWorker({
+      accion: "enviarMensajeRecepcion",
+      grupoId: grupoActual.id,
+      grupoNombre: grupoActual.nombre,
+      mensaje: texto,
+      autor: "Maestra",
+    });
+    input.value = "";
+    await cargarMensajesRecepcionPanel();
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.hidden = false;
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+el("btnEnviarMensajeRecepcion").addEventListener("click", enviarMensajeRecepcionPanel);
+el("inputMensajeRecepcion").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    enviarMensajeRecepcionPanel();
+  }
+});
+
+// Los botones rápidos solo llenan el mensaje — la maestra igual tiene
+// que tocar enviar, para evitar que un toque accidental mande un
+// mensaje sin querer.
+document.querySelectorAll(".btn-recepcion-rapido").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const input = el("inputMensajeRecepcion");
+    input.value = btn.dataset.texto || "";
+    input.focus();
+  });
+});
+
+function iniciarAutoRefrescoRecepcion() {
+  if (recepcionPollIntervalo) clearInterval(recepcionPollIntervalo);
+  recepcionPollIntervalo = setInterval(cargarMensajesRecepcionPanel, 10000);
+}
+
+function detenerAutoRefrescoRecepcion() {
+  if (recepcionPollIntervalo) {
+    clearInterval(recepcionPollIntervalo);
+    recepcionPollIntervalo = null;
+  }
+}
+
 // ---------- modo cierre ----------
 
 function renderCierre() {
@@ -1343,6 +1535,8 @@ el("btnNuevaClase").addEventListener("click", () => {
   detenerAlarma();
   detenerAlarmaFin(true);
   detenerCamaraVideo();
+  detenerAutoRefrescoRecepcion();
+  detenerAlarmaRecepcion();
   reiniciarRuletaVisual();
   grupoActual = null;
   alumnasPanel = [];
@@ -1359,6 +1553,8 @@ el("btnCerrarSesionPanel").addEventListener("click", () => {
   detenerAlarma();
   detenerAlarmaFin(true);
   detenerCamaraVideo();
+  detenerAutoRefrescoRecepcion();
+  detenerAlarmaRecepcion();
   reiniciarRuletaVisual();
   maestraId = "";
   nombreMaestra = "";

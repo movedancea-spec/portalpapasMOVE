@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Recepción</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="recepcion.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">📞 Recepción</div>
+
+  <!-- ============ PANTALLA 0: CLAVE DE RECEPCIÓN ============ -->
+  <section id="pantallaLogin" class="pantalla">
+    <p class="subtitulo">🔒 Escribe la clave de Recepción</p>
+    <input type="password" id="inputClaveRecepcion" class="input-clave" placeholder="••••" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnEntrarRecepcion">Entrar →</button>
+    <p class="mensaje-error" id="mensajeErrorLogin"></p>
+  </section>
+
+  <!-- ============ PANTALLA 1: SOLICITUDES ============ -->
+  <section id="pantallaRecepcion" class="pantalla" hidden>
+    <p class="subtitulo">Solicitudes de las clases de hoy</p>
+
+    <button class="btn-alarma-recepcion" id="btnApagarAlarmaGeneral" type="button" hidden>
+      🔔 Hay solicitudes pendientes — marca "Atendido" en cada una para apagar la alarma
+    </button>
+
+    <p class="titulo-seccion" id="tituloPendientes">🔴 Pendientes</p>
+    <div id="listaPendientes" class="lista-solicitudes">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+
+    <p class="titulo-seccion titulo-seccion-atendidas" id="tituloAtendidas" hidden>✅ Ya atendidas hoy</p>
+    <div id="listaAtendidas" class="lista-solicitudes lista-atendidas"></div>
+
+    <button class="btn-secundario btn-ancho" id="btnActualizarRecepcion" type="button">🔄 Actualizar</button>
+    <button class="btn-enlace" id="btnSalirRecepcion" type="button">Salir</button>
+  </section>
+
+</div>
+
+<script src="recepcion.js"></script>
+</body>
+</html>
