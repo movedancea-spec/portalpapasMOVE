@@ -20,6 +20,10 @@ let racha = 0; // contador de reacciones de la clase actual (solo en memoria)
 
 let intervaloBienvenida = null;
 
+// ---------- recuperar clave (pantalla de login, antes de entrar) ----------
+let maestrasParaRecuperar = [];
+let maestraSeleccionadaRecuperar = null;
+
 // ---------- cronómetro ----------
 let cronIntervalo = null;
 let cronSegundosTotal = 60;
@@ -115,6 +119,101 @@ async function entrarMaestra() {
   } finally {
     boton.disabled = false;
     boton.textContent = textoOriginal;
+  }
+}
+
+// ---------- recuperar clave (pantalla de login) ----------
+
+el("btnMostrarRecuperarMaestra").addEventListener("click", mostrarBloqueRecuperarMaestra);
+el("buscarRecuperarMaestra").addEventListener("input", (e) => renderListaRecuperarMaestra(e.target.value));
+el("btnEnviarRecuperarMaestra").addEventListener("click", enviarRecuperarMaestra);
+
+async function mostrarBloqueRecuperarMaestra() {
+  const bloque = el("bloqueRecuperarMaestra");
+  const yaAbierto = !bloque.hidden;
+  bloque.hidden = yaAbierto;
+  el("mensajeErrorLogin").textContent = "";
+  el("mensajeRecuperarMaestra").hidden = true;
+
+  if (yaAbierto) return;
+
+  el("buscarRecuperarMaestra").value = "";
+  el("listaRecuperarMaestra").innerHTML = "";
+  el("bloqueConfirmarRecuperarMaestra").hidden = true;
+  maestraSeleccionadaRecuperar = null;
+
+  if (maestrasParaRecuperar.length) return;
+
+  try {
+    const datos = await llamarWorker({ accion: "maestrasActivas" });
+    maestrasParaRecuperar = datos.maestras || [];
+  } catch (e) {
+    el("mensajeErrorLogin").textContent = e.message;
+  }
+}
+
+function renderListaRecuperarMaestra(filtro) {
+  const cont = el("listaRecuperarMaestra");
+  cont.innerHTML = "";
+  const texto = (filtro || "").trim().toLowerCase();
+
+  if (!texto) {
+    return;
+  }
+
+  const filtradas = maestrasParaRecuperar.filter((m) => m.nombre.toLowerCase().includes(texto));
+
+  if (!filtradas.length) {
+    const aviso = document.createElement("p");
+    aviso.className = "lista-alumnas-aviso";
+    aviso.textContent = "No encontramos ese nombre.";
+    cont.appendChild(aviso);
+    return;
+  }
+
+  filtradas.slice(0, 30).forEach((m) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = m.nombre;
+    btn.addEventListener("click", () => seleccionarRecuperarMaestra(m));
+    cont.appendChild(btn);
+  });
+}
+
+function seleccionarRecuperarMaestra(m) {
+  maestraSeleccionadaRecuperar = m;
+  el("nombreRecuperarMaestraElegida").textContent = m.nombre;
+  el("buscarRecuperarMaestra").value = "";
+  el("listaRecuperarMaestra").innerHTML = "";
+  el("bloqueConfirmarRecuperarMaestra").hidden = false;
+  el("mensajeRecuperarMaestra").hidden = true;
+}
+
+async function enviarRecuperarMaestra() {
+  if (!maestraSeleccionadaRecuperar) return;
+  const btn = el("btnEnviarRecuperarMaestra");
+  const msg = el("mensajeRecuperarMaestra");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Enviando...";
+  msg.hidden = true;
+  el("mensajeErrorLogin").textContent = "";
+
+  try {
+    const datos = await llamarWorker({
+      accion: "maestraRecuperarClave",
+      maestraId: maestraSeleccionadaRecuperar.id,
+    });
+    msg.textContent =
+      "✅ Te enviamos tu clave por WhatsApp al número terminado en " +
+      (datos.ultimosDigitos || "****") +
+      ".";
+    msg.hidden = false;
+  } catch (e) {
+    el("mensajeErrorLogin").textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
   }
 }
 

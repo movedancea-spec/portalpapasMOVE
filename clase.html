@@ -22,6 +22,22 @@
     <p class="subtitulo">🔒 Escribe tu clave de maestra</p>
     <input type="password" id="inputClaveMaestra" class="input-clave" placeholder="••••" autocomplete="off" />
     <button class="btn-grande btn-siguiente" id="btnEntrarMaestra">Entrar →</button>
+
+    <button class="btn-enlace" id="btnMostrarRecuperarMaestra" type="button">¿Olvidaste tu clave?</button>
+
+    <div id="bloqueRecuperarMaestra" hidden>
+      <p class="aviso-familia">Busca tu nombre para que te reenviemos tu clave por WhatsApp.</p>
+      <input type="text" id="buscarRecuperarMaestra" class="buscador" placeholder="Escribe tu nombre..." autocomplete="off" />
+      <div id="listaRecuperarMaestra" class="lista-alumnas"></div>
+
+      <div id="bloqueConfirmarRecuperarMaestra" hidden>
+        <p class="nombre-elegido" id="nombreRecuperarMaestraElegida"></p>
+        <button class="btn-secundario btn-ancho" id="btnEnviarRecuperarMaestra" type="button">📲 Enviarme mi clave por WhatsApp</button>
+      </div>
+    </div>
+
+    <p class="mensaje-recuperar" id="mensajeRecuperarMaestra" hidden></p>
+
     <p class="mensaje-error" id="mensajeErrorLogin"></p>
   </section>
 
