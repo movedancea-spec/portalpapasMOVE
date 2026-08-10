@@ -352,9 +352,10 @@ function iniciarAutoRefrescoBienvenida() {
 el("tabBienvenida").addEventListener("click", () => cambiarTab("Bienvenida"));
 el("tabClase").addEventListener("click", () => cambiarTab("Clase"));
 el("tabCierre").addEventListener("click", () => cambiarTab("Cierre"));
+el("tabBitacora").addEventListener("click", () => cambiarTab("Bitacora"));
 
 function cambiarTab(nombre) {
-  ["Bienvenida", "Clase", "Cierre"].forEach((t) => {
+  ["Bienvenida", "Clase", "Cierre", "Bitacora"].forEach((t) => {
     el("tab" + t).classList.toggle("activo", t === nombre);
     el("modo" + t).hidden = t !== nombre;
   });

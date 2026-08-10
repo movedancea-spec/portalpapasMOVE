@@ -347,18 +347,19 @@ margin-bottom:12px;
 
 .tabs-panel{
 display:flex;
+flex-wrap:wrap;
 gap:6px;
 margin-bottom:16px;
 }
 
 .tab-btn{
-flex:1;
+flex:1 1 calc(50% - 6px);
 border:2px solid #ffe3f0;
 background:white;
 color:#999;
 border-radius:14px;
 padding:10px 4px;
-font-size:clamp(12px,3.3vw,14px);
+font-size:clamp(11.5px,3.1vw,14px);
 font-weight:700;
 cursor:pointer;
 transition:.15s;

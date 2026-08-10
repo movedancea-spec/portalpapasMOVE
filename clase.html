@@ -56,6 +56,7 @@
       <button class="tab-btn activo" id="tabBienvenida" type="button">👋 Bienvenida</button>
       <button class="tab-btn" id="tabClase" type="button">🎬 Clase</button>
       <button class="tab-btn" id="tabCierre" type="button">🏆 Cierre</button>
+      <button class="tab-btn" id="tabBitacora" type="button">📋 Bitácora</button>
     </div>
 
     <!-- ---- Modo Bienvenida ---- -->
@@ -115,6 +116,13 @@
       <div id="cierreReacciones" class="cierre-reacciones"></div>
       <button class="btn-cancelar-cumple btn-ancho" id="btnReiniciarRacha" type="button">↺ Reiniciar racha</button>
 
+      <button class="btn-grande btn-siguiente" id="btnNuevaClase">🔁 Nueva clase (elegir otro grupo)</button>
+    </div>
+
+    <!-- ---- Modo Bitácora ---- -->
+    <div id="modoBitacora" class="modo" hidden>
+      <p class="aviso-familia">Deja la nota de hoy y define los objetivos del grupo.</p>
+
       <p class="pago-titulo">📋 Bitácora de esta clase</p>
       <label class="campo-label-bitacora" for="inputNotaClase">¿Qué se trabajó hoy? ¿Qué falta reforzar?</label>
       <textarea id="inputNotaClase" class="textarea-move" placeholder="Ej: Reforzamos giro fouetté, falta trabajar spot. (opcional)"></textarea>
@@ -129,8 +137,6 @@
 
       <button class="btn-secundario btn-ancho" id="btnGuardarBitacora" type="button">💾 Guardar bitácora</button>
       <p class="mensaje-recuperar" id="mensajeBitacora" hidden></p>
-
-      <button class="btn-grande btn-siguiente" id="btnNuevaClase">🔁 Nueva clase (elegir otro grupo)</button>
     </div>
 
     <!-- Overlay para las animaciones de reacciones -->
