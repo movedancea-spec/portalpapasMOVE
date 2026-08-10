@@ -17,6 +17,7 @@ let gruposMaestra = [];
 let grupoActual = null;
 let alumnasPanel = []; // lo que devuelve panelClase: [{id, nombre, cumpleanos, presente}]
 let racha = 0; // contador de reacciones de la clase actual (solo en memoria)
+let reaccionesConteo = {}; // { emoji: cantidad } — para el detalle del Cierre
 
 let intervaloBienvenida = null;
 
@@ -261,6 +262,7 @@ function renderGrupos() {
 async function abrirPanel(grupo) {
   grupoActual = grupo;
   racha = 0;
+  reaccionesConteo = {};
   detenerCronometro();
   detenerAlarma();
   poblarSelectorMinutos();
@@ -529,6 +531,13 @@ el("btnRuleta").addEventListener("click", () => {
 
 // ---------- modo clase: reacciones + racha ----------
 
+const REACCIONES_ETIQUETAS = {
+  "🔥": "Increíble",
+  "👏": "Bien hecho",
+  "💪": "Sigan así",
+  "✨": "Wow",
+};
+
 function actualizarRacha() {
   el("rachaNumero").textContent = racha;
 }
@@ -554,6 +563,7 @@ document.querySelectorAll(".btn-reaccion").forEach((btn) => {
     asegurarAudioCtx();
     const emoji = btn.dataset.emoji || "✨";
     racha += 1;
+    reaccionesConteo[emoji] = (reaccionesConteo[emoji] || 0) + 1;
     actualizarRacha();
     lanzarBurst(emoji);
     if (navigator.vibrate) navigator.vibrate(40);
@@ -564,10 +574,40 @@ document.querySelectorAll(".btn-reaccion").forEach((btn) => {
 
 function renderCierre() {
   el("cierreRacha").textContent = `${racha} reacción(es) 🎉`;
+
+  const cont = el("cierreReacciones");
+  cont.innerHTML = "";
+
+  const emojisUsados = Object.keys(reaccionesConteo).filter((e) => reaccionesConteo[e] > 0);
+
+  if (!emojisUsados.length) {
+    return;
+  }
+
+  // de mayor a menor, para que se note cuál fue la reacción "favorita"
+  emojisUsados.sort((a, b) => reaccionesConteo[b] - reaccionesConteo[a]);
+
+  emojisUsados.forEach((emoji) => {
+    const fila = document.createElement("div");
+    fila.className = "cierre-reaccion-fila";
+
+    const etiqueta = document.createElement("span");
+    etiqueta.className = "cierre-reaccion-etiqueta";
+    etiqueta.textContent = `${emoji} ${REACCIONES_ETIQUETAS[emoji] || ""}`.trim();
+    fila.appendChild(etiqueta);
+
+    const valor = document.createElement("span");
+    valor.className = "cierre-reaccion-valor";
+    valor.textContent = "x" + reaccionesConteo[emoji];
+    fila.appendChild(valor);
+
+    cont.appendChild(fila);
+  });
 }
 
 el("btnReiniciarRacha").addEventListener("click", () => {
   racha = 0;
+  reaccionesConteo = {};
   actualizarRacha();
   renderCierre();
 });
@@ -580,6 +620,7 @@ el("btnNuevaClase").addEventListener("click", () => {
   grupoActual = null;
   alumnasPanel = [];
   racha = 0;
+  reaccionesConteo = {};
   cargarGrupos();
 });
 
@@ -596,6 +637,7 @@ el("btnCerrarSesionPanel").addEventListener("click", () => {
   grupoActual = null;
   alumnasPanel = [];
   racha = 0;
+  reaccionesConteo = {};
   el("inputClaveMaestra").value = "";
   mostrarPantalla("pantallaLogin");
 });
