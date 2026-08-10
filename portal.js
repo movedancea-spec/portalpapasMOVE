@@ -79,10 +79,14 @@ function actualizarBotonFamiliaGuardada() {
   }
 }
 
-// Lugar original del botón de historial en el HTML estático, para
-// poder devolverlo ahí antes de cada render (ver renderPerfil).
+// Lugar original del botón de historial y del bloque de objetivo
+// mensual en el HTML estático, para poder devolverlos ahí antes de
+// cada render (ver renderPerfil) — evita el bug de "nodo huérfano" si
+// cont.innerHTML se limpia mientras el nodo sigue adentro.
 let btnHistorialPagosPadreOriginal = null;
 let btnHistorialPagosHermanoOriginal = null;
+let bloqueObjetivosMensualesPadreOriginal = null;
+let bloqueObjetivosMensualesHermanoOriginal = null;
 
 // Intervalo para revisar mensajes nuevos del chat mientras esa
 // pantalla está abierta (se detiene al salir, ver mostrarPantalla).
@@ -521,15 +525,16 @@ function renderPerfil(datos) {
 
   const cont = el("perfilLista");
 
-  // El botón de historial vive en el HTML estático, pero lo movemos
-  // dentro de perfilLista cuando hay cumpleaños (ver más abajo). Si
-  // quedó ahí metido de un render anterior, cont.innerHTML = "" lo
-  // destruiría (no solo lo saca, lo borra de la página), y la próxima
-  // vez que quisiéramos moverlo, el botón ya no existiría en ningún
-  // lado — eso es justo lo que causaba el error intermitente
-  // "Argument 1 ('node') to Node.appendChild must be an instance of
-  // Node" al cambiar de una alumna a otra. Por eso, antes de limpiar,
-  // lo devolvemos siempre a su lugar original en el HTML.
+  // El botón de historial y el bloque de objetivo mensual viven en el
+  // HTML estático, pero los movemos de lugar cada vez que se renderiza
+  // el perfil (ver más abajo). Si quedaron metidos adentro de un
+  // render anterior, cont.innerHTML = "" los destruiría (no solo los
+  // saca, los borra de la página), y la próxima vez que quisiéramos
+  // moverlos ya no existirían en ningún lado — eso es justo lo que
+  // causaba el error intermitente "Argument 1 ('node') to
+  // Node.appendChild must be an instance of Node" al cambiar de una
+  // alumna a otra. Por eso, antes de limpiar, los devolvemos siempre a
+  // su lugar original en el HTML.
   const btnHistorial = el("btnHistorialPagos");
   if (btnHistorial && btnHistorialPagosPadreOriginal === null) {
     btnHistorialPagosPadreOriginal = btnHistorial.parentNode;
@@ -543,6 +548,19 @@ function renderPerfil(datos) {
     }
   }
 
+  const bloqueObjetivos = el("bloqueObjetivosMensuales");
+  if (bloqueObjetivos && bloqueObjetivosMensualesPadreOriginal === null) {
+    bloqueObjetivosMensualesPadreOriginal = bloqueObjetivos.parentNode;
+    bloqueObjetivosMensualesHermanoOriginal = bloqueObjetivos.nextSibling;
+  }
+  if (bloqueObjetivos && bloqueObjetivosMensualesPadreOriginal) {
+    if (bloqueObjetivosMensualesHermanoOriginal) {
+      bloqueObjetivosMensualesPadreOriginal.insertBefore(bloqueObjetivos, bloqueObjetivosMensualesHermanoOriginal);
+    } else {
+      bloqueObjetivosMensualesPadreOriginal.appendChild(bloqueObjetivos);
+    }
+  }
+
   cont.innerHTML = "";
   (datos.perfil || [])
     .filter((f) => f.tipo !== "imagen")
@@ -552,13 +570,6 @@ function renderPerfil(datos) {
       // si quedó mal escrito.
       if (f.campo === "CUMPLEAÑOS") {
         cont.appendChild(construirFilaCumpleanos(f));
-        // Movemos el botón de historial aquí debajo del cumpleaños
-        // (appendChild reubica el nodo, no lo duplica, así que su
-        // evento de click sigue funcionando igual). Si por algo no
-        // existiera, simplemente no se agrega, sin romper el render.
-        if (btnHistorial) {
-          cont.appendChild(btnHistorial);
-        }
         return;
       }
 
@@ -603,7 +614,22 @@ function renderPerfil(datos) {
       fila.appendChild(etiqueta);
       fila.appendChild(valor);
       cont.appendChild(fila);
+
+      // El botón "🎯 Objetivo mensual de clases" va justo debajo de
+      // "Tu clase" (appendChild reubica el nodo, no lo duplica, así
+      // que su evento de click sigue funcionando igual).
+      if (f.campo === "CLASE" && bloqueObjetivos) {
+        cont.appendChild(bloqueObjetivos);
+      }
     });
+
+  // El botón de historial va justo arriba de "💳 Mensualidad de este
+  // mes" — no es parte de la lista de campos del perfil, así que se
+  // ubica aparte, después del forEach.
+  const seccionPago = el("seccionPago");
+  if (btnHistorial && seccionPago && seccionPago.parentNode) {
+    seccionPago.parentNode.insertBefore(btnHistorial, seccionPago);
+  }
 
   renderBotonObjetivosMensuales(datos.objetivosMensuales || []);
 }
