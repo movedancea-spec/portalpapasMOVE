@@ -514,6 +514,7 @@ el("tabBienvenida").addEventListener("click", () => cambiarTab("Bienvenida"));
 el("tabClase").addEventListener("click", () => cambiarTab("Clase"));
 el("tabCierre").addEventListener("click", () => cambiarTab("Cierre"));
 el("tabBitacora").addEventListener("click", () => cambiarTab("Bitacora"));
+el("tabVideo").addEventListener("click", () => cambiarTab("Video"));
 
 // No es una pestaña del panel — abre el biométrico en una pestaña
 // aparte (sin perder el cronómetro, la racha ni el resto del estado
@@ -524,7 +525,7 @@ el("btnMarcarAsistencia").addEventListener("click", () => {
 });
 
 function cambiarTab(nombre) {
-  ["Bienvenida", "Clase", "Cierre", "Bitacora"].forEach((t) => {
+  ["Bienvenida", "Clase", "Cierre", "Bitacora", "Video"].forEach((t) => {
     el("tab" + t).classList.toggle("activo", t === nombre);
     el("modo" + t).hidden = t !== nombre;
   });

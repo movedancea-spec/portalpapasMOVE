@@ -57,6 +57,7 @@
       <button class="tab-btn" id="tabClase" type="button">🎬 Clase</button>
       <button class="tab-btn" id="tabCierre" type="button">🏆 Cierre</button>
       <button class="tab-btn" id="tabBitacora" type="button">📋 Bitácora</button>
+      <button class="tab-btn" id="tabVideo" type="button">🎥 Video</button>
       <button class="tab-btn tab-btn-externo" id="btnMarcarAsistencia" type="button">👆 Marcar asistencia</button>
     </div>
 
@@ -125,7 +126,10 @@
         <button class="btn-reaccion" data-emoji="✨" type="button">✨ Wow</button>
       </div>
       <div class="racha-contador">Racha de la clase: <span id="rachaNumero">0</span> 🎉</div>
+    </div>
 
+    <!-- ---- Modo Video (grabar y subir al portal de alumnas) ---- -->
+    <div id="modoVideo" class="modo" hidden>
       <p class="pago-titulo">🎥 Video para el portal de alumnas</p>
       <div class="bloque-video-clase">
         <video id="videoPreviewClase" class="video-preview-clase" autoplay muted playsinline hidden></video>
