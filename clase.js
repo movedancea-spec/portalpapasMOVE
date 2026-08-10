@@ -16,8 +16,7 @@ let nombreMaestra = "";
 let gruposMaestra = [];
 let grupoActual = null;
 let alumnasPanel = []; // lo que devuelve panelClase: [{id, nombre, cumpleanos, presente}]
-let objetivoSemanalActual = "";
-let objetivoMensualActual = ""; // el único que se ve en el portal de papás
+let objetivoMensualActual = ""; // el único objetivo que existe — es el que se ve en el portal de papás
 let ultimaNotaActual = null; // { fecha, nota } o null
 let racha = 0; // contador de reacciones de la clase actual
 let reaccionesConteo = {}; // { emoji: cantidad } — para el detalle del Cierre
@@ -317,11 +316,9 @@ async function abrirPanel(grupo) {
   const rachaGuardada = cargarRachaStorage(grupo.id);
   racha = rachaGuardada.racha;
   reaccionesConteo = rachaGuardada.reacciones;
-  objetivoSemanalActual = "";
   objetivoMensualActual = "";
   ultimaNotaActual = null;
   el("inputNotaClase").value = "";
-  el("inputObjetivoCierre").value = "";
   el("inputObjetivoMensualCierre").value = "";
   el("mensajeBitacora").hidden = true;
   detenerCronometro();
@@ -337,6 +334,7 @@ async function abrirPanel(grupo) {
   actualizarRacha();
 
   el("nombreGrupoPanel").textContent = grupo.nombre;
+  renderSaludoBienvenida(grupo);
   mostrarPantalla("pantallaPanel");
   cambiarTab("Bienvenida");
 
@@ -348,7 +346,6 @@ async function cargarPanelClase() {
   try {
     const datos = await llamarWorker({ accion: "panelClase", grupoId: grupoActual.id });
     alumnasPanel = datos.alumnas || [];
-    objetivoSemanalActual = datos.objetivoSemanal || "";
     objetivoMensualActual = datos.objetivoMensual || "";
     ultimaNotaActual = datos.ultimaNota || null;
     renderBienvenida();
@@ -368,15 +365,13 @@ function formatearFechaCorta(iso) {
 }
 
 function renderObjetivoYNota() {
-  el("objetivoTexto").textContent = objetivoSemanalActual || "Todavía no hay un objetivo definido para este grupo.";
   el("objetivoMensualTexto").textContent =
-    objetivoMensualActual || "Todavía no hay un objetivo de este mes — los papás no ven nada hasta que lo definas.";
+    objetivoMensualActual || "Todavía no hay un objetivo de este mes.";
 
-  // Precargamos los campos de edición del Cierre con el valor actual,
+  // Precargamos el campo de edición del Cierre con el valor actual,
   // para que la maestra pueda corregirlo directamente (o borrarlo por
   // completo dejándolo en blanco) en vez de escribirlo desde cero
   // cada vez.
-  el("inputObjetivoCierre").value = objetivoSemanalActual;
   el("inputObjetivoMensualCierre").value = objetivoMensualActual;
 
   const tarjetaNota = el("tarjetaUltimaNota");
@@ -387,6 +382,31 @@ function renderObjetivoYNota() {
   } else {
     tarjetaNota.hidden = true;
   }
+}
+
+// Saludo cálido de la pestaña Bienvenida: cambia según la hora del día
+// y muestra el nombre de la maestra y el grupo, para que la pantalla
+// se sienta más amena y menos como una lista fría de datos.
+const FRASES_BIENVENIDA = [
+  "Hoy es un buen día para brillar en la pista. ✨",
+  "Que la energía de hoy se sienta en cada paso. 💃",
+  "Cada clase suma — vamos con todo hoy. 🔥",
+  "Respira, sonríe, y que empiece la magia. 🎶",
+  "Hoy toca disfrutar y que ellas también lo sientan. 🩰",
+  "Un paso a la vez, hoy también se avanza. 👣",
+  "Que se note la buena vibra desde que entran. 🌸",
+];
+
+function renderSaludoBienvenida(grupo) {
+  const ahora = new Date();
+  const hora = ahora.getHours();
+  const saludoHora = hora < 12 ? "¡Buenos días" : hora < 19 ? "¡Buenas tardes" : "¡Buenas noches";
+  const nombre = nombreMaestra ? `, ${nombreMaestra}` : "";
+  el("bienvenidaSaludoTitulo").textContent = `${saludoHora}${nombre}! 👋`;
+
+  const frase = FRASES_BIENVENIDA[ahora.getDay() % FRASES_BIENVENIDA.length];
+  const nombreGrupo = grupo && grupo.nombre ? grupo.nombre : "tu grupo";
+  el("bienvenidaSaludoTexto").textContent = `Todo listo para ${nombreGrupo}. ${frase}`;
 }
 
 function iniciarAutoRefrescoBienvenida() {
@@ -435,15 +455,20 @@ function renderBienvenida() {
   const total = alumnasPanel.length;
   const presentes = alumnasPanel.filter((a) => a.presente).length;
   el("contadorLlegadas").textContent = total
-    ? `${presentes} / ${total} ya llegaron hoy`
+    ? `✨ ${presentes} de ${total} ya llegaron`
     : "Este grupo todavía no tiene alumnas.";
+
+  const relleno = el("barraLlegadasRelleno");
+  const porcentaje = total ? Math.round((presentes / total) * 100) : 0;
+  relleno.style.width = porcentaje + "%";
 
   const cont = el("listaBienvenida");
   cont.innerHTML = "";
 
   alumnasPanel.forEach((a) => {
+    const cumpleanos = estaCumpleEstaSemana(a.cumpleanos);
     const fila = document.createElement("div");
-    fila.className = "fila-bienvenida" + (a.presente ? " presente" : "");
+    fila.className = "fila-bienvenida" + (a.presente ? " presente" : "") + (cumpleanos ? " cumple" : "");
 
     const icono = document.createElement("span");
     icono.className = "icono-bienvenida";
@@ -455,10 +480,10 @@ function renderBienvenida() {
     nombre.textContent = a.nombre;
     fila.appendChild(nombre);
 
-    if (estaCumpleEstaSemana(a.cumpleanos)) {
+    if (cumpleanos) {
       const cumple = document.createElement("span");
       cumple.className = "cumple-bienvenida";
-      cumple.textContent = "🎂";
+      cumple.textContent = "🎂 ¡Cumple!";
       fila.appendChild(cumple);
     }
 
@@ -723,25 +748,21 @@ el("btnReiniciarRacha").addEventListener("click", () => {
   renderCierre();
 });
 
-// ---------- bitácora de clase (objetivo semanal + objetivo mensual + nota) ----------
+// ---------- bitácora de clase (objetivo mensual + nota) ----------
 
-// Guarda la bitácora tal como está en ese momento en los 3 campos del
-// Cierre. La usan tanto el botón "Guardar bitácora" como los botones
-// "Borrar objetivo..." — al borrar, queremos que quede guardado (y
+// Guarda la bitácora tal como está en ese momento en los 2 campos del
+// Cierre. La usan tanto el botón "Guardar bitácora" como el botón
+// "Borrar objetivo del mes" — al borrar, queremos que quede guardado (y
 // por lo tanto reflejado en Airtable) de una vez, sin obligar a la
 // maestra a dar un segundo toque en "Guardar" para que el borrado
 // realmente se aplique.
 async function guardarBitacoraAhora({ mensajeSinCambios } = {}) {
   const notaClase = el("inputNotaClase").value.trim();
-  const objetivoNuevo = el("inputObjetivoCierre").value.trim();
   const objetivoMensualNuevo = el("inputObjetivoMensualCierre").value.trim();
   const msg = el("mensajeBitacora");
   msg.hidden = true;
 
-  const sinCambios =
-    !notaClase &&
-    objetivoNuevo === objetivoSemanalActual &&
-    objetivoMensualNuevo === objetivoMensualActual;
+  const sinCambios = !notaClase && objetivoMensualNuevo === objetivoMensualActual;
 
   if (sinCambios) {
     msg.textContent = mensajeSinCambios || "No hay cambios que guardar.";
@@ -760,16 +781,14 @@ async function guardarBitacoraAhora({ mensajeSinCambios } = {}) {
       accion: "guardarBitacora",
       grupoId: grupoActual.id,
       maestraId,
-      objetivoSemanal: objetivoNuevo,
       objetivoMensual: objetivoMensualNuevo,
       notaClase,
     });
 
-    // Los objetivos son "estado actual": se actualizan siempre al valor
+    // El objetivo es "estado actual": se actualiza siempre al valor
     // recién guardado, incluso si quedó en blanco (eso significa que la
     // maestra lo borró a propósito). La nota, en cambio, es un registro
     // por clase: solo se actualiza si se escribió una nueva.
-    objetivoSemanalActual = objetivoNuevo;
     objetivoMensualActual = objetivoMensualNuevo;
     if (notaClase) ultimaNotaActual = { fecha: new Date().toISOString(), nota: notaClase };
     renderObjetivoYNota();
@@ -787,11 +806,6 @@ async function guardarBitacoraAhora({ mensajeSinCambios } = {}) {
     btn.textContent = textoOriginal;
   }
 }
-
-el("btnBorrarObjetivoSemanal").addEventListener("click", async () => {
-  el("inputObjetivoCierre").value = "";
-  await guardarBitacoraAhora();
-});
 
 el("btnBorrarObjetivoMensual").addEventListener("click", async () => {
   el("inputObjetivoMensualCierre").value = "";

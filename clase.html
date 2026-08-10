@@ -61,13 +61,13 @@
 
     <!-- ---- Modo Bienvenida ---- -->
     <div id="modoBienvenida" class="modo">
-      <div class="tarjeta-objetivo">
-        <p class="objetivo-titulo">🎯 Objetivo de la semana</p>
-        <p class="objetivo-texto" id="objetivoTexto">Cargando...</p>
+      <div class="bienvenida-saludo">
+        <p class="bienvenida-saludo-titulo" id="bienvenidaSaludoTitulo">¡Hola! 👋</p>
+        <p class="bienvenida-saludo-texto" id="bienvenidaSaludoTexto">Todo listo para tu clase de hoy.</p>
       </div>
 
       <div class="tarjeta-objetivo tarjeta-objetivo-mensual">
-        <p class="objetivo-titulo">📅 Objetivo del mes <span class="objetivo-visible-papas">(esto sí lo ven los papás)</span></p>
+        <p class="objetivo-titulo">📅 Objetivo del mes</p>
         <p class="objetivo-texto" id="objetivoMensualTexto">Cargando...</p>
       </div>
 
@@ -77,6 +77,7 @@
       </div>
 
       <div class="contador-llegadas" id="contadorLlegadas">Cargando...</div>
+      <div class="barra-llegadas"><div class="barra-llegadas-relleno" id="barraLlegadasRelleno"></div></div>
       <div id="listaBienvenida" class="lista-bienvenida"></div>
       <button class="btn-secundario btn-ancho" id="btnRefrescarBienvenida" type="button">🔄 Actualizar</button>
     </div>
@@ -126,10 +127,6 @@
       <p class="pago-titulo">📋 Bitácora de esta clase</p>
       <label class="campo-label-bitacora" for="inputNotaClase">¿Qué se trabajó hoy? ¿Qué falta reforzar?</label>
       <textarea id="inputNotaClase" class="textarea-move" placeholder="Ej: Reforzamos giro fouetté, falta trabajar spot. (opcional)"></textarea>
-
-      <label class="campo-label-bitacora" for="inputObjetivoCierre">🎯 Objetivo de la semana <span class="objetivo-solo-maestras">(solo lo ven las maestras)</span></label>
-      <textarea id="inputObjetivoCierre" class="textarea-move" placeholder="Escribe el objetivo de la semana"></textarea>
-      <button class="btn-borrar-objetivo" id="btnBorrarObjetivoSemanal" type="button">🗑 Borrar objetivo de la semana</button>
 
       <label class="campo-label-bitacora" for="inputObjetivoMensualCierre">📅 Objetivo del mes <span class="objetivo-visible-papas">(esto sí lo ven los papás en el portal)</span></label>
       <textarea id="inputObjetivoMensualCierre" class="textarea-move" placeholder="Escribe el objetivo del mes"></textarea>
