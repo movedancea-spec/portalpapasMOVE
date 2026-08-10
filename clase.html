@@ -125,6 +125,33 @@
         <button class="btn-reaccion" data-emoji="✨" type="button">✨ Wow</button>
       </div>
       <div class="racha-contador">Racha de la clase: <span id="rachaNumero">0</span> 🎉</div>
+
+      <p class="pago-titulo">🎥 Video para el portal de alumnas</p>
+      <div class="bloque-video-clase">
+        <video id="videoPreviewClase" class="video-preview-clase" autoplay muted playsinline hidden></video>
+        <video id="videoRevisarClase" class="video-preview-clase" controls playsinline hidden></video>
+
+        <div class="video-clase-timer" id="videoClaseTimer" hidden>🔴 00:00</div>
+
+        <div class="video-clase-botones">
+          <button class="btn-grande btn-siguiente" id="btnAbrirCamaraVideo" type="button">🎥 Abrir cámara</button>
+          <button class="btn-grande btn-siguiente" id="btnIniciarGrabacionVideo" type="button" hidden>⏺ Grabar</button>
+          <button class="btn-cancelar-cumple" id="btnDetenerGrabacionVideo" type="button" hidden>⏹ Detener</button>
+        </div>
+
+        <div class="video-clase-botones" id="videoClaseBotonesRevision" hidden>
+          <button class="btn-secundario" id="btnRegrabarVideo" type="button">↺ Grabar de nuevo</button>
+          <button class="btn-grande btn-siguiente" id="btnSubirVideo" type="button">⬆️ Subir al portal</button>
+        </div>
+
+        <div class="video-clase-progreso" id="videoClaseProgreso" hidden>
+          <div class="video-clase-progreso-relleno" id="videoClaseProgresoRelleno"></div>
+        </div>
+        <p class="video-clase-mensaje" id="videoClaseMensaje" hidden></p>
+      </div>
+
+      <p class="pago-titulo" id="tituloVideosSubidos" hidden>📼 Videos ya subidos de esta clase</p>
+      <div id="listaVideosClase" class="lista-videos-clase"></div>
     </div>
 
     <!-- ---- Modo Cierre ---- -->

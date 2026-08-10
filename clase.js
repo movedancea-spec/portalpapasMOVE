@@ -332,6 +332,7 @@ async function abrirPanel(grupo) {
   alarmaFinApagada = false;
   detenerAlarmaFin(false);
   el("bloqueHorarioClase").hidden = true;
+  detenerCamaraVideo();
   poblarSelectorMinutos();
   cronSegundosTotal = 60;
   cronSegundosRestantes = 60;
@@ -363,6 +364,7 @@ async function cargarPanelClase() {
     renderBienvenida();
     renderObjetivoYNota();
     actualizarBarraTiempoClase();
+    renderVideosClase(datos.videos || []);
   } catch (e) {
     el("contadorLlegadas").textContent = "No se pudo cargar: " + e.message;
   }
@@ -905,6 +907,324 @@ document.querySelectorAll(".btn-reaccion").forEach((btn) => {
   });
 });
 
+// ---------- modo clase: grabar video para el portal ----------
+
+const MAX_SEGUNDOS_VIDEO = 300; // 5 minutos
+
+let streamCamaraVideo = null;
+let mediaRecorderVideo = null;
+let chunksGrabacionVideo = [];
+let blobGrabadoVideo = null;
+let mimeTypeGrabadoVideo = "";
+let segundosGrabadosVideo = 0;
+let timerGrabacionVideoIntervalo = null;
+let videosClaseActual = [];
+
+function elegirMimeTypeVideo() {
+  const candidatos = [
+    "video/mp4",
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+  ];
+  if (typeof MediaRecorder === "undefined") return "";
+  return candidatos.find((c) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) || "";
+}
+
+function mostrarMensajeVideo(texto, esError) {
+  const msg = el("videoClaseMensaje");
+  msg.textContent = texto;
+  msg.style.color = esError ? "#e0245e" : "#1f9d63";
+  msg.hidden = !texto;
+}
+
+async function abrirCamaraVideo() {
+  mostrarMensajeVideo("");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    mostrarMensajeVideo("Este navegador no puede usar la cámara aquí.", true);
+    return;
+  }
+  try {
+    streamCamaraVideo = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: true,
+    });
+  } catch (e) {
+    mostrarMensajeVideo("No se pudo abrir la cámara (revisa los permisos).", true);
+    return;
+  }
+
+  const preview = el("videoPreviewClase");
+  preview.srcObject = streamCamaraVideo;
+  preview.hidden = false;
+  el("videoRevisarClase").hidden = true;
+  el("btnAbrirCamaraVideo").hidden = true;
+  el("btnIniciarGrabacionVideo").hidden = false;
+  el("btnDetenerGrabacionVideo").hidden = true;
+  el("videoClaseBotonesRevision").hidden = true;
+}
+
+function formatearMMSSVideo(segundos) {
+  const m = Math.floor(segundos / 60).toString().padStart(2, "0");
+  const s = Math.floor(segundos % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function iniciarGrabacionVideo() {
+  if (!streamCamaraVideo) return;
+  mimeTypeGrabadoVideo = elegirMimeTypeVideo();
+  chunksGrabacionVideo = [];
+  try {
+    mediaRecorderVideo = mimeTypeGrabadoVideo
+      ? new MediaRecorder(streamCamaraVideo, {
+          mimeType: mimeTypeGrabadoVideo,
+          videoBitsPerSecond: 1000000,
+          audioBitsPerSecond: 96000,
+        })
+      : new MediaRecorder(streamCamaraVideo);
+  } catch (e) {
+    mostrarMensajeVideo("No se pudo empezar a grabar en este dispositivo.", true);
+    return;
+  }
+  if (!mimeTypeGrabadoVideo) mimeTypeGrabadoVideo = mediaRecorderVideo.mimeType || "video/webm";
+
+  mediaRecorderVideo.ondataavailable = (e) => {
+    if (e.data && e.data.size) chunksGrabacionVideo.push(e.data);
+  };
+  mediaRecorderVideo.onstop = () => {
+    blobGrabadoVideo = new Blob(chunksGrabacionVideo, { type: mimeTypeGrabadoVideo });
+    if (streamCamaraVideo) {
+      streamCamaraVideo.getTracks().forEach((t) => t.stop());
+      streamCamaraVideo = null;
+    }
+    const revisar = el("videoRevisarClase");
+    revisar.src = URL.createObjectURL(blobGrabadoVideo);
+    revisar.hidden = false;
+    el("videoPreviewClase").hidden = true;
+    el("videoClaseTimer").hidden = true;
+    el("btnIniciarGrabacionVideo").hidden = true;
+    el("btnDetenerGrabacionVideo").hidden = true;
+    el("videoClaseBotonesRevision").hidden = false;
+  };
+
+  mediaRecorderVideo.start(1000);
+  segundosGrabadosVideo = 0;
+  el("videoClaseTimer").hidden = false;
+  el("videoClaseTimer").textContent = "🔴 00:00";
+  el("btnIniciarGrabacionVideo").hidden = true;
+  el("btnDetenerGrabacionVideo").hidden = false;
+
+  timerGrabacionVideoIntervalo = setInterval(() => {
+    segundosGrabadosVideo += 1;
+    el("videoClaseTimer").textContent = `🔴 ${formatearMMSSVideo(segundosGrabadosVideo)}`;
+    if (segundosGrabadosVideo >= MAX_SEGUNDOS_VIDEO) {
+      detenerGrabacionVideo();
+    }
+  }, 1000);
+}
+
+function detenerGrabacionVideo() {
+  if (timerGrabacionVideoIntervalo) {
+    clearInterval(timerGrabacionVideoIntervalo);
+    timerGrabacionVideoIntervalo = null;
+  }
+  if (mediaRecorderVideo && mediaRecorderVideo.state !== "inactive") {
+    mediaRecorderVideo.stop();
+  }
+}
+
+function regrabarVideo() {
+  blobGrabadoVideo = null;
+  const revisar = el("videoRevisarClase");
+  if (revisar.src) URL.revokeObjectURL(revisar.src);
+  revisar.removeAttribute("src");
+  revisar.hidden = true;
+  el("videoClaseBotonesRevision").hidden = true;
+  mostrarMensajeVideo("");
+  abrirCamaraVideo();
+}
+
+function subirVideoXHR(url, blob, contentType, alProgresar) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.setRequestHeader("Content-Type", contentType || "video/webm");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && alProgresar) alProgresar(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      let datos = {};
+      try {
+        datos = JSON.parse(xhr.responseText);
+      } catch (e) {}
+      if (xhr.status >= 200 && xhr.status < 300 && datos.success) {
+        resolve(datos);
+      } else {
+        reject(new Error(datos.error || "No se pudo subir el video."));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Falló la conexión al subir el video."));
+    xhr.send(blob);
+  });
+}
+
+async function subirVideoAlPortal() {
+  if (!blobGrabadoVideo || !grupoActual) return;
+  const btn = el("btnSubirVideo");
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Subiendo...";
+  el("videoClaseProgreso").hidden = false;
+  el("videoClaseProgresoRelleno").style.width = "0%";
+  mostrarMensajeVideo("");
+
+  try {
+    const urlSubida = `${WORKER_URL}/subirVideoClase?grupoId=${encodeURIComponent(grupoActual.id)}`;
+    await subirVideoXHR(urlSubida, blobGrabadoVideo, mimeTypeGrabadoVideo, (pct) => {
+      el("videoClaseProgresoRelleno").style.width = pct + "%";
+    });
+    mostrarMensajeVideo("✅ Video subido — ya está en el portal de las alumnas de esta clase.", false);
+    blobGrabadoVideo = null;
+    const revisar = el("videoRevisarClase");
+    if (revisar.src) URL.revokeObjectURL(revisar.src);
+    revisar.removeAttribute("src");
+    revisar.hidden = true;
+    el("videoClaseBotonesRevision").hidden = true;
+    el("btnAbrirCamaraVideo").hidden = false;
+    el("videoClaseProgreso").hidden = true;
+    await cargarPanelClase();
+  } catch (e) {
+    mostrarMensajeVideo(e.message, true);
+    el("videoClaseProgreso").hidden = true;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+function formatearFechaHoraVideo(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString("es-GT", {
+      timeZone: "America/Guatemala",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (e) {
+    return "";
+  }
+}
+
+function renderVideosClase(videos) {
+  videosClaseActual = videos || [];
+  const cont = el("listaVideosClase");
+  const titulo = el("tituloVideosSubidos");
+  cont.innerHTML = "";
+
+  if (!videosClaseActual.length) {
+    titulo.hidden = true;
+    return;
+  }
+  titulo.hidden = false;
+
+  videosClaseActual.forEach((v) => {
+    const fila = document.createElement("div");
+    fila.className = "video-clase-fila";
+
+    const info = document.createElement("span");
+    info.className = "video-clase-fila-info";
+    info.textContent = `📼 ${formatearFechaHoraVideo(v.fecha)} · ${v.tamanoMB} MB`;
+    fila.appendChild(info);
+
+    const botones = document.createElement("div");
+    botones.className = "video-clase-fila-botones";
+
+    const verLink = document.createElement("a");
+    verLink.className = "video-clase-fila-boton-ver";
+    verLink.href = v.url;
+    verLink.target = "_blank";
+    verLink.rel = "noopener";
+    verLink.textContent = "▶ Ver";
+    botones.appendChild(verLink);
+
+    const descargarLink = document.createElement("a");
+    descargarLink.className = "video-clase-fila-boton-descargar";
+    descargarLink.href = v.urlDescarga;
+    descargarLink.textContent = "⬇ Descargar";
+    botones.appendChild(descargarLink);
+
+    const eliminarBtn = document.createElement("button");
+    eliminarBtn.className = "video-clase-fila-boton-eliminar";
+    eliminarBtn.type = "button";
+    eliminarBtn.textContent = "🗑 Borrar";
+    eliminarBtn.addEventListener("click", () => {
+      if (eliminarBtn.dataset.confirmar === "1") {
+        eliminarVideoClase(v.clave);
+      } else {
+        eliminarBtn.dataset.confirmar = "1";
+        eliminarBtn.textContent = "¿Seguro? Toca de nuevo";
+        setTimeout(() => {
+          eliminarBtn.dataset.confirmar = "";
+          eliminarBtn.textContent = "🗑 Borrar";
+        }, 3000);
+      }
+    });
+    botones.appendChild(eliminarBtn);
+
+    fila.appendChild(botones);
+    cont.appendChild(fila);
+  });
+}
+
+async function eliminarVideoClase(clave) {
+  try {
+    await llamarWorker({ accion: "eliminarVideoClase", clave });
+    await cargarPanelClase();
+  } catch (e) {
+    mostrarMensajeVideo(e.message, true);
+  }
+}
+
+function detenerCamaraVideo() {
+  if (timerGrabacionVideoIntervalo) {
+    clearInterval(timerGrabacionVideoIntervalo);
+    timerGrabacionVideoIntervalo = null;
+  }
+  if (mediaRecorderVideo && mediaRecorderVideo.state !== "inactive") {
+    try {
+      mediaRecorderVideo.stop();
+    } catch (e) {}
+  }
+  mediaRecorderVideo = null;
+  if (streamCamaraVideo) {
+    streamCamaraVideo.getTracks().forEach((t) => t.stop());
+    streamCamaraVideo = null;
+  }
+  blobGrabadoVideo = null;
+  chunksGrabacionVideo = [];
+
+  const revisar = el("videoRevisarClase");
+  if (revisar.src) URL.revokeObjectURL(revisar.src);
+  revisar.removeAttribute("src");
+  revisar.hidden = true;
+  el("videoPreviewClase").hidden = true;
+  el("videoClaseTimer").hidden = true;
+  el("btnAbrirCamaraVideo").hidden = false;
+  el("btnIniciarGrabacionVideo").hidden = true;
+  el("btnDetenerGrabacionVideo").hidden = true;
+  el("videoClaseBotonesRevision").hidden = true;
+  el("videoClaseProgreso").hidden = true;
+  mostrarMensajeVideo("");
+}
+
+el("btnAbrirCamaraVideo").addEventListener("click", abrirCamaraVideo);
+el("btnIniciarGrabacionVideo").addEventListener("click", iniciarGrabacionVideo);
+el("btnDetenerGrabacionVideo").addEventListener("click", detenerGrabacionVideo);
+el("btnRegrabarVideo").addEventListener("click", regrabarVideo);
+el("btnSubirVideo").addEventListener("click", subirVideoAlPortal);
+
 // ---------- modo cierre ----------
 
 function renderCierre() {
@@ -1021,6 +1341,7 @@ el("btnNuevaClase").addEventListener("click", () => {
   detenerCronometro();
   detenerAlarma();
   detenerAlarmaFin(true);
+  detenerCamaraVideo();
   reiniciarRuletaVisual();
   grupoActual = null;
   alumnasPanel = [];
@@ -1036,6 +1357,7 @@ el("btnCerrarSesionPanel").addEventListener("click", () => {
   detenerCronometro();
   detenerAlarma();
   detenerAlarmaFin(true);
+  detenerCamaraVideo();
   reiniciarRuletaVisual();
   maestraId = "";
   nombreMaestra = "";

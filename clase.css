@@ -810,6 +810,131 @@ padding:12px;
 }
 
 /*=====================================
+MODO CLASE: video para el portal
+=====================================*/
+
+.bloque-video-clase{
+border:2px solid #ffe3f0;
+border-radius:18px;
+padding:clamp(14px,4vw,18px);
+margin-bottom:14px;
+background:rgba(255,255,255,.6);
+text-align:center;
+}
+
+.video-preview-clase{
+width:100%;
+max-height:60vh;
+border-radius:14px;
+background:#000;
+object-fit:contain;
+margin-bottom:12px;
+}
+
+.video-clase-timer{
+display:inline-block;
+margin:0 auto 12px;
+padding:6px 16px;
+border-radius:999px;
+background:#ffe3e3;
+color:#e0245e;
+font-weight:800;
+font-size:clamp(13px,3.6vw,14.5px);
+animation:pulso .8s ease infinite alternate;
+}
+
+.video-clase-botones{
+display:flex;
+gap:8px;
+}
+
+.video-clase-botones .btn-grande,
+.video-clase-botones .btn-secundario,
+.video-clase-botones .btn-cancelar-cumple{
+flex:1;
+margin:0;
+}
+
+.video-clase-progreso{
+width:100%;
+height:14px;
+border-radius:999px;
+background:#ffe3f0;
+overflow:hidden;
+margin-top:12px;
+}
+
+.video-clase-progreso-relleno{
+height:100%;
+width:0%;
+border-radius:999px;
+background:linear-gradient(90deg,#ff8fc4,#ef4b9b);
+transition:width .3s ease;
+}
+
+.video-clase-mensaje{
+margin-top:10px;
+font-size:clamp(13px,3.6vw,14.5px);
+font-weight:700;
+}
+
+.lista-videos-clase{
+display:flex;
+flex-direction:column;
+gap:8px;
+margin-bottom:8px;
+}
+
+.video-clase-fila{
+display:flex;
+align-items:center;
+justify-content:space-between;
+flex-wrap:wrap;
+gap:8px;
+background:white;
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:10px 12px;
+}
+
+.video-clase-fila-info{
+font-size:clamp(12.5px,3.4vw,14px);
+font-weight:700;
+color:#8a5a72;
+}
+
+.video-clase-fila-botones{
+display:flex;
+gap:6px;
+}
+
+.video-clase-fila-botones a,
+.video-clase-fila-botones button{
+border:none;
+border-radius:10px;
+padding:6px 10px;
+font-size:clamp(11.5px,3.1vw,13px);
+font-weight:700;
+cursor:pointer;
+text-decoration:none;
+}
+
+.video-clase-fila-boton-ver{
+background:#ffe3f0;
+color:#ef4b9b;
+}
+
+.video-clase-fila-boton-descargar{
+background:#e3f3ff;
+color:#1a73e8;
+}
+
+.video-clase-fila-boton-eliminar{
+background:#ffe3e3;
+color:#e0245e;
+}
+
+/*=====================================
 MODO CIERRE
 =====================================*/
 
