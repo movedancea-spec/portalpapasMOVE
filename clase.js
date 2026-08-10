@@ -16,6 +16,9 @@ let nombreMaestra = "";
 let gruposMaestra = [];
 let grupoActual = null;
 let alumnasPanel = []; // lo que devuelve panelClase: [{id, nombre, cumpleanos, presente}]
+let objetivoSemanalActual = "";
+let objetivoMensualActual = ""; // el único que se ve en el portal de papás
+let ultimaNotaActual = null; // { fecha, nota } o null
 let racha = 0; // contador de reacciones de la clase actual (solo en memoria)
 let reaccionesConteo = {}; // { emoji: cantidad } — para el detalle del Cierre
 
@@ -263,6 +266,13 @@ async function abrirPanel(grupo) {
   grupoActual = grupo;
   racha = 0;
   reaccionesConteo = {};
+  objetivoSemanalActual = "";
+  objetivoMensualActual = "";
+  ultimaNotaActual = null;
+  el("inputNotaClase").value = "";
+  el("inputObjetivoCierre").value = "";
+  el("inputObjetivoMensualCierre").value = "";
+  el("mensajeBitacora").hidden = true;
   detenerCronometro();
   detenerAlarma();
   poblarSelectorMinutos();
@@ -287,9 +297,37 @@ async function cargarPanelClase() {
   try {
     const datos = await llamarWorker({ accion: "panelClase", grupoId: grupoActual.id });
     alumnasPanel = datos.alumnas || [];
+    objetivoSemanalActual = datos.objetivoSemanal || "";
+    objetivoMensualActual = datos.objetivoMensual || "";
+    ultimaNotaActual = datos.ultimaNota || null;
     renderBienvenida();
+    renderObjetivoYNota();
   } catch (e) {
     el("contadorLlegadas").textContent = "No se pudo cargar: " + e.message;
+  }
+}
+
+function formatearFechaCorta(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("es-GT", { day: "numeric", month: "short" });
+  } catch (e) {
+    return "";
+  }
+}
+
+function renderObjetivoYNota() {
+  el("objetivoTexto").textContent = objetivoSemanalActual || "Todavía no hay un objetivo definido para este grupo.";
+  el("objetivoMensualTexto").textContent =
+    objetivoMensualActual || "Todavía no hay un objetivo de este mes — los papás no ven nada hasta que lo definas.";
+
+  const tarjetaNota = el("tarjetaUltimaNota");
+  if (ultimaNotaActual && ultimaNotaActual.nota) {
+    tarjetaNota.hidden = false;
+    el("ultimaNotaFecha").textContent = formatearFechaCorta(ultimaNotaActual.fecha);
+    el("ultimaNotaTexto").textContent = ultimaNotaActual.nota;
+  } else {
+    tarjetaNota.hidden = true;
   }
 }
 
@@ -610,6 +648,58 @@ el("btnReiniciarRacha").addEventListener("click", () => {
   reaccionesConteo = {};
   actualizarRacha();
   renderCierre();
+});
+
+// ---------- bitácora de clase (objetivo semanal + objetivo mensual + nota) ----------
+
+el("btnGuardarBitacora").addEventListener("click", async () => {
+  const notaClase = el("inputNotaClase").value.trim();
+  const objetivoNuevo = el("inputObjetivoCierre").value.trim();
+  const objetivoMensualNuevo = el("inputObjetivoMensualCierre").value.trim();
+  const msg = el("mensajeBitacora");
+  msg.hidden = true;
+
+  if (!notaClase && !objetivoNuevo && !objetivoMensualNuevo) {
+    msg.textContent = "Escribe la nota de la clase, el objetivo de la semana o el del mes antes de guardar.";
+    msg.style.color = "#e0245e";
+    msg.hidden = false;
+    return;
+  }
+
+  const btn = el("btnGuardarBitacora");
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Guardando...";
+
+  try {
+    await llamarWorker({
+      accion: "guardarBitacora",
+      grupoId: grupoActual.id,
+      maestraId,
+      objetivoSemanal: objetivoNuevo,
+      objetivoMensual: objetivoMensualNuevo,
+      notaClase,
+    });
+
+    if (objetivoNuevo) objetivoSemanalActual = objetivoNuevo;
+    if (objetivoMensualNuevo) objetivoMensualActual = objetivoMensualNuevo;
+    if (notaClase) ultimaNotaActual = { fecha: new Date().toISOString(), nota: notaClase };
+    renderObjetivoYNota();
+
+    el("inputNotaClase").value = "";
+    el("inputObjetivoCierre").value = "";
+    el("inputObjetivoMensualCierre").value = "";
+    msg.style.color = "#1f9d63";
+    msg.textContent = "✅ Bitácora guardada.";
+    msg.hidden = false;
+  } catch (e) {
+    msg.style.color = "#e0245e";
+    msg.textContent = e.message;
+    msg.hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
 });
 
 el("btnNuevaClase").addEventListener("click", () => {

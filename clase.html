@@ -60,6 +60,21 @@
 
     <!-- ---- Modo Bienvenida ---- -->
     <div id="modoBienvenida" class="modo">
+      <div class="tarjeta-objetivo">
+        <p class="objetivo-titulo">🎯 Objetivo de la semana</p>
+        <p class="objetivo-texto" id="objetivoTexto">Cargando...</p>
+      </div>
+
+      <div class="tarjeta-objetivo tarjeta-objetivo-mensual">
+        <p class="objetivo-titulo">📅 Objetivo del mes <span class="objetivo-visible-papas">(esto sí lo ven los papás)</span></p>
+        <p class="objetivo-texto" id="objetivoMensualTexto">Cargando...</p>
+      </div>
+
+      <div class="tarjeta-objetivo tarjeta-nota" id="tarjetaUltimaNota" hidden>
+        <p class="objetivo-titulo">📝 Última clase (<span id="ultimaNotaFecha"></span>)</p>
+        <p class="objetivo-texto" id="ultimaNotaTexto"></p>
+      </div>
+
       <div class="contador-llegadas" id="contadorLlegadas">Cargando...</div>
       <div id="listaBienvenida" class="lista-bienvenida"></div>
       <button class="btn-secundario btn-ancho" id="btnRefrescarBienvenida" type="button">🔄 Actualizar</button>
@@ -99,6 +114,20 @@
       <div class="cierre-racha" id="cierreRacha">0 reacciones 🎉</div>
       <div id="cierreReacciones" class="cierre-reacciones"></div>
       <button class="btn-cancelar-cumple btn-ancho" id="btnReiniciarRacha" type="button">↺ Reiniciar racha</button>
+
+      <p class="pago-titulo">📋 Bitácora de esta clase</p>
+      <label class="campo-label-bitacora" for="inputNotaClase">¿Qué se trabajó hoy? ¿Qué falta reforzar?</label>
+      <textarea id="inputNotaClase" class="textarea-move" placeholder="Ej: Reforzamos giro fouetté, falta trabajar spot. (opcional)"></textarea>
+
+      <label class="campo-label-bitacora" for="inputObjetivoCierre">🎯 Actualizar objetivo de la semana <span class="objetivo-solo-maestras">(solo lo ven las maestras)</span></label>
+      <textarea id="inputObjetivoCierre" class="textarea-move" placeholder="Déjalo en blanco si el objetivo sigue igual"></textarea>
+
+      <label class="campo-label-bitacora" for="inputObjetivoMensualCierre">📅 Actualizar objetivo del mes <span class="objetivo-visible-papas">(esto sí lo ven los papás en el portal)</span></label>
+      <textarea id="inputObjetivoMensualCierre" class="textarea-move" placeholder="Déjalo en blanco si el objetivo del mes sigue igual"></textarea>
+
+      <button class="btn-secundario btn-ancho" id="btnGuardarBitacora" type="button">💾 Guardar bitácora</button>
+      <p class="mensaje-recuperar" id="mensajeBitacora" hidden></p>
+
       <button class="btn-grande btn-siguiente" id="btnNuevaClase">🔁 Nueva clase (elegir otro grupo)</button>
     </div>
 
