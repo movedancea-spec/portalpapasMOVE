@@ -61,9 +61,16 @@
 
     <!-- ---- Modo Bienvenida ---- -->
     <div id="modoBienvenida" class="modo">
+      <div class="reloj-guate">🕐 <span id="relojBienvenida">--:--</span> (Guatemala)</div>
+
       <div class="bienvenida-saludo">
         <p class="bienvenida-saludo-titulo" id="bienvenidaSaludoTitulo">¡Hola! 👋</p>
         <p class="bienvenida-saludo-texto" id="bienvenidaSaludoTexto">Todo listo para tu clase de hoy.</p>
+      </div>
+
+      <div class="bienvenida-alumnas">
+        <p class="bienvenida-alumnas-titulo" id="bienvenidaAlumnasTitulo">💫 ¡Bienvenidas!</p>
+        <p class="bienvenida-alumnas-texto" id="bienvenidaAlumnasTexto">Hoy toca brillar en la pista.</p>
       </div>
 
       <div class="tarjeta-objetivo tarjeta-objetivo-mensual">
@@ -84,6 +91,8 @@
 
     <!-- ---- Modo Clase (cronómetro + ruleta + reacciones) ---- -->
     <div id="modoClase" class="modo" hidden>
+      <div class="reloj-guate">🕐 <span id="relojClase">--:--</span> (Guatemala)</div>
+
       <div class="bloque-cronometro">
         <div class="cronometro-numero" id="cronometroNumero">01:00</div>
         <select id="selectorMinutos" class="selector-minutos"></select>
@@ -112,7 +121,13 @@
 
     <!-- ---- Modo Cierre ---- -->
     <div id="modoCierre" class="modo" hidden>
-      <p class="aviso-familia">Así quedó la clase de hoy — comparte esta pantalla con el grupo antes de despedirse. 🎉</p>
+      <div class="reloj-guate">🕐 <span id="relojCierre">--:--</span> (Guatemala)</div>
+
+      <div class="cierre-despedida">
+        <p class="cierre-despedida-titulo">🎉 ¡Gracias por venir hoy!</p>
+        <p class="cierre-despedida-texto" id="cierreDespedidaTexto">Nos vemos en la próxima clase.</p>
+      </div>
+
       <div class="cierre-racha" id="cierreRacha">0 reacciones 🎉</div>
       <div id="cierreReacciones" class="cierre-reacciones"></div>
       <button class="btn-cancelar-cumple btn-ancho" id="btnReiniciarRacha" type="button">↺ Reiniciar racha</button>

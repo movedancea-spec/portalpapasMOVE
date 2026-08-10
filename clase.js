@@ -335,6 +335,8 @@ async function abrirPanel(grupo) {
 
   el("nombreGrupoPanel").textContent = grupo.nombre;
   renderSaludoBienvenida(grupo);
+  renderSaludoAlumnas(grupo);
+  renderDespedidaAlumnas();
   mostrarPantalla("pantallaPanel");
   cambiarTab("Bienvenida");
 
@@ -408,6 +410,65 @@ function renderSaludoBienvenida(grupo) {
   const nombreGrupo = grupo && grupo.nombre ? grupo.nombre : "tu grupo";
   el("bienvenidaSaludoTexto").textContent = `Todo listo para ${nombreGrupo}. ${frase}`;
 }
+
+// Bienvenida y despedida pensadas para que las vean las ALUMNAS (esta
+// pantalla se suele compartir con el grupo) — con frases distintas a
+// las de la maestra, para que se sienta como un mensaje para ellas.
+const FRASES_BIENVENIDA_ALUMNAS = [
+  "Hoy toca sonreír, sudar la camiseta y disfrutar cada paso. 💫",
+  "¡Que empiece la magia! Hoy vamos a brillar juntas. ✨",
+  "Cada clase es una oportunidad de mejorar un poquito más. 🩰",
+  "Vengan con toda la energía — ¡hoy es un gran día para bailar! 🔥",
+  "Bienvenidas, equipo — hoy nos vamos a divertir mucho. 🎶",
+  "Un paso, una sonrisa, y a darlo todo hoy. 👣",
+  "¡Qué bueno tenerlas aquí! Hoy toca brillar. 🌸",
+];
+
+const FRASES_DESPEDIDA_ALUMNAS = [
+  "¡Gracias por dar lo mejor hoy! Nos vemos en la próxima. 🎉",
+  "Otra clase más en el camino — ¡se nota el progreso! 💪",
+  "Hasta la próxima, sigan practicando en casa. 🩰",
+  "¡Excelente clase de hoy! Descansen y nos vemos pronto. 🌟",
+  "Gracias por su energía hoy — ¡nos vemos pronto! ✨",
+  "Un aplauso para todas por el esfuerzo de hoy. 👏",
+  "Nos vemos la próxima clase — ¡sigan brillando! 💫",
+];
+
+function renderSaludoAlumnas(grupo) {
+  const ahora = new Date();
+  const nombreGrupo = grupo && grupo.nombre ? grupo.nombre : "equipo";
+  const frase = FRASES_BIENVENIDA_ALUMNAS[ahora.getDay() % FRASES_BIENVENIDA_ALUMNAS.length];
+  el("bienvenidaAlumnasTitulo").textContent = `💫 ¡Bienvenidas, ${nombreGrupo}!`;
+  el("bienvenidaAlumnasTexto").textContent = frase;
+}
+
+function renderDespedidaAlumnas() {
+  const ahora = new Date();
+  const frase = FRASES_DESPEDIDA_ALUMNAS[(ahora.getDay() + 3) % FRASES_DESPEDIDA_ALUMNAS.length];
+  el("cierreDespedidaTexto").textContent = frase;
+}
+
+// ---------- reloj de Guatemala (Bienvenida / Clase / Cierre) ----------
+
+function actualizarRelojGuatemala() {
+  let texto;
+  try {
+    texto = new Date().toLocaleTimeString("es-GT", {
+      timeZone: "America/Guatemala",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (e) {
+    return;
+  }
+  ["relojBienvenida", "relojClase", "relojCierre"].forEach((id) => {
+    const elReloj = el(id);
+    if (elReloj) elReloj.textContent = texto;
+  });
+}
+
+actualizarRelojGuatemala();
+setInterval(actualizarRelojGuatemala, 15000);
 
 function iniciarAutoRefrescoBienvenida() {
   if (intervaloBienvenida) clearInterval(intervaloBienvenida);

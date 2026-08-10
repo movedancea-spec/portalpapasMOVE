@@ -461,6 +461,25 @@ padding:2px 0;
 }
 
 /*=====================================
+RELOJ (Bienvenida / Clase / Cierre)
+=====================================*/
+
+.reloj-guate{
+display:inline-block;
+margin:0 auto 14px;
+padding:6px 16px;
+border-radius:999px;
+background:#fff0f6;
+border:2px solid #ffd8ea;
+color:#ef4b9b;
+font-size:clamp(13px,3.6vw,14.5px);
+font-weight:800;
+text-align:center;
+width:100%;
+box-sizing:border-box;
+}
+
+/*=====================================
 MODO BIENVENIDA
 =====================================*/
 
@@ -484,6 +503,29 @@ margin-bottom:4px;
 font-size:clamp(13.5px,3.8vw,15px);
 font-weight:600;
 color:rgba(255,255,255,.92);
+line-height:1.4;
+}
+
+.bienvenida-alumnas{
+text-align:left;
+background:linear-gradient(135deg,#ffd88a,#ffb84d);
+border-radius:18px;
+padding:clamp(14px,4vw,18px);
+margin-bottom:14px;
+box-shadow:0 8px 20px rgba(255,184,77,.25);
+}
+
+.bienvenida-alumnas-titulo{
+font-size:clamp(15.5px,4.3vw,18px);
+font-weight:800;
+color:white;
+margin-bottom:4px;
+}
+
+.bienvenida-alumnas-texto{
+font-size:clamp(13px,3.6vw,14.5px);
+font-weight:600;
+color:rgba(255,255,255,.95);
 line-height:1.4;
 }
 
@@ -695,6 +737,29 @@ padding:12px;
 /*=====================================
 MODO CIERRE
 =====================================*/
+
+.cierre-despedida{
+text-align:left;
+background:linear-gradient(135deg,#c9a7ff,#8a63e8);
+border-radius:18px;
+padding:clamp(16px,4.5vw,20px);
+margin-bottom:14px;
+box-shadow:0 8px 20px rgba(138,99,232,.25);
+}
+
+.cierre-despedida-titulo{
+font-size:clamp(17px,4.7vw,20px);
+font-weight:800;
+color:white;
+margin-bottom:4px;
+}
+
+.cierre-despedida-texto{
+font-size:clamp(13.5px,3.8vw,15px);
+font-weight:600;
+color:rgba(255,255,255,.94);
+line-height:1.4;
+}
 
 .cierre-racha{
 text-align:center;
