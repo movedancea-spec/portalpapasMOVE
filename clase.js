@@ -19,8 +19,13 @@ let alumnasPanel = []; // lo que devuelve panelClase: [{id, nombre, cumpleanos, 
 let objetivoSemanalActual = "";
 let objetivoMensualActual = ""; // el único que se ve en el portal de papás
 let ultimaNotaActual = null; // { fecha, nota } o null
-let racha = 0; // contador de reacciones de la clase actual (solo en memoria)
+let racha = 0; // contador de reacciones de la clase actual
 let reaccionesConteo = {}; // { emoji: cantidad } — para el detalle del Cierre
+
+// La racha y las reacciones se respaldan en localStorage (por grupo y por
+// día) para que, si la maestra sale de la página, se le cierra la app o
+// pierde la conexión un momento, no pierda lo que ya llevaba marcado —
+// solo se borran cuando ella misma toca "Reiniciar racha" en el Cierre.
 
 let intervaloBienvenida = null;
 
@@ -260,12 +265,58 @@ function renderGrupos() {
   });
 }
 
+// ---------- respaldo de racha/reacciones en localStorage ----------
+
+function claveRachaStorage(grupoId) {
+  return "move_racha_" + grupoId;
+}
+
+function fechaHoyStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Guarda el estado actual de racha/reacciones del grupo que está abierto.
+// Si el navegador bloquea localStorage (modo privado, etc.) la app sigue
+// funcionando normal, solo sin este respaldo.
+function guardarRachaStorage() {
+  if (!grupoActual) return;
+  try {
+    localStorage.setItem(
+      claveRachaStorage(grupoActual.id),
+      JSON.stringify({ fecha: fechaHoyStr(), racha, reacciones: reaccionesConteo })
+    );
+  } catch (e) {}
+}
+
+// Recupera lo guardado para ese grupo, pero solo si es de HOY — así una
+// racha vieja de la última vez que se dio esa clase no se mezcla con la
+// de hoy.
+function cargarRachaStorage(grupoId) {
+  try {
+    const guardado = localStorage.getItem(claveRachaStorage(grupoId));
+    if (!guardado) return { racha: 0, reacciones: {} };
+    const datos = JSON.parse(guardado);
+    if (!datos || datos.fecha !== fechaHoyStr()) return { racha: 0, reacciones: {} };
+    return { racha: datos.racha || 0, reacciones: datos.reacciones || {} };
+  } catch (e) {
+    return { racha: 0, reacciones: {} };
+  }
+}
+
+function borrarRachaStorage(grupoId) {
+  try {
+    localStorage.removeItem(claveRachaStorage(grupoId));
+  } catch (e) {}
+}
+
 // ---------- panel de clase ----------
 
 async function abrirPanel(grupo) {
   grupoActual = grupo;
-  racha = 0;
-  reaccionesConteo = {};
+  const rachaGuardada = cargarRachaStorage(grupo.id);
+  racha = rachaGuardada.racha;
+  reaccionesConteo = rachaGuardada.reacciones;
   objetivoSemanalActual = "";
   objetivoMensualActual = "";
   ultimaNotaActual = null;
@@ -611,6 +662,7 @@ document.querySelectorAll(".btn-reaccion").forEach((btn) => {
     racha += 1;
     reaccionesConteo[emoji] = (reaccionesConteo[emoji] || 0) + 1;
     actualizarRacha();
+    guardarRachaStorage();
     lanzarBurst(emoji);
     if (navigator.vibrate) navigator.vibrate(40);
   });
@@ -654,6 +706,7 @@ function renderCierre() {
 el("btnReiniciarRacha").addEventListener("click", () => {
   racha = 0;
   reaccionesConteo = {};
+  if (grupoActual) borrarRachaStorage(grupoActual.id);
   actualizarRacha();
   renderCierre();
 });
