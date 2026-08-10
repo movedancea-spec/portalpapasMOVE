@@ -659,17 +659,13 @@ el("btnReiniciarRacha").addEventListener("click", () => {
 
 // ---------- bitácora de clase (objetivo semanal + objetivo mensual + nota) ----------
 
-el("btnBorrarObjetivoSemanal").addEventListener("click", () => {
-  el("inputObjetivoCierre").value = "";
-  el("inputObjetivoCierre").focus();
-});
-
-el("btnBorrarObjetivoMensual").addEventListener("click", () => {
-  el("inputObjetivoMensualCierre").value = "";
-  el("inputObjetivoMensualCierre").focus();
-});
-
-el("btnGuardarBitacora").addEventListener("click", async () => {
+// Guarda la bitácora tal como está en ese momento en los 3 campos del
+// Cierre. La usan tanto el botón "Guardar bitácora" como los botones
+// "Borrar objetivo..." — al borrar, queremos que quede guardado (y
+// por lo tanto reflejado en Airtable) de una vez, sin obligar a la
+// maestra a dar un segundo toque en "Guardar" para que el borrado
+// realmente se aplique.
+async function guardarBitacoraAhora({ mensajeSinCambios } = {}) {
   const notaClase = el("inputNotaClase").value.trim();
   const objetivoNuevo = el("inputObjetivoCierre").value.trim();
   const objetivoMensualNuevo = el("inputObjetivoMensualCierre").value.trim();
@@ -682,7 +678,7 @@ el("btnGuardarBitacora").addEventListener("click", async () => {
     objetivoMensualNuevo === objetivoMensualActual;
 
   if (sinCambios) {
-    msg.textContent = "No hay cambios que guardar.";
+    msg.textContent = mensajeSinCambios || "No hay cambios que guardar.";
     msg.style.color = "#e0245e";
     msg.hidden = false;
     return;
@@ -724,6 +720,20 @@ el("btnGuardarBitacora").addEventListener("click", async () => {
     btn.disabled = false;
     btn.textContent = textoOriginal;
   }
+}
+
+el("btnBorrarObjetivoSemanal").addEventListener("click", async () => {
+  el("inputObjetivoCierre").value = "";
+  await guardarBitacoraAhora();
+});
+
+el("btnBorrarObjetivoMensual").addEventListener("click", async () => {
+  el("inputObjetivoMensualCierre").value = "";
+  await guardarBitacoraAhora();
+});
+
+el("btnGuardarBitacora").addEventListener("click", async () => {
+  await guardarBitacoraAhora();
 });
 
 el("btnNuevaClase").addEventListener("click", () => {
