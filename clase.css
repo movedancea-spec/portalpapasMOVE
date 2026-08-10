@@ -735,5 +735,9 @@ RESPONSIVE
 }
 
 @media(min-width:900px){
-.container{ max-width:680px; }
+.container{ max-width:960px; }
+}
+
+@media(min-width:1400px){
+.container{ max-width:1140px; }
 }
