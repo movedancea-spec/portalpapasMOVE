@@ -148,5 +148,31 @@
 </div>
 
 <script src="clase.js"></script>
+<script>
+  // Registra el Service Worker y le pide revisar actualizaciones cada vez
+  // que se vuelve a esta pantalla (al abrir la app, o al volver a ella
+  // después de tenerla en segundo plano) — así el Panel de Clase toma lo
+  // último que se subió sin que la maestra tenga que borrar caché a mano.
+  if ("serviceWorker" in navigator) {
+    let registroSW = null;
+
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("sw.js")
+        .then((registro) => {
+          registroSW = registro;
+        })
+        .catch(() => {
+          // Si falla el registro, la página sigue funcionando normal.
+        });
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && registroSW) {
+        registroSW.update().catch(() => {});
+      }
+    });
+  }
+</script>
 </body>
 </html>
