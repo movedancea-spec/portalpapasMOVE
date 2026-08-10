@@ -451,6 +451,20 @@ border-color:#ef4b9b;
 box-shadow:0 0 0 3px rgba(239,75,155,.15);
 }
 
+.btn-borrar-objetivo{
+display:block;
+margin:6px 0 0;
+background:none;
+border:none;
+color:#e0245e;
+font-weight:700;
+font-size:clamp(11.5px,3.2vw,13px);
+text-decoration:underline;
+cursor:pointer;
+text-align:left;
+padding:2px 0;
+}
+
 /*=====================================
 MODO BIENVENIDA
 =====================================*/

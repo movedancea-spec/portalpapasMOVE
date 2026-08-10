@@ -119,11 +119,13 @@
       <label class="campo-label-bitacora" for="inputNotaClase">¿Qué se trabajó hoy? ¿Qué falta reforzar?</label>
       <textarea id="inputNotaClase" class="textarea-move" placeholder="Ej: Reforzamos giro fouetté, falta trabajar spot. (opcional)"></textarea>
 
-      <label class="campo-label-bitacora" for="inputObjetivoCierre">🎯 Actualizar objetivo de la semana <span class="objetivo-solo-maestras">(solo lo ven las maestras)</span></label>
-      <textarea id="inputObjetivoCierre" class="textarea-move" placeholder="Déjalo en blanco si el objetivo sigue igual"></textarea>
+      <label class="campo-label-bitacora" for="inputObjetivoCierre">🎯 Objetivo de la semana <span class="objetivo-solo-maestras">(solo lo ven las maestras)</span></label>
+      <textarea id="inputObjetivoCierre" class="textarea-move" placeholder="Escribe el objetivo de la semana"></textarea>
+      <button class="btn-borrar-objetivo" id="btnBorrarObjetivoSemanal" type="button">🗑 Borrar objetivo de la semana</button>
 
-      <label class="campo-label-bitacora" for="inputObjetivoMensualCierre">📅 Actualizar objetivo del mes <span class="objetivo-visible-papas">(esto sí lo ven los papás en el portal)</span></label>
-      <textarea id="inputObjetivoMensualCierre" class="textarea-move" placeholder="Déjalo en blanco si el objetivo del mes sigue igual"></textarea>
+      <label class="campo-label-bitacora" for="inputObjetivoMensualCierre">📅 Objetivo del mes <span class="objetivo-visible-papas">(esto sí lo ven los papás en el portal)</span></label>
+      <textarea id="inputObjetivoMensualCierre" class="textarea-move" placeholder="Escribe el objetivo del mes"></textarea>
+      <button class="btn-borrar-objetivo" id="btnBorrarObjetivoMensual" type="button">🗑 Borrar objetivo del mes</button>
 
       <button class="btn-secundario btn-ancho" id="btnGuardarBitacora" type="button">💾 Guardar bitácora</button>
       <p class="mensaje-recuperar" id="mensajeBitacora" hidden></p>

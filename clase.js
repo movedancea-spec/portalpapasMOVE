@@ -321,6 +321,13 @@ function renderObjetivoYNota() {
   el("objetivoMensualTexto").textContent =
     objetivoMensualActual || "Todavía no hay un objetivo de este mes — los papás no ven nada hasta que lo definas.";
 
+  // Precargamos los campos de edición del Cierre con el valor actual,
+  // para que la maestra pueda corregirlo directamente (o borrarlo por
+  // completo dejándolo en blanco) en vez de escribirlo desde cero
+  // cada vez.
+  el("inputObjetivoCierre").value = objetivoSemanalActual;
+  el("inputObjetivoMensualCierre").value = objetivoMensualActual;
+
   const tarjetaNota = el("tarjetaUltimaNota");
   if (ultimaNotaActual && ultimaNotaActual.nota) {
     tarjetaNota.hidden = false;
@@ -652,6 +659,16 @@ el("btnReiniciarRacha").addEventListener("click", () => {
 
 // ---------- bitácora de clase (objetivo semanal + objetivo mensual + nota) ----------
 
+el("btnBorrarObjetivoSemanal").addEventListener("click", () => {
+  el("inputObjetivoCierre").value = "";
+  el("inputObjetivoCierre").focus();
+});
+
+el("btnBorrarObjetivoMensual").addEventListener("click", () => {
+  el("inputObjetivoMensualCierre").value = "";
+  el("inputObjetivoMensualCierre").focus();
+});
+
 el("btnGuardarBitacora").addEventListener("click", async () => {
   const notaClase = el("inputNotaClase").value.trim();
   const objetivoNuevo = el("inputObjetivoCierre").value.trim();
@@ -659,8 +676,13 @@ el("btnGuardarBitacora").addEventListener("click", async () => {
   const msg = el("mensajeBitacora");
   msg.hidden = true;
 
-  if (!notaClase && !objetivoNuevo && !objetivoMensualNuevo) {
-    msg.textContent = "Escribe la nota de la clase, el objetivo de la semana o el del mes antes de guardar.";
+  const sinCambios =
+    !notaClase &&
+    objetivoNuevo === objetivoSemanalActual &&
+    objetivoMensualNuevo === objetivoMensualActual;
+
+  if (sinCambios) {
+    msg.textContent = "No hay cambios que guardar.";
     msg.style.color = "#e0245e";
     msg.hidden = false;
     return;
@@ -681,14 +703,16 @@ el("btnGuardarBitacora").addEventListener("click", async () => {
       notaClase,
     });
 
-    if (objetivoNuevo) objetivoSemanalActual = objetivoNuevo;
-    if (objetivoMensualNuevo) objetivoMensualActual = objetivoMensualNuevo;
+    // Los objetivos son "estado actual": se actualizan siempre al valor
+    // recién guardado, incluso si quedó en blanco (eso significa que la
+    // maestra lo borró a propósito). La nota, en cambio, es un registro
+    // por clase: solo se actualiza si se escribió una nueva.
+    objetivoSemanalActual = objetivoNuevo;
+    objetivoMensualActual = objetivoMensualNuevo;
     if (notaClase) ultimaNotaActual = { fecha: new Date().toISOString(), nota: notaClase };
     renderObjetivoYNota();
 
     el("inputNotaClase").value = "";
-    el("inputObjetivoCierre").value = "";
-    el("inputObjetivoMensualCierre").value = "";
     msg.style.color = "#1f9d63";
     msg.textContent = "✅ Bitácora guardada.";
     msg.hidden = false;
