@@ -4,10 +4,10 @@
 // ==========================================
 // Pensado para usarse en la tablet/celular de la maestra durante su
 // propia clase. Habla con el mismo Worker que el resto del portal —
-// nunca guarda datos sensibles aquí. La RACHA, la ruleta y las
-// reacciones son solo de esta sesión (no se guardan en Airtable):
-// sirven para gamificar el momento, no para llevar un historial
-// permanente.
+// nunca guarda datos sensibles aquí. La ruleta es solo de esta sesión
+// (no se guarda en Airtable): sirve para gamificar el momento, no
+// para llevar un historial permanente. La calificación de la clase sí
+// se guarda (es interna, solo la ve la directora desde ranking.html).
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
@@ -18,13 +18,7 @@ let grupoActual = null;
 let alumnasPanel = []; // lo que devuelve panelClase: [{id, nombre, cumpleanos, presente}]
 let objetivoMensualActual = ""; // el único objetivo que existe — es el que se ve en el portal de papás
 let ultimaNotaActual = null; // { fecha, nota } o null
-let racha = 0; // contador de reacciones de la clase actual
-let reaccionesConteo = {}; // { emoji: cantidad } — para el detalle del Cierre
-
-// La racha y las reacciones se respaldan en localStorage (por grupo y por
-// día) para que, si la maestra sale de la página, se le cierra la app o
-// pierde la conexión un momento, no pierda lo que ya llevaba marcado —
-// solo se borran cuando ella misma toca "Reiniciar racha" en el Cierre.
+let calificacionHoyActual = null; // "Excelente" | "Buena" | "Regular" | null
 
 let intervaloBienvenida = null;
 
@@ -269,58 +263,11 @@ function renderGrupos() {
   });
 }
 
-// ---------- respaldo de racha/reacciones en localStorage ----------
-
-function claveRachaStorage(grupoId) {
-  return "move_racha_" + grupoId;
-}
-
-function fechaHoyStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-// Guarda el estado actual de racha/reacciones del grupo que está abierto.
-// Si el navegador bloquea localStorage (modo privado, etc.) la app sigue
-// funcionando normal, solo sin este respaldo.
-function guardarRachaStorage() {
-  if (!grupoActual) return;
-  try {
-    localStorage.setItem(
-      claveRachaStorage(grupoActual.id),
-      JSON.stringify({ fecha: fechaHoyStr(), racha, reacciones: reaccionesConteo })
-    );
-  } catch (e) {}
-}
-
-// Recupera lo guardado para ese grupo, pero solo si es de HOY — así una
-// racha vieja de la última vez que se dio esa clase no se mezcla con la
-// de hoy.
-function cargarRachaStorage(grupoId) {
-  try {
-    const guardado = localStorage.getItem(claveRachaStorage(grupoId));
-    if (!guardado) return { racha: 0, reacciones: {} };
-    const datos = JSON.parse(guardado);
-    if (!datos || datos.fecha !== fechaHoyStr()) return { racha: 0, reacciones: {} };
-    return { racha: datos.racha || 0, reacciones: datos.reacciones || {} };
-  } catch (e) {
-    return { racha: 0, reacciones: {} };
-  }
-}
-
-function borrarRachaStorage(grupoId) {
-  try {
-    localStorage.removeItem(claveRachaStorage(grupoId));
-  } catch (e) {}
-}
-
 // ---------- panel de clase ----------
 
 async function abrirPanel(grupo) {
   grupoActual = grupo;
-  const rachaGuardada = cargarRachaStorage(grupo.id);
-  racha = rachaGuardada.racha;
-  reaccionesConteo = rachaGuardada.reacciones;
+  calificacionHoyActual = null;
   objetivoMensualActual = "";
   ultimaNotaActual = null;
   el("inputNotaClase").value = "";
@@ -345,7 +292,7 @@ async function abrirPanel(grupo) {
   el("cronometroNumero").classList.remove("cronometro-terminado");
   actualizarPantallaCronometro();
   reiniciarRuletaVisual();
-  actualizarRacha();
+  renderCalificacion();
 
   el("nombreGrupoPanel").textContent = grupo.nombre;
   renderSaludoBienvenida(grupo);
@@ -367,10 +314,12 @@ async function cargarPanelClase() {
     objetivoMensualActual = datos.objetivoMensual || "";
     ultimaNotaActual = datos.ultimaNota || null;
     horarioHoyActual = datos.horarioHoy || null;
+    calificacionHoyActual = datos.calificacionHoy || null;
     renderBienvenida();
     renderObjetivoYNota();
     actualizarBarraTiempoClase();
     renderVideosClase(datos.videos || []);
+    renderCalificacion();
   } catch (e) {
     el("contadorLlegadas").textContent = "No se pudo cargar: " + e.message;
   }
@@ -524,9 +473,9 @@ el("tabVideo").addEventListener("click", () => cambiarTab("Video"));
 el("tabRecepcion").addEventListener("click", () => cambiarTab("Recepcion"));
 
 // No es una pestaña del panel — abre el biométrico en una pestaña
-// aparte (sin perder el cronómetro, la racha ni el resto del estado
-// del Panel de Clase), para que una alumna pueda marcar su asistencia
-// ahí mismo sin tener que bajar a recepción.
+// aparte (sin perder el cronómetro ni el resto del estado del Panel
+// de Clase), para que una alumna pueda marcar su asistencia ahí mismo
+// sin tener que bajar a recepción.
 el("btnMarcarAsistencia").addEventListener("click", () => {
   window.open("https://movedancea-spec.github.io/BIOMETRICO-V4/", "_blank", "noopener");
 });
@@ -536,7 +485,6 @@ function cambiarTab(nombre) {
     el("tab" + t).classList.toggle("activo", t === nombre);
     el("modo" + t).hidden = t !== nombre;
   });
-  if (nombre === "Cierre") renderCierre();
   // Al entrar a la pestaña de Recepción, la maestra ya "vio" las
   // respuestas pendientes — se marcan leídas y se apaga la alarma.
   if (nombre === "Recepcion") marcarLeidosRecepcion();
@@ -876,45 +824,50 @@ el("btnRuleta").addEventListener("click", () => {
   }, 90);
 });
 
-// ---------- modo clase: reacciones + racha ----------
+// ---------- modo clase: calificación interna de la clase ----------
+// Solo interna: no aparece en el portal de alumnas. Cada clase (por
+// grupo y por día) se puede calificar UNA vez — si la maestra toca
+// otra categoría, se actualiza en vez de sumar aparte. Los puntos se
+// van acumulando en Airtable durante todo el mes, y solo la
+// directora puede ver la tabla de posiciones (desde ranking.html).
 
-const REACCIONES_ETIQUETAS = {
-  "🔥": "Increíble",
-  "👏": "Bien hecho",
-  "💪": "Sigan así",
-  "✨": "Wow",
-};
-
-function actualizarRacha() {
-  el("rachaNumero").textContent = racha;
+function renderCalificacion() {
+  document.querySelectorAll(".btn-calificacion").forEach((btn) => {
+    btn.classList.toggle("activa", btn.dataset.categoria === calificacionHoyActual);
+  });
+  const mensaje = el("calificacionMensaje");
+  if (calificacionHoyActual) {
+    mensaje.textContent = `Calificaste esta clase como "${calificacionHoyActual}" hoy. Puedes cambiarla tocando otra opción.`;
+    mensaje.hidden = false;
+  } else {
+    mensaje.hidden = true;
+  }
 }
 
-function lanzarBurst(emoji) {
-  const cont = el("burstContainer");
-  const span = document.createElement("span");
-  span.className = "burst-emoji";
-  span.textContent = emoji;
+document.querySelectorAll(".btn-calificacion").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    if (!grupoActual) return;
+    const categoria = btn.dataset.categoria;
+    if (categoria === calificacionHoyActual) return; // ya está en esa categoría
 
-  // posición horizontal aleatoria para que no salgan todas apiladas
-  const desplazamiento = (Math.random() - 0.5) * 60; // -30px a +30px
-  span.style.setProperty("--desplazamiento", desplazamiento + "px");
-
-  cont.appendChild(span);
-  span.addEventListener("animationend", () => span.remove());
-  // por si el navegador no dispara animationend por algún motivo
-  setTimeout(() => span.remove(), 1600);
-}
-
-document.querySelectorAll(".btn-reaccion").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    asegurarAudioCtx();
-    const emoji = btn.dataset.emoji || "✨";
-    racha += 1;
-    reaccionesConteo[emoji] = (reaccionesConteo[emoji] || 0) + 1;
-    actualizarRacha();
-    guardarRachaStorage();
-    lanzarBurst(emoji);
-    if (navigator.vibrate) navigator.vibrate(40);
+    document.querySelectorAll(".btn-calificacion").forEach((b) => (b.disabled = true));
+    try {
+      await llamarWorker({
+        accion: "calificarClase",
+        grupoId: grupoActual.id,
+        grupoNombre: grupoActual.nombre,
+        categoria,
+      });
+      calificacionHoyActual = categoria;
+      renderCalificacion();
+      if (navigator.vibrate) navigator.vibrate(40);
+    } catch (e) {
+      const mensaje = el("calificacionMensaje");
+      mensaje.textContent = e.message;
+      mensaje.hidden = false;
+    } finally {
+      document.querySelectorAll(".btn-calificacion").forEach((b) => (b.disabled = false));
+    }
   });
 });
 
@@ -1420,47 +1373,6 @@ function detenerAutoRefrescoRecepcion() {
 
 // ---------- modo cierre ----------
 
-function renderCierre() {
-  el("cierreRacha").textContent = `${racha} reacción(es) 🎉`;
-
-  const cont = el("cierreReacciones");
-  cont.innerHTML = "";
-
-  const emojisUsados = Object.keys(reaccionesConteo).filter((e) => reaccionesConteo[e] > 0);
-
-  if (!emojisUsados.length) {
-    return;
-  }
-
-  // de mayor a menor, para que se note cuál fue la reacción "favorita"
-  emojisUsados.sort((a, b) => reaccionesConteo[b] - reaccionesConteo[a]);
-
-  emojisUsados.forEach((emoji) => {
-    const fila = document.createElement("div");
-    fila.className = "cierre-reaccion-fila";
-
-    const etiqueta = document.createElement("span");
-    etiqueta.className = "cierre-reaccion-etiqueta";
-    etiqueta.textContent = `${emoji} ${REACCIONES_ETIQUETAS[emoji] || ""}`.trim();
-    fila.appendChild(etiqueta);
-
-    const valor = document.createElement("span");
-    valor.className = "cierre-reaccion-valor";
-    valor.textContent = "x" + reaccionesConteo[emoji];
-    fila.appendChild(valor);
-
-    cont.appendChild(fila);
-  });
-}
-
-el("btnReiniciarRacha").addEventListener("click", () => {
-  racha = 0;
-  reaccionesConteo = {};
-  if (grupoActual) borrarRachaStorage(grupoActual.id);
-  actualizarRacha();
-  renderCierre();
-});
-
 // ---------- bitácora de clase (objetivo mensual + nota) ----------
 
 // Guarda la bitácora tal como está en ese momento en los 2 campos del
@@ -1540,8 +1452,7 @@ el("btnNuevaClase").addEventListener("click", () => {
   reiniciarRuletaVisual();
   grupoActual = null;
   alumnasPanel = [];
-  racha = 0;
-  reaccionesConteo = {};
+  calificacionHoyActual = null;
   cargarGrupos();
 });
 
@@ -1561,8 +1472,7 @@ el("btnCerrarSesionPanel").addEventListener("click", () => {
   gruposMaestra = [];
   grupoActual = null;
   alumnasPanel = [];
-  racha = 0;
-  reaccionesConteo = {};
+  calificacionHoyActual = null;
   el("inputClaveMaestra").value = "";
   mostrarPantalla("pantallaLogin");
 });

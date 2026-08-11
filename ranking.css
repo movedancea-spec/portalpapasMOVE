@@ -1,0 +1,302 @@
+/* ===================================================
+   MOVE — RANKING DE GRUPOS (interno, solo directora)
+   Mismo lenguaje visual que el resto de la app
+=================================================== */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Poppins",sans-serif;
+}
+
+[hidden]{
+display:none !important;
+}
+
+html{
+width:100%;
+min-height:100%;
+}
+
+body{
+width:100%;
+min-height:100vh;
+min-height:100dvh;
+overflow-y:auto;
+overflow-x:hidden;
+display:flex;
+justify-content:center;
+align-items:flex-start;
+padding:30px 20px;
+background:linear-gradient(-45deg,#ffffff,#fff4fb,#ffe9f5,#fff6fc,#ffffff);
+background-size:400% 400%;
+animation:gradientMove 18s ease infinite;
+}
+
+@keyframes gradientMove{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+
+.container{
+width:92%;
+max-width:560px;
+margin:20px auto;
+padding:clamp(20px,6vw,35px);
+border-radius:clamp(20px,5vw,35px);
+background:rgba(255,255,255,.55);
+backdrop-filter:blur(20px);
+-webkit-backdrop-filter:blur(20px);
+box-shadow:0 20px 60px rgba(239,75,155,.18), 0 6px 15px rgba(0,0,0,.05);
+text-align:center;
+position:relative;
+z-index:20;
+}
+
+.logo{
+width:80%;
+max-width:260px;
+margin:auto;
+display:block;
+margin-bottom:6px;
+filter:drop-shadow(0 15px 25px rgba(239,75,155,.25));
+}
+
+.title{
+font-size:clamp(20px,5vw,28px);
+font-weight:700;
+color:#ef4b9b;
+margin-top:6px;
+margin-bottom:14px;
+}
+
+.pantalla{
+text-align:left;
+}
+
+.subtitulo{
+font-size:clamp(15px,4vw,19px);
+font-weight:700;
+color:#777;
+margin-bottom:14px;
+text-align:center;
+}
+
+.mensaje-error{
+min-height:24px;
+color:#e0245e;
+font-weight:700;
+font-size:clamp(13px,3.5vw,15px);
+margin-top:14px;
+text-align:center;
+}
+
+.aviso-familia{
+font-size:clamp(12px,3.3vw,13.5px);
+font-weight:600;
+color:#a15277;
+background:#fff0f6;
+border-radius:12px;
+padding:10px 12px;
+margin-bottom:14px;
+text-align:center;
+}
+
+.mensaje-recuperar{
+margin-top:10px;
+color:#1f9d63;
+font-weight:700;
+font-size:clamp(13px,3.6vw,15px);
+text-align:center;
+}
+
+/*=====================================
+CLAVE
+=====================================*/
+
+.input-clave{
+width:100%;
+border:2px solid #ffd8ea;
+border-radius:16px;
+padding:clamp(16px,4.5vw,20px);
+font-size:clamp(22px,7vw,30px);
+font-weight:700;
+letter-spacing:6px;
+text-align:center;
+color:#555;
+background:white;
+outline:none;
+transition:.18s;
+margin-bottom:14px;
+}
+
+.input-clave:focus{
+border-color:#ef4b9b;
+box-shadow:0 0 0 3px rgba(239,75,155,.15);
+outline:2px solid #ef4b9b;
+outline-offset:2px;
+}
+
+/*=====================================
+BOTONES
+=====================================*/
+
+.btn-grande{
+width:100%;
+border:none;
+border-radius:18px;
+padding:clamp(14px,4.5vw,18px);
+font-size:clamp(16px,4.5vw,19px);
+font-weight:700;
+color:white;
+cursor:pointer;
+margin-top:12px;
+transition:.15s;
+}
+
+.btn-siguiente{
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+box-shadow:0 8px 20px rgba(239,75,155,.30);
+}
+
+.btn-siguiente:disabled{
+opacity:.45;
+cursor:not-allowed;
+box-shadow:none;
+}
+
+.btn-grande:active:not(:disabled){ transform:scale(.97); }
+
+.btn-secundario{
+border:2px solid #ef4b9b;
+background:white;
+color:#ef4b9b;
+border-radius:18px;
+padding:clamp(14px,4.5vw,18px);
+font-size:clamp(15px,4.2vw,18px);
+font-weight:700;
+cursor:pointer;
+transition:.18s;
+margin-top:12px;
+}
+
+.btn-secundario:active{ transform:scale(.97); }
+
+.btn-ancho{
+width:100%;
+margin-top:12px;
+}
+
+.btn-enlace{
+display:block;
+width:100%;
+margin-top:14px;
+background:none;
+border:none;
+color:#ef4b9b;
+font-weight:700;
+font-size:clamp(13px,3.6vw,15px);
+text-decoration:underline;
+cursor:pointer;
+}
+
+/*=====================================
+RANKING
+=====================================*/
+
+.lista-ranking{
+display:flex;
+flex-direction:column;
+gap:10px;
+margin-bottom:6px;
+}
+
+.lista-vacia{
+color:#999;
+font-size:clamp(13px,3.5vw,15px);
+font-weight:600;
+text-align:center;
+padding:18px 8px;
+}
+
+.fila-ranking{
+display:flex;
+align-items:center;
+gap:12px;
+border:2px solid #ffe3f0;
+border-radius:16px;
+padding:clamp(12px,3.5vw,16px);
+background:white;
+}
+
+.fila-ranking.primer-lugar{
+border-color:#f4c430;
+background:linear-gradient(135deg,#fff9e6,#fff3cc);
+box-shadow:0 8px 20px rgba(244,196,48,.25);
+}
+
+.fila-ranking-puesto{
+flex-shrink:0;
+width:34px;
+height:34px;
+border-radius:50%;
+background:#ffe3f0;
+color:#ef4b9b;
+font-weight:800;
+font-size:15px;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.fila-ranking.primer-lugar .fila-ranking-puesto{
+background:#f4c430;
+color:white;
+}
+
+.fila-ranking-info{
+flex:1;
+text-align:left;
+}
+
+.fila-ranking-grupo{
+font-size:clamp(14px,3.8vw,16px);
+font-weight:800;
+color:#444;
+}
+
+.fila-ranking.primer-lugar .fila-ranking-grupo{
+color:#a1780a;
+}
+
+.fila-ranking-detalle{
+font-size:11.5px;
+font-weight:600;
+color:#999;
+margin-top:2px;
+}
+
+.fila-ranking-puntos{
+flex-shrink:0;
+font-size:clamp(18px,5vw,22px);
+font-weight:800;
+color:#ef4b9b;
+}
+
+.fila-ranking.primer-lugar .fila-ranking-puntos{
+color:#c9950a;
+}
+
+/*=====================================
+RESPONSIVE
+=====================================*/
+
+@media(max-width:360px){
+.container{ width:96%; margin:10px auto; }
+}
+
+@media(min-width:900px){
+.container{ max-width:600px; }
+}

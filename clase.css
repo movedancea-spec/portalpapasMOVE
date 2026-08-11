@@ -779,20 +779,20 @@ animation:pulso .5s ease 2;
 }
 
 /*=====================================
-MODO CLASE: reacciones + racha
+MODO CLASE: calificación interna de la clase
 =====================================*/
 
-.grid-reacciones{
-display:grid;
-grid-template-columns:1fr 1fr;
+.grid-calificacion{
+display:flex;
+flex-direction:column;
 gap:10px;
-margin-bottom:14px;
+margin-bottom:10px;
 }
 
-.btn-reaccion{
+.btn-calificacion{
 border:2px solid #ffd8ea;
 background:white;
-color:#ef4b9b;
+color:#555;
 border-radius:16px;
 padding:clamp(14px,4vw,18px) 8px;
 font-size:clamp(14px,3.8vw,16px);
@@ -801,19 +801,41 @@ cursor:pointer;
 transition:.15s;
 }
 
-.btn-reaccion:active{
-transform:scale(.94);
-background:#fff0f6;
+.btn-calificacion:active{
+transform:scale(.97);
 }
 
-.racha-contador{
+.btn-calificacion:disabled{
+opacity:.6;
+cursor:not-allowed;
+}
+
+.btn-calificacion.activa{
+color:white;
+border-color:transparent;
+}
+
+.btn-calificacion-excelente.activa{
+background:linear-gradient(180deg,#66d19e,#1f9d63);
+}
+
+.btn-calificacion-buena.activa{
+background:linear-gradient(180deg,#7fc8ff,#3d9ae0);
+}
+
+.btn-calificacion-regular.activa{
+background:linear-gradient(180deg,#ffc069,#f4a121);
+}
+
+.calificacion-mensaje{
 text-align:center;
-font-size:clamp(15px,4.2vw,17px);
-font-weight:800;
-color:#ef4b9b;
+font-size:clamp(12.5px,3.4vw,14px);
+font-weight:600;
+color:#a15277;
 background:#fff0f6;
 border-radius:14px;
-padding:12px;
+padding:10px 12px;
+margin-bottom:10px;
 }
 
 /*=====================================
@@ -966,83 +988,6 @@ font-size:clamp(13.5px,3.8vw,15px);
 font-weight:600;
 color:rgba(255,255,255,.94);
 line-height:1.4;
-}
-
-.cierre-racha{
-text-align:center;
-font-size:clamp(24px,7vw,32px);
-font-weight:800;
-color:#ef4b9b;
-background:#fff0f6;
-border-radius:16px;
-padding:clamp(18px,5vw,26px);
-margin-bottom:14px;
-}
-
-.cierre-reacciones{
-display:flex;
-flex-direction:column;
-gap:8px;
-margin-bottom:14px;
-}
-
-.cierre-reaccion-fila{
-display:flex;
-align-items:center;
-justify-content:space-between;
-gap:10px;
-border:2px solid #ffe3f0;
-border-radius:14px;
-padding:12px 16px;
-background:white;
-}
-
-.cierre-reaccion-etiqueta{
-font-size:clamp(14px,3.8vw,15.5px);
-font-weight:700;
-color:#555;
-}
-
-.cierre-reaccion-valor{
-font-size:clamp(14px,3.8vw,15.5px);
-font-weight:800;
-color:#ef4b9b;
-}
-
-/*=====================================
-OVERLAY DE REACCIONES (burst)
-=====================================*/
-
-.burst-container{
-position:fixed;
-inset:0;
-pointer-events:none;
-overflow:hidden;
-z-index:999;
-}
-
-.burst-emoji{
-position:absolute;
-left:50%;
-bottom:18%;
-transform:translateX(calc(-50% + var(--desplazamiento,0px)));
-font-size:44px;
-animation:burstFloat 1.4s ease-out forwards;
-}
-
-@keyframes burstFloat{
-0%{
-transform:translate(calc(-50% + var(--desplazamiento,0px)),0) scale(.6);
-opacity:0;
-}
-15%{
-opacity:1;
-transform:translate(calc(-50% + var(--desplazamiento,0px)),-10vh) scale(1.15);
-}
-100%{
-transform:translate(calc(-50% + var(--desplazamiento,0px)),-55vh) scale(1);
-opacity:0;
-}
 }
 
 /*=====================================

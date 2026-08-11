@@ -92,7 +92,7 @@
       <button class="btn-secundario btn-ancho" id="btnRefrescarBienvenida" type="button">🔄 Actualizar</button>
     </div>
 
-    <!-- ---- Modo Clase (cronómetro + ruleta + reacciones) ---- -->
+    <!-- ---- Modo Clase (cronómetro + ruleta + calificación interna) ---- -->
     <div id="modoClase" class="modo" hidden>
       <div class="reloj-guate">🕐 <span id="relojClase">--:--</span> (Guatemala)</div>
 
@@ -119,14 +119,14 @@
         <button class="btn-grande btn-siguiente" id="btnRuleta" type="button">🎡 Girar</button>
       </div>
 
-      <p class="pago-titulo">✨ Reacciones de la clase</p>
-      <div class="grid-reacciones">
-        <button class="btn-reaccion" data-emoji="🔥" type="button">🔥 Increíble</button>
-        <button class="btn-reaccion" data-emoji="👏" type="button">👏 Bien hecho</button>
-        <button class="btn-reaccion" data-emoji="💪" type="button">💪 Sigan así</button>
-        <button class="btn-reaccion" data-emoji="✨" type="button">✨ Wow</button>
+      <p class="pago-titulo">🏅 Calificación de esta clase</p>
+      <p class="aviso-familia">Esto es solo interno de la academia — no lo ve el portal de alumnas.</p>
+      <div class="grid-calificacion">
+        <button class="btn-calificacion btn-calificacion-excelente" data-categoria="Excelente" type="button">🌟 Excelente</button>
+        <button class="btn-calificacion btn-calificacion-buena" data-categoria="Buena" type="button">👍 Buena</button>
+        <button class="btn-calificacion btn-calificacion-regular" data-categoria="Regular" type="button">🙂 Regular</button>
       </div>
-      <div class="racha-contador">Racha de la clase: <span id="rachaNumero">0</span> 🎉</div>
+      <p class="calificacion-mensaje" id="calificacionMensaje" hidden></p>
     </div>
 
     <!-- ---- Modo Video (grabar y subir al portal de alumnas) ---- -->
@@ -198,10 +198,6 @@
         <p class="cierre-despedida-texto" id="cierreDespedidaTexto">Nos vemos en la próxima clase.</p>
       </div>
 
-      <div class="cierre-racha" id="cierreRacha">0 reacciones 🎉</div>
-      <div id="cierreReacciones" class="cierre-reacciones"></div>
-      <button class="btn-cancelar-cumple btn-ancho" id="btnReiniciarRacha" type="button">↺ Reiniciar racha</button>
-
       <button class="btn-grande btn-siguiente" id="btnNuevaClase">🔁 Nueva clase (elegir otro grupo)</button>
     </div>
 
@@ -220,9 +216,6 @@
       <button class="btn-secundario btn-ancho" id="btnGuardarBitacora" type="button">💾 Guardar bitácora</button>
       <p class="mensaje-recuperar" id="mensajeBitacora" hidden></p>
     </div>
-
-    <!-- Overlay para las animaciones de reacciones -->
-    <div id="burstContainer" class="burst-container"></div>
 
     <button class="btn-enlace" id="btnCerrarSesionPanel" type="button">Salir</button>
   </section>
