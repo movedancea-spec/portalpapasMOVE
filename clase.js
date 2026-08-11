@@ -492,20 +492,21 @@ function cambiarTab(nombre) {
 
 // ---------- modo bienvenida ----------
 
-function estaCumpleEstaSemana(fechaIso) {
+// Compara solo mes y día como texto (nunca con objetos Date/UTC, que
+// es justo lo que antes hacía que esto se corriera un día — de 6pm a
+// medianoche, hora de Guatemala, la fecha en UTC ya es "mañana").
+// "Hoy" se calcula en la zona horaria de Guatemala, no la del
+// dispositivo, para que coincida siempre con lo que muestra Airtable.
+function estaCumpleHoy(fechaIso) {
   if (!fechaIso) return false;
-  const cumple = new Date(fechaIso + "T00:00:00Z");
-  if (isNaN(cumple.getTime())) return false;
-  const hoy = new Date();
-  const mesHoy = hoy.getUTCMonth();
-  const diaHoy = hoy.getUTCDate();
-  for (let offset = 0; offset < 7; offset++) {
-    const d = new Date(Date.UTC(hoy.getUTCFullYear(), mesHoy, diaHoy + offset));
-    if (d.getUTCMonth() === cumple.getUTCMonth() && d.getUTCDate() === cumple.getUTCDate()) {
-      return true;
-    }
-  }
-  return false;
+  const partes = fechaIso.toString().split("T")[0].split("-");
+  if (partes.length < 3) return false;
+  const [, mesCumple, diaCumple] = partes;
+
+  const hoyGuatemala = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Guatemala" });
+  const [, mesHoy, diaHoy] = hoyGuatemala.split("-");
+
+  return mesCumple === mesHoy && diaCumple === diaHoy;
 }
 
 function renderBienvenida() {
@@ -523,7 +524,7 @@ function renderBienvenida() {
   cont.innerHTML = "";
 
   alumnasPanel.forEach((a) => {
-    const cumpleanos = estaCumpleEstaSemana(a.cumpleanos);
+    const cumpleanos = estaCumpleHoy(a.cumpleanos);
     const fila = document.createElement("div");
     fila.className = "fila-bienvenida" + (a.presente ? " presente" : "") + (cumpleanos ? " cumple" : "");
 
