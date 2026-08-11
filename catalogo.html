@@ -130,6 +130,14 @@ body{position:fixed;inset:0;}
 .btn-whatsapp-slide:active{transform:scale(.95);}
 @keyframes fabPulse{0%,100%{box-shadow:0 10px 26px rgba(40,200,110,.4);}50%{box-shadow:0 10px 32px rgba(40,200,110,.65);}}
 
+.btn-reservar{
+  display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap;
+  background:rgba(255,255,255,.85);color:#ef4b9b;font-weight:800;font-size:14.5px;
+  border:2px solid #ef4b9b;padding:11px 20px;border-radius:999px;
+  animation:fadeUp .5s .28s ease both;
+}
+.btn-reservar:active{transform:scale(.95);}
+
 .hint-tap{
   position:absolute;bottom:20px;left:0;right:0;text-align:center;z-index:2;
   font-size:clamp(14px,4.5vw,17px);font-weight:800;cursor:pointer;
@@ -174,6 +182,7 @@ body{position:fixed;inset:0;}
 
 <script>
 const NUMERO_WHATSAPP = "50237529984";
+const LINK_RESERVA = "https://prueba.academiamovedance.com/recepcion.html";
 
 const GRUPOS = [
   { id: "2-4", chip: "2 a 4 años", emoji: "🍼", titulo: "Little Movers", subtitulo: "Pre Danza",
@@ -274,6 +283,17 @@ const ICONO_WHATSAPP = `<svg width="20" height="20" viewBox="0 0 32 32" fill="cu
 
 function mensajeWhatsapp(texto) {
   return `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(texto)}`;
+}
+
+function crearBotonReservar() {
+  const btn = document.createElement("a");
+  btn.className = "btn-reservar";
+  btn.href = LINK_RESERVA;
+  btn.target = "_blank";
+  btn.rel = "noopener";
+  btn.textContent = "Reservar clase de prueba";
+  btn.addEventListener("click", (e) => { e.stopPropagation(); sonarToque(); });
+  return btn;
 }
 
 /* ---------- sonidos (sin archivos — se generan con Web Audio API) ---------- */
@@ -473,6 +493,11 @@ function renderSlideActual() {
       ${data.grupo.subtitulo ? `<p class="slide-sub">${data.grupo.subtitulo}</p>` : ""}
     `;
     cont.appendChild(slide);
+
+    const ctaWrapIntro = document.createElement("div");
+    ctaWrapIntro.className = "cta-wrap";
+    ctaWrapIntro.appendChild(crearBotonReservar());
+    cont.appendChild(ctaWrapIntro);
   }
 
   if (data.tipo === "clase") {
@@ -512,6 +537,7 @@ function renderSlideActual() {
     btn.innerHTML = ICONO_WHATSAPP + "<span>Preguntar por esta clase</span>";
     btn.addEventListener("click", (e) => { e.stopPropagation(); sonarToque(); });
     ctaWrap.appendChild(btn);
+    ctaWrap.appendChild(crearBotonReservar());
     cont.appendChild(ctaWrap);
 
     setTimeout(() => {
@@ -538,6 +564,7 @@ function renderSlideActual() {
     btn.innerHTML = ICONO_WHATSAPP + "<span>Escríbenos por WhatsApp</span>";
     btn.addEventListener("click", (e) => { e.stopPropagation(); sonarToque(); });
     ctaWrap.appendChild(btn);
+    ctaWrap.appendChild(crearBotonReservar());
 
     if (data.grupo.notaGeneral) {
       const nota = document.createElement("p");
