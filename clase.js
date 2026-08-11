@@ -661,7 +661,7 @@ function poblarSelectorMinutos() {
   select.innerHTML = "";
 
   const opciones = [{ seg: 30, texto: "30 segundos" }];
-  for (let m = 1; m <= 10; m++) {
+  for (let m = 1; m <= 30; m++) {
     opciones.push({ seg: m * 60, texto: m === 1 ? "1 minuto" : `${m} minutos` });
   }
 
