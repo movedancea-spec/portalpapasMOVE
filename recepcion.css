@@ -426,6 +426,438 @@ opacity:.75;
 }
 
 /*=====================================
+MENÚ PRINCIPAL
+=====================================*/
+
+.menu-grid{
+display:flex;
+flex-direction:column;
+gap:12px;
+margin-bottom:8px;
+}
+
+.btn-menu{
+position:relative;
+display:flex;
+align-items:center;
+gap:12px;
+width:100%;
+border:2px solid #ffe3f0;
+background:white;
+border-radius:18px;
+padding:16px 18px;
+font-family:inherit;
+font-size:clamp(15px,4vw,17px);
+font-weight:700;
+color:#555;
+cursor:pointer;
+transition:.15s;
+box-shadow:0 4px 10px rgba(0,0,0,.04);
+text-align:left;
+}
+
+.btn-menu:active{ transform:scale(.98); }
+
+.btn-menu-icono{
+font-size:22px;
+flex-shrink:0;
+}
+
+.btn-menu-texto{
+flex:1;
+}
+
+.btn-menu-alerta{
+font-size:12px;
+flex-shrink:0;
+}
+
+/*=====================================
+BARRA SUPERIOR (dentro de cada sección)
+=====================================*/
+
+.barra-superior{
+display:flex;
+align-items:center;
+gap:10px;
+margin-bottom:14px;
+}
+
+.btn-volver{
+border:none;
+background:#fff0f6;
+color:#ef4b9b;
+font-family:inherit;
+font-weight:700;
+font-size:13.5px;
+border-radius:12px;
+padding:8px 12px;
+cursor:pointer;
+flex-shrink:0;
+}
+
+.btn-volver:active{ transform:scale(.96); }
+
+.barra-titulo{
+font-size:clamp(16px,4.3vw,19px);
+font-weight:800;
+color:#ef4b9b;
+}
+
+/*=====================================
+CAMPOS DE FORMULARIO (Alumnas / Ingresos / Pagos)
+=====================================*/
+
+.input-texto,
+.input-select,
+.input-textarea{
+width:100%;
+border:2px solid #ffd8ea;
+border-radius:14px;
+padding:12px 14px;
+font-size:clamp(14px,3.8vw,15.5px);
+font-family:inherit;
+font-weight:600;
+color:#555;
+background:white;
+outline:none;
+transition:.18s;
+margin-bottom:12px;
+}
+
+.input-textarea{
+resize:vertical;
+min-height:60px;
+}
+
+.input-texto:focus,
+.input-select:focus,
+.input-textarea:focus{
+border-color:#ef4b9b;
+box-shadow:0 0 0 3px rgba(239,75,155,.15);
+outline:2px solid #ef4b9b;
+outline-offset:2px;
+}
+
+.input-fecha-chica{
+border:2px solid #ffd8ea;
+border-radius:12px;
+padding:8px 10px;
+font-family:inherit;
+font-size:13px;
+font-weight:600;
+color:#555;
+background:white;
+outline:none;
+}
+
+.etiqueta-campo{
+font-size:12.5px;
+font-weight:800;
+color:#a15277;
+margin-bottom:6px;
+margin-top:2px;
+}
+
+.pista-campo{
+font-size:12px;
+color:#999;
+font-weight:600;
+margin:-4px 0 12px;
+}
+
+.campos-formulario{
+display:flex;
+flex-direction:column;
+gap:2px;
+margin-bottom:6px;
+}
+
+.campo-form{
+margin-bottom:4px;
+}
+
+.btn-enlace-arriba{
+margin-top:0;
+margin-bottom:10px;
+text-align:left;
+}
+
+.mensaje-form{
+min-height:22px;
+font-weight:700;
+font-size:clamp(13px,3.5vw,14.5px);
+margin-top:10px;
+text-align:center;
+}
+
+.mensaje-form-error{ color:#e0245e; }
+.mensaje-form-ok{ color:#1f9d63; }
+
+/*=====================================
+BÚSQUEDA / RESULTADOS (Alumnas, Pagos)
+=====================================*/
+
+.lista-resultados{
+display:flex;
+flex-direction:column;
+gap:8px;
+margin-top:10px;
+max-height:52vh;
+overflow-y:auto;
+}
+
+.tarjeta-resultado{
+display:flex;
+flex-direction:column;
+gap:2px;
+text-align:left;
+width:100%;
+border:2px solid #ffe3f0;
+background:white;
+border-radius:14px;
+padding:12px 14px;
+font-family:inherit;
+cursor:pointer;
+transition:.15s;
+}
+
+.tarjeta-resultado:active{ transform:scale(.98); }
+
+.tarjeta-resultado-nombre{
+font-size:clamp(14px,3.8vw,15.5px);
+font-weight:800;
+color:#444;
+}
+
+.tarjeta-resultado-detalle{
+font-size:12.5px;
+font-weight:600;
+color:#999;
+}
+
+/*=====================================
+CHIPS (Clase) Y CHECKLISTS (Grupos / Maestras)
+=====================================*/
+
+.chips-contenedor{
+display:flex;
+flex-wrap:wrap;
+gap:7px;
+margin-bottom:12px;
+}
+
+.chip{
+border:2px solid #ffd8ea;
+background:white;
+color:#a15277;
+font-family:inherit;
+font-size:12.5px;
+font-weight:700;
+border-radius:999px;
+padding:7px 13px;
+cursor:pointer;
+transition:.15s;
+}
+
+.chip.activo{
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+border-color:#ef4b9b;
+color:white;
+}
+
+.chip:active{ transform:scale(.95); }
+
+.checklist-contenedor{
+display:flex;
+flex-direction:column;
+gap:2px;
+max-height:180px;
+overflow-y:auto;
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:8px 12px;
+margin-bottom:12px;
+background:#fffafc;
+}
+
+.opcion-checkbox{
+display:flex;
+align-items:center;
+gap:9px;
+font-size:13.5px;
+font-weight:600;
+color:#555;
+cursor:pointer;
+padding:6px 0;
+}
+
+.opcion-checkbox input[type="checkbox"]{
+width:18px;
+height:18px;
+accent-color:#ef4b9b;
+flex-shrink:0;
+}
+
+.opcion-checklist{ padding:5px 0; }
+
+.bloque-checkbox{
+margin:4px 0 12px;
+}
+
+/*=====================================
+FOTO DE ALUMNA
+=====================================*/
+
+.bloque-foto{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:10px;
+margin-bottom:16px;
+}
+
+.preview-foto{
+width:110px;
+height:110px;
+border-radius:50%;
+object-fit:cover;
+border:3px solid #ffd8ea;
+box-shadow:0 6px 16px rgba(239,75,155,.2);
+}
+
+.btn-subir-foto{
+display:inline-block;
+width:auto;
+margin-top:0;
+padding:10px 18px;
+font-size:13.5px;
+cursor:pointer;
+}
+
+/*=====================================
+INGRESOS DIARIOS
+=====================================*/
+
+.caja-form-ingreso{
+margin-bottom:6px;
+}
+
+.separador-lista{
+height:1px;
+background:#ffe3f0;
+margin:18px 0 14px;
+}
+
+.barra-lista-ingresos{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+margin-bottom:2px;
+}
+
+.barra-lista-ingresos .subtitulo{
+margin-bottom:0;
+text-align:left;
+}
+
+.lista-sugerencias{
+display:flex;
+flex-direction:column;
+gap:4px;
+margin:-6px 0 12px;
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:6px;
+max-height:160px;
+overflow-y:auto;
+background:#fffafc;
+}
+
+.sugerencia-item{
+text-align:left;
+border:none;
+background:white;
+border-radius:10px;
+padding:8px 10px;
+font-family:inherit;
+font-size:13.5px;
+font-weight:600;
+color:#555;
+cursor:pointer;
+}
+
+.sugerencia-item:active{ background:#ffe9f5; }
+
+.alumna-elegida{
+font-size:13px;
+font-weight:700;
+color:#1f9d63;
+margin:-6px 0 12px;
+}
+
+.tarjeta-ingreso{
+border:2px solid #ffe3f0;
+background:white;
+border-radius:14px;
+padding:12px 14px;
+}
+
+.tarjeta-ingreso-fila{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+}
+
+.tarjeta-ingreso-desc{
+font-size:14px;
+font-weight:700;
+color:#444;
+}
+
+.tarjeta-ingreso-monto{
+font-size:14.5px;
+font-weight:800;
+color:#ef4b9b;
+flex-shrink:0;
+}
+
+.tarjeta-ingreso-detalle{
+font-size:12px;
+font-weight:600;
+color:#999;
+margin-top:3px;
+}
+
+.total-ingresos{
+text-align:right;
+font-size:15px;
+font-weight:800;
+color:#ef4b9b;
+margin-top:10px;
+}
+
+/*=====================================
+PAGOS
+=====================================*/
+
+.resumen-pago{
+background:#fff0f6;
+border-radius:14px;
+padding:12px 14px;
+margin-bottom:14px;
+}
+
+.resumen-pago p{
+font-size:13.5px;
+font-weight:600;
+color:#a15277;
+margin:2px 0;
+}
+
+/*=====================================
 RESPONSIVE
 =====================================*/
 
