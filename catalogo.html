@@ -27,24 +27,24 @@ body{position:fixed;inset:0;}
 .logo-wrap{position:relative;width:150px;max-width:55%;margin:0 auto 4px;}
 .logo{position:relative;z-index:1;width:100%;display:block;filter:drop-shadow(0 12px 22px rgba(239,75,155,.25));}
 .explorar-titulo{
-  font-family:"Fredoka",sans-serif;text-align:center;font-size:clamp(30px,8.5vw,42px);
+  font-family:"Fredoka",sans-serif;text-align:center;font-size:clamp(22px,6.5vw,28px);
   font-weight:700;margin:14px 0 6px;color:#ef4b9b;
 }
-.explorar-sub{text-align:center;font-size:17px;font-weight:600;color:#8a6577;max-width:360px;margin:0 auto 22px;line-height:1.5;}
+.explorar-sub{text-align:center;font-size:13.5px;font-weight:600;color:#8a6577;max-width:340px;margin:0 auto 22px;line-height:1.5;}
 
 .buscador{max-width:400px;margin:0 auto 22px;display:flex;gap:8px;}
 .buscador input{
   flex:1;border:2px solid #ffd8ea;border-radius:16px;padding:13px 15px;
-  font-size:18px;font-weight:600;color:#555;background:rgba(255,255,255,.75);outline:none;
+  font-size:15px;font-weight:600;color:#555;background:rgba(255,255,255,.75);outline:none;
 }
 .buscador input::placeholder{color:#c497af;}
 .buscador input:focus{border-color:#ef4b9b;box-shadow:0 0 0 3px rgba(239,75,155,.15);}
 .buscador button{
-  border:none;border-radius:16px;padding:0 20px;font-size:17px;font-weight:700;color:#fff;cursor:pointer;
+  border:none;border-radius:16px;padding:0 18px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;
   background:linear-gradient(180deg,#ff72b7,#ef4b9b);box-shadow:0 8px 18px rgba(239,75,155,.3);
 }
 .buscador button:active{transform:scale(.95);}
-.buscador-msg{max-width:400px;margin:-10px auto 16px;font-size:15px;font-weight:700;color:#e0245e;text-align:center;min-height:16px;}
+.buscador-msg{max-width:400px;margin:-10px auto 16px;font-size:12.5px;font-weight:700;color:#e0245e;text-align:center;min-height:14px;}
 
 .grid-cat{max-width:520px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .tile-cat{
@@ -56,10 +56,10 @@ body{position:fixed;inset:0;}
   display:flex;align-items:center;justify-content:center;min-height:64px;
 }
 .tile-cat:active{transform:scale(.95);background:rgba(255,255,255,.9);}
-.tile-cat .label{font-size:18px;font-weight:700;color:#a15277;line-height:1.3;}
+.tile-cat .label{font-size:14px;font-weight:700;color:#a15277;line-height:1.3;}
 @keyframes tileIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 
-.footer-explorar{text-align:center;margin-top:26px;font-size:14.5px;font-weight:600;color:#999;}
+.footer-explorar{text-align:center;margin-top:26px;font-size:12px;font-weight:600;color:#999;}
 
 /* ============ HISTORIA (story mode) ============ */
 #historia{
@@ -75,9 +75,9 @@ body{position:fixed;inset:0;}
 .segmento.completo .relleno{width:100%;}
 
 .historia-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px;}
-.historia-top .marca{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;color:#a15277;}
+.historia-top .marca{display:flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;color:#a15277;}
 .historia-top .marca img{width:20px;filter:drop-shadow(0 2px 4px rgba(239,75,155,.3));}
-.btn-cerrar{background:rgba(239,75,155,.12);border:none;color:#ef4b9b;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;}
+.btn-cerrar{background:rgba(239,75,155,.12);border:none;color:#ef4b9b;width:30px;height:30px;border-radius:50%;font-size:15px;cursor:pointer;}
 .btn-cerrar:active{transform:scale(.9);}
 
 .zonas-tap{position:absolute;inset:0;top:60px;display:flex;z-index:1;}
@@ -90,30 +90,30 @@ body{position:fixed;inset:0;}
 .slide{
   position:relative;z-index:2;width:100%;max-width:420px;text-align:center;pointer-events:none;
 }
-.slide-cat{font-family:"Fredoka",sans-serif;font-size:clamp(18px,5.6vw,23px);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#ef4b9b;margin-bottom:12px;animation:fadeUp .4s ease both;}
-.slide-titulo{font-family:"Fredoka",sans-serif;font-size:clamp(42px,13vw,62px);font-weight:700;line-height:1.05;margin-bottom:16px;color:#333;animation:letraIn .55s cubic-bezier(.2,1.4,.4,1) both;}
-.slide-sub{font-size:21px;font-weight:600;color:#8a6577;max-width:340px;margin:0 auto;animation:fadeUp .5s .1s ease both;}
+.slide-cat{font-family:"Fredoka",sans-serif;font-size:clamp(13px,4vw,15px);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#ef4b9b;margin-bottom:8px;animation:fadeUp .4s ease both;}
+.slide-titulo{font-family:"Fredoka",sans-serif;font-size:clamp(26px,8vw,34px);font-weight:700;line-height:1.1;margin-bottom:10px;color:#333;animation:letraIn .55s cubic-bezier(.2,1.4,.4,1) both;}
+.slide-sub{font-size:14.5px;font-weight:600;color:#8a6577;max-width:300px;margin:0 auto;animation:fadeUp .5s .1s ease both;}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 @keyframes letraIn{from{opacity:0;transform:translateY(20px) scale(.9);}to{opacity:1;transform:translateY(0) scale(1);}}
 
-.clase-nombre{font-family:"Fredoka",sans-serif;font-size:clamp(36px,11vw,48px);font-weight:700;margin-bottom:22px;color:#333;animation:letraIn .5s cubic-bezier(.2,1.4,.4,1) both;}
+.clase-nombre{font-family:"Fredoka",sans-serif;font-size:clamp(22px,7vw,28px);font-weight:700;margin-bottom:16px;color:#333;animation:letraIn .5s cubic-bezier(.2,1.4,.4,1) both;}
 
-.horario-lista{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.horario-lista{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
 .horario-item{
   background:rgba(255,255,255,.75);border:1.5px solid #ffd8ea;border-radius:14px;
-  padding:16px 18px;font-size:20px;font-weight:700;color:#555;
+  padding:11px 14px;font-size:14px;font-weight:700;color:#555;
   animation:fadeUp .45s ease both;opacity:0;
 }
 
-.precio-caja{margin-bottom:22px;}
+.precio-caja{margin-bottom:16px;}
 .precio-linea{
   display:flex;align-items:baseline;justify-content:center;gap:10px;margin-bottom:10px;
   animation:fadeUp .5s ease both;opacity:0;
 }
-.precio-linea .etiqueta{font-size:17px;font-weight:700;color:#a15277;text-transform:uppercase;letter-spacing:.6px;}
+.precio-linea .etiqueta{font-size:11.5px;font-weight:700;color:#a15277;text-transform:uppercase;letter-spacing:.6px;}
 .precio-linea .monto{
-  font-family:"Fredoka",sans-serif;font-size:clamp(40px,12.5vw,58px);font-weight:700;
+  font-family:"Fredoka",sans-serif;font-size:clamp(24px,7.5vw,32px);font-weight:700;
   background:linear-gradient(90deg,#ff72b7,#ef4b9b);-webkit-background-clip:text;background-clip:text;color:transparent;
 }
 
@@ -123,8 +123,8 @@ body{position:fixed;inset:0;}
 .cta-wrap{position:relative;z-index:2;pointer-events:auto;display:flex;flex-direction:column;gap:12px;align-items:center;margin-top:6px;width:fit-content;max-width:100%;}
 .btn-whatsapp-slide{
   display:inline-flex;align-items:center;gap:8px;text-decoration:none;
-  background:linear-gradient(180deg,#3ddc73,#22b757);color:#06210f;font-weight:800;font-size:19px;white-space:nowrap;
-  padding:16px 22px;border-radius:999px;box-shadow:0 10px 26px rgba(40,200,110,.4);
+  background:linear-gradient(180deg,#3ddc73,#22b757);color:#06210f;font-weight:800;font-size:14.5px;white-space:nowrap;
+  padding:13px 20px;border-radius:999px;box-shadow:0 10px 26px rgba(40,200,110,.4);
   animation:fadeUp .5s .2s ease both,fabPulse 2.4s ease infinite;
 }
 .btn-whatsapp-slide:active{transform:scale(.95);}
@@ -132,7 +132,7 @@ body{position:fixed;inset:0;}
 
 .hint-tap{
   position:absolute;bottom:20px;left:0;right:0;text-align:center;z-index:2;
-  font-size:clamp(20px,6.5vw,25px);font-weight:800;cursor:pointer;
+  font-size:clamp(14px,4.5vw,17px);font-weight:800;cursor:pointer;
   color:#ef4b9b;animation:hintPulso 1.8s ease infinite;pointer-events:auto;
 }
 @keyframes hintPulso{0%,100%{opacity:.4;}50%{opacity:1;}}
@@ -542,7 +542,7 @@ function renderSlideActual() {
     if (data.grupo.notaGeneral) {
       const nota = document.createElement("p");
       nota.className = "slide-sub";
-      nota.style.fontSize = "16px";
+      nota.style.fontSize = "12px";
       nota.style.marginTop = "4px";
       nota.textContent = data.grupo.notaGeneral;
       ctaWrap.appendChild(nota);
