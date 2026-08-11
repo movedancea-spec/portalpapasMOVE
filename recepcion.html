@@ -23,6 +23,16 @@
     <input type="password" id="inputClaveRecepcion" class="input-clave" placeholder="••••" autocomplete="off" />
     <button class="btn-grande btn-siguiente" id="btnEntrarRecepcion">Entrar →</button>
     <p class="mensaje-error" id="mensajeErrorLogin"></p>
+
+    <button class="btn-enlace" id="btnMostrarRecuperarRecepcion" type="button">¿Olvidaste la clave?</button>
+
+    <div id="bloqueRecuperarRecepcion" hidden>
+      <p class="aviso-familia">Se enviará la clave de Recepción por WhatsApp al número registrado.</p>
+      <button class="btn-secundario btn-ancho" id="btnEnviarRecuperarRecepcion" type="button">
+        📲 Enviarla por WhatsApp
+      </button>
+      <p class="mensaje-recuperar" id="mensajeRecuperarRecepcion" hidden></p>
+    </div>
   </section>
 
   <!-- ============ PANTALLA 1: SOLICITUDES ============ -->
