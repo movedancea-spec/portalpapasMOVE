@@ -21,6 +21,7 @@ min-height:100%;
 
 body{
 width:100%;
+min-height:100vh;
 min-height:100dvh;
 overflow-y:auto;
 overflow-x:hidden;
@@ -123,6 +124,8 @@ margin-bottom:14px;
 .input-clave:focus{
 border-color:#ef4b9b;
 box-shadow:0 0 0 3px rgba(239,75,155,.15);
+outline:2px solid #ef4b9b;
+outline-offset:2px;
 }
 
 /*=====================================
@@ -147,6 +150,8 @@ margin:10px 0;
 .buscador:focus{
 border-color:#ef4b9b;
 box-shadow:0 0 0 3px rgba(239,75,155,.15);
+outline:2px solid #ef4b9b;
+outline-offset:2px;
 }
 
 .lista-alumnas{
@@ -456,6 +461,8 @@ transition:.18s;
 .textarea-move:focus{
 border-color:#ef4b9b;
 box-shadow:0 0 0 3px rgba(239,75,155,.15);
+outline:2px solid #ef4b9b;
+outline-offset:2px;
 }
 
 .btn-borrar-objetivo{
@@ -1193,6 +1200,8 @@ transition:.18s;
 .chat-input:focus{
 border-color:#ef4b9b;
 box-shadow:0 0 0 3px rgba(239,75,155,.15);
+outline:2px solid #ef4b9b;
+outline-offset:2px;
 }
 
 .chat-btn-enviar{
