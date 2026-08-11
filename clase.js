@@ -831,6 +831,12 @@ el("btnRuleta").addEventListener("click", () => {
 // van acumulando en Airtable durante todo el mes, y solo la
 // directora puede ver la tabla de posiciones (desde ranking.html).
 
+const EMOJI_CALIFICACION = {
+  Excelente: "🌟 Excelente",
+  Buena: "👍 Buena",
+  Regular: "🙂 Regular",
+};
+
 function renderCalificacion() {
   document.querySelectorAll(".btn-calificacion").forEach((btn) => {
     btn.classList.toggle("activa", btn.dataset.categoria === calificacionHoyActual);
@@ -841,6 +847,21 @@ function renderCalificacion() {
     mensaje.hidden = false;
   } else {
     mensaje.hidden = true;
+  }
+
+  // En el Cierre, las alumnas ven la calificación de HOY (para
+  // celebrarlo en el momento) — pero como esto solo se calcula con la
+  // calificación de HOY (calificacionHoyActual, que ya viene filtrada
+  // por día desde el Worker), al día siguiente esto ya no tiene nada
+  // que mostrar y el bloque se oculta solo. El registro con puntos
+  // sigue guardado en Airtable, pero eso solo lo ve la directora
+  // desde ranking.html — aquí nunca se muestran puntos ni el mes.
+  const bloqueCierre = el("cierreCalificacionHoy");
+  if (calificacionHoyActual) {
+    el("cierreCalificacionValor").textContent = EMOJI_CALIFICACION[calificacionHoyActual] || calificacionHoyActual;
+    bloqueCierre.hidden = false;
+  } else {
+    bloqueCierre.hidden = true;
   }
 }
 
