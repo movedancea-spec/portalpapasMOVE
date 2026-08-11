@@ -152,6 +152,35 @@ async function entrarRecepcion() {
   }
 }
 
+// ---------- recuperar clave (una sola, compartida — se manda por WhatsApp a un número fijo) ----------
+
+el("btnMostrarRecuperarRecepcion").addEventListener("click", () => {
+  el("bloqueRecuperarRecepcion").hidden = !el("bloqueRecuperarRecepcion").hidden;
+  el("mensajeRecuperarRecepcion").hidden = true;
+});
+
+el("btnEnviarRecuperarRecepcion").addEventListener("click", async () => {
+  const boton = el("btnEnviarRecuperarRecepcion");
+  const mensajeEl = el("mensajeRecuperarRecepcion");
+  mensajeEl.hidden = true;
+
+  boton.disabled = true;
+  const textoOriginal = boton.textContent;
+  boton.textContent = "Enviando...";
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionRecuperarClave" });
+    mensajeEl.textContent = `✅ Se envió la clave por WhatsApp al número terminando en ${datos.ultimosDigitos}.`;
+    mensajeEl.hidden = false;
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.hidden = false;
+  } finally {
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  }
+});
+
 el("btnSalirRecepcion").addEventListener("click", () => {
   detenerAutoRefresco();
   detenerAlarma();
