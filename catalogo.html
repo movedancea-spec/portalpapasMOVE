@@ -131,9 +131,9 @@ body{position:fixed;inset:0;}
 @keyframes fabPulse{0%,100%{box-shadow:0 10px 26px rgba(40,200,110,.4);}50%{box-shadow:0 10px 32px rgba(40,200,110,.65);}}
 
 .hint-tap{
-  position:absolute;bottom:20px;left:0;right:0;text-align:center;
-  font-size:clamp(20px,6.5vw,25px);font-weight:800;
-  color:#ef4b9b;animation:hintPulso 1.8s ease infinite;pointer-events:none;
+  position:absolute;bottom:20px;left:0;right:0;text-align:center;z-index:2;
+  font-size:clamp(20px,6.5vw,25px);font-weight:800;cursor:pointer;
+  color:#ef4b9b;animation:hintPulso 1.8s ease infinite;pointer-events:auto;
 }
 @keyframes hintPulso{0%,100%{opacity:.4;}50%{opacity:1;}}
 </style>
@@ -554,6 +554,11 @@ function renderSlideActual() {
   const hint = document.createElement("p");
   hint.className = "hint-tap";
   hint.textContent = "toca para ver →";
+  hint.addEventListener("click", (e) => {
+    e.stopPropagation();
+    sonarToque();
+    avanzarSlide(1);
+  });
   cont.appendChild(hint);
 }
 
