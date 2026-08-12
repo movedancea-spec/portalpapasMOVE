@@ -1167,12 +1167,14 @@ function renderListaPagos(pagos) {
   pagos.forEach((p) => {
     const tarjeta = document.createElement("button");
     tarjeta.type = "button";
-    tarjeta.className = "tarjeta-resultado";
+    tarjeta.className = "tarjeta-resultado tarjeta-pago";
+    const detalle2 = [p.formaPago, p.fechaPago].filter(Boolean).join(" · ");
     tarjeta.innerHTML = `
       <span class="tarjeta-resultado-nombre">${p.alumna || "(Sin nombre)"} — ${p.mes || ""} ${p.anio || ""}</span>
       <span class="tarjeta-resultado-detalle">${p.estado || "—"}${p.mensualidad ? " · Q" + p.mensualidad : ""}${
       p.mora ? " · Mora Q" + p.mora : ""
     }${p.tieneComprobante ? " · 📎" : ""}</span>
+      ${detalle2 ? `<span class="tarjeta-resultado-detalle">${detalle2}</span>` : ""}
     `;
     tarjeta.addEventListener("click", () => abrirPago(p.id));
     cont.appendChild(tarjeta);
