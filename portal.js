@@ -1094,7 +1094,8 @@ function renderPago(pago) {
 
   const montoEl = el("pagoMonto");
   if (pagoActual.monto) {
-    montoEl.textContent = "Monto: Q" + pagoActual.monto;
+    montoEl.textContent =
+      "Monto: Q" + pagoActual.monto + (pagoActual.notaMonto ? " — " + pagoActual.notaMonto : "");
     montoEl.hidden = false;
   } else {
     montoEl.hidden = true;
@@ -1541,7 +1542,11 @@ function descargarEvaluacionPDF(ev) {
 
   doc.setFontSize(13);
   doc.setTextColor(90, 90, 90);
-  doc.text("Evaluación de " + limpiarTextoPDF(alumnaSeleccionada?.nombre || ""), margenIzq, y);
+  doc.text(
+    "Evaluación de " + limpiarTextoPDF((alumnaSeleccionada && alumnaSeleccionada.nombre) || ""),
+    margenIzq,
+    y
+  );
   y += 20;
 
   const subt = [ev.titulo, ev.tipo, ev.anio].filter(Boolean).map(limpiarTextoPDF).join("  •  ");
@@ -1609,7 +1614,10 @@ function descargarEvaluacionPDF(ev) {
 
   const nombreArchivo =
     "Evaluacion_" +
-    (alumnaSeleccionada?.nombre || "alumna").toString().trim().replace(/[^a-zA-Z0-9]+/g, "_") +
+    ((alumnaSeleccionada && alumnaSeleccionada.nombre) || "alumna")
+      .toString()
+      .trim()
+      .replace(/[^a-zA-Z0-9]+/g, "_") +
     (ev.anio ? "_" + ev.anio : "") +
     ".pdf";
   doc.save(nombreArchivo);
