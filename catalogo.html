@@ -494,10 +494,6 @@ function renderSlideActual() {
     `;
     cont.appendChild(slide);
 
-    const ctaWrapIntro = document.createElement("div");
-    ctaWrapIntro.className = "cta-wrap";
-    ctaWrapIntro.appendChild(crearBotonReservar());
-    cont.appendChild(ctaWrapIntro);
   }
 
   if (data.tipo === "clase") {
@@ -537,7 +533,6 @@ function renderSlideActual() {
     btn.innerHTML = ICONO_WHATSAPP + "<span>Preguntar por esta clase</span>";
     btn.addEventListener("click", (e) => { e.stopPropagation(); sonarToque(); });
     ctaWrap.appendChild(btn);
-    ctaWrap.appendChild(crearBotonReservar());
     cont.appendChild(ctaWrap);
 
     setTimeout(() => {
