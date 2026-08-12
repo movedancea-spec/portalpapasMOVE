@@ -857,6 +857,97 @@ color:#a15277;
 margin:2px 0;
 }
 
+.fila-mes-anio{
+display:flex;
+gap:8px;
+margin-bottom:12px;
+}
+
+.input-select-chico{
+flex:1.4;
+margin-bottom:0;
+padding:10px 10px;
+font-size:13.5px;
+}
+
+.input-texto-chico{
+flex:1;
+margin-bottom:0;
+padding:10px 10px;
+font-size:13.5px;
+}
+
+.btn-chico{
+flex-shrink:0;
+width:auto;
+margin-top:0;
+padding:10px 16px;
+font-size:13.5px;
+}
+
+.bloque-info{
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:12px 14px;
+margin-bottom:12px;
+background:#fffafc;
+}
+
+.bloque-info-titulo{
+font-size:12.5px;
+font-weight:800;
+color:#ef4b9b;
+text-transform:uppercase;
+letter-spacing:.3px;
+margin-bottom:8px;
+}
+
+.fila-info{
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+gap:10px;
+padding:5px 0;
+border-top:1px solid #ffe9f5;
+}
+
+.fila-info:first-of-type{
+border-top:none;
+}
+
+.fila-info-label{
+font-size:12.5px;
+font-weight:700;
+color:#a15277;
+flex-shrink:0;
+}
+
+.fila-info-valor{
+font-size:13px;
+font-weight:600;
+color:#444;
+text-align:right;
+}
+
+.fila-info-valor a{
+color:#ef4b9b;
+font-weight:700;
+text-decoration:none;
+}
+
+.enlace-comprobante{
+display:block;
+font-size:13.5px;
+font-weight:700;
+color:#ef4b9b;
+text-decoration:none;
+padding:6px 0;
+}
+
+.btn-subir-comprobante{
+margin-top:10px;
+}
+
 /*=====================================
 RESPONSIVE
 =====================================*/

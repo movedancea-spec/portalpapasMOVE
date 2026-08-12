@@ -259,6 +259,7 @@ el("btnMenuPagos").addEventListener("click", () => {
   mostrarPantalla("pantallaPagos");
   el("vistaPagoFormulario").hidden = true;
   el("vistaPagosBuscar").hidden = false;
+  inicializarPagos();
 });
 
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -1051,19 +1052,61 @@ function renderListaIngresos(ingresos, total) {
 // ==========================================
 // PAGOS
 // ==========================================
+// Esta sección refleja lo que ya existe en la tabla PAGOS de
+// Airtable: los mismos campos con información real (agrupados por
+// tema, para que no sea una pared de datos) y las mismas vistas
+// (como chips que arman la misma condición que esa vista en
+// Airtable). El detalle completo de UN pago se trae con la acción
+// recepcionObtenerPago; la búsqueda/lista liviana con
+// recepcionBuscarPagos.
 
 const OPCIONES_ESTADO_PAGO = ["PAGADO", "PENDIENTE", "AUSENTE", "ANULADO", "EN REVISION", "PRUEBA"];
 const OPCIONES_FORMA_PAGO = ["TARJETA BAC", "EFECTIVO", "TRANSFERENCIA", "LINK", "LINK RECEPCION", "TARJETA PAGGO"];
+const OPCIONES_FACTURA = ["ENVIADA", "NO ENVIADA", "NO HACER"];
+const NOMBRES_MESES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+// Cada una de estas es una vista real que ya existe en Airtable — el
+// Worker arma, del lado del servidor, la misma condición que esa
+// vista usa.
+const VISTAS_PAGOS = [
+  { id: "pagados", texto: "✅ Pagados" },
+  { id: "ausentes_mes", texto: "🚫 Ausentes del mes" },
+  { id: "morosos", texto: "⏰ Morosos" },
+  { id: "link_mes_actual", texto: "🔗 Por link (mes actual)" },
+  { id: "transferencia_mes_actual", texto: "🏦 Transferencia (mes actual)" },
+  { id: "envio_link_hoy", texto: "💳 Enviar link hoy" },
+];
 
 let pagoEditandoId = null;
 let pagosInicializados = false;
+let vistaPagoActiva = "";
 
 function inicializarPagos() {
   if (!pagosInicializados) {
-    poblarSelectSimple("selectPagoEstado", OPCIONES_ESTADO_PAGO, true);
-    poblarSelectSimple("selectPagoForma", OPCIONES_FORMA_PAGO, true);
+    poblarSelectSimple("selectPagoMesFiltro", NOMBRES_MESES, true);
+    renderChipsVistaPagos();
     pagosInicializados = true;
   }
+}
+
+function renderChipsVistaPagos() {
+  const cont = el("chipsVistaPagos");
+  cont.innerHTML = "";
+  VISTAS_PAGOS.forEach((v) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip" + (vistaPagoActiva === v.id ? " activo" : "");
+    chip.textContent = v.texto;
+    chip.addEventListener("click", () => {
+      vistaPagoActiva = vistaPagoActiva === v.id ? "" : v.id;
+      renderChipsVistaPagos();
+      buscarPagos();
+    });
+    cont.appendChild(chip);
+  });
 }
 
 el("inputBuscarPago").addEventListener("input", () => {
@@ -1071,17 +1114,44 @@ el("inputBuscarPago").addEventListener("input", () => {
   el("inputBuscarPago")._temporizador = setTimeout(buscarPagos, 350);
 });
 
+el("btnFiltrarMesPago").addEventListener("click", buscarPagos);
+
 async function buscarPagos() {
   const texto = el("inputBuscarPago").value.trim();
+  const mes = el("selectPagoMesFiltro").value;
+  const anio = el("inputPagoAnioFiltro").value.trim();
   const cont = el("listaPagos");
-  if (texto.length < 2) {
+  const pista = el("pistaResultadosPagos");
+
+  if (!texto && !vistaPagoActiva && !mes && !anio) {
+    cont.innerHTML = "";
+    pista.textContent = "Busca por nombre, elige una vista, o un mes/año para ver resultados.";
+    return;
+  }
+  if (texto && texto.length < 2) {
     cont.innerHTML = "";
     return;
   }
+
   cont.innerHTML = '<p class="lista-vacia">Buscando...</p>';
+  pista.textContent = "";
   try {
-    const datos = await llamarWorker({ accion: "recepcionBuscarPagos", clave: claveRecepcion, query: texto });
+    const datos = await llamarWorker({
+      accion: "recepcionBuscarPagos",
+      clave: claveRecepcion,
+      query: texto,
+      vista: vistaPagoActiva,
+      mes,
+      anio,
+    });
     renderListaPagos(datos.pagos || []);
+    if (datos.limitado) {
+      pista.textContent = `Mostrando los primeros ${datos.totalEncontrados} — afina con el nombre o el mes/año para ver el resto.`;
+    } else if (datos.totalEncontrados) {
+      pista.textContent = `${datos.totalEncontrados} resultado(s).`;
+    } else {
+      pista.textContent = "";
+    }
   } catch (e) {
     cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
   }
@@ -1091,7 +1161,7 @@ function renderListaPagos(pagos) {
   const cont = el("listaPagos");
   cont.innerHTML = "";
   if (!pagos.length) {
-    cont.innerHTML = '<p class="lista-vacia">No se encontraron pagos con ese nombre.</p>';
+    cont.innerHTML = '<p class="lista-vacia">No se encontraron pagos.</p>';
     return;
   }
   pagos.forEach((p) => {
@@ -1099,32 +1169,272 @@ function renderListaPagos(pagos) {
     tarjeta.type = "button";
     tarjeta.className = "tarjeta-resultado";
     tarjeta.innerHTML = `
-      <span class="tarjeta-resultado-nombre">${p.alumna || "(Sin nombre)"} — ${p.mes || ""}</span>
-      <span class="tarjeta-resultado-detalle">${p.estado || "—"}${p.mensualidad ? " · Q" + p.mensualidad : ""}</span>
+      <span class="tarjeta-resultado-nombre">${p.alumna || "(Sin nombre)"} — ${p.mes || ""} ${p.anio || ""}</span>
+      <span class="tarjeta-resultado-detalle">${p.estado || "—"}${p.mensualidad ? " · Q" + p.mensualidad : ""}${
+      p.mora ? " · Mora Q" + p.mora : ""
+    }${p.tieneComprobante ? " · 📎" : ""}</span>
     `;
-    tarjeta.addEventListener("click", () => abrirPago(p));
+    tarjeta.addEventListener("click", () => abrirPago(p.id));
     cont.appendChild(tarjeta);
   });
 }
 
-function abrirPago(p) {
+function formatQ(v) {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  return Number.isNaN(n) ? String(v) : "Q" + n.toFixed(2);
+}
+
+function siNo(v) {
+  return v ? "Sí" : "No";
+}
+
+function filaInfo(label, valorHtml) {
+  const p = document.createElement("div");
+  p.className = "fila-info";
+  const lab = document.createElement("span");
+  lab.className = "fila-info-label";
+  lab.textContent = label;
+  const val = document.createElement("span");
+  val.className = "fila-info-valor";
+  val.innerHTML = valorHtml === "" || valorHtml === null || valorHtml === undefined ? "—" : valorHtml;
+  p.appendChild(lab);
+  p.appendChild(val);
+  return p;
+}
+
+function bloqueInfo(titulo, filas) {
+  const div = document.createElement("div");
+  div.className = "bloque-info";
+  const h = document.createElement("p");
+  h.className = "bloque-info-titulo";
+  h.textContent = titulo;
+  div.appendChild(h);
+  filas.forEach(([label, valor]) => div.appendChild(filaInfo(label, valor)));
+  return div;
+}
+
+function crearCampoEditablePago(idControl, label, tipo, valor, opciones) {
+  const wrap = document.createElement("div");
+  wrap.className = "campo-form";
+  const lab = document.createElement("p");
+  lab.className = "etiqueta-campo";
+  lab.textContent = label;
+  wrap.appendChild(lab);
+
+  if (tipo === "select") {
+    const select = document.createElement("select");
+    select.className = "input-select";
+    select.id = idControl;
+    const vacio = document.createElement("option");
+    vacio.value = "";
+    vacio.textContent = "— Sin elegir —";
+    select.appendChild(vacio);
+    opciones.forEach((op) => {
+      const o = document.createElement("option");
+      o.value = op;
+      o.textContent = op;
+      select.appendChild(o);
+    });
+    select.value = valor || "";
+    wrap.appendChild(select);
+  } else if (tipo === "fecha") {
+    const input = document.createElement("input");
+    input.type = "date";
+    input.className = "input-texto";
+    input.id = idControl;
+    input.value = valor || "";
+    wrap.appendChild(input);
+  } else if (tipo === "textarea") {
+    const textarea = document.createElement("textarea");
+    textarea.className = "input-textarea";
+    textarea.rows = 2;
+    textarea.id = idControl;
+    textarea.value = valor || "";
+    wrap.appendChild(textarea);
+  }
+  return wrap;
+}
+
+async function abrirPago(id) {
   inicializarPagos();
-  pagoEditandoId = p.id;
   el("mensajePagoForm").textContent = "";
   el("mensajePagoForm").className = "mensaje-form";
-  el("tituloFormPago").textContent = `${p.alumna} — ${p.mes} ${p.anio}`;
-  el("resumenPago").innerHTML = `
-    <p><strong>Mensualidad:</strong> ${p.mensualidad ? "Q" + p.mensualidad : "—"}</p>
-    <p><strong>Comprobante subido:</strong> ${p.tieneComprobante ? "✅ Sí" : "— No"}</p>
-  `;
-  el("selectPagoEstado").value = p.estado || "";
-  el("selectPagoForma").value = p.formaPago || "";
-  el("inputPagoFecha").value = p.fechaPago || "";
-  el("inputPagoObservaciones").value = p.observaciones || "";
-  el("chkPagoRevisado").checked = !!p.revisado;
-
+  el("tituloFormPago").textContent = "Cargando...";
+  el("detallePago").innerHTML = '<p class="lista-vacia">Cargando...</p>';
   el("vistaPagosBuscar").hidden = true;
   el("vistaPagoFormulario").hidden = false;
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerPago", clave: claveRecepcion, pagoId: id });
+    pagoEditandoId = id;
+    el("tituloFormPago").textContent = `${datos.pago.alumna} — ${datos.pago.mesCompleto || datos.pago.mes}`;
+    renderDetallePago(datos.pago);
+  } catch (e) {
+    el("detallePago").innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderDetallePago(p) {
+  const cont = el("detallePago");
+  cont.innerHTML = "";
+
+  cont.appendChild(
+    bloqueInfo("Identificación", [
+      ["Alumna", p.alumna],
+      ["Periodo", p.mesCompleto || `${p.mes} ${p.anio}`],
+      ["Resumen", p.resumenPago],
+    ])
+  );
+
+  const editable1 = document.createElement("div");
+  editable1.className = "campos-formulario";
+  editable1.appendChild(crearCampoEditablePago("campoPago_estado", "Estado", "select", p.estado, OPCIONES_ESTADO_PAGO));
+  editable1.appendChild(crearCampoEditablePago("campoPago_formaPago", "Forma de pago", "select", p.formaPago, OPCIONES_FORMA_PAGO));
+  editable1.appendChild(crearCampoEditablePago("campoPago_fechaPago", "Fecha de pago", "fecha", p.fechaPago));
+  editable1.appendChild(crearCampoEditablePago("campoPago_factura", "Factura", "select", p.factura, OPCIONES_FACTURA));
+  cont.appendChild(editable1);
+
+  cont.appendChild(
+    bloqueInfo("Montos", [
+      ["Mensualidad", formatQ(p.mensualidad)],
+      ["Mora", formatQ(p.mora)],
+      ["Mensualidad con mora", formatQ(p.mensualidadConMora)],
+      ["IVA", formatQ(p.iva)],
+      ["ISR", formatQ(p.isr)],
+      ["Comisión", formatQ(p.comision)],
+      ["Neto", formatQ(p.neto)],
+    ])
+  );
+
+  cont.appendChild(
+    bloqueInfo("Facturación", [
+      ["NIT", p.nit],
+      ["Estado de la alumna", p.estadoAlumna],
+      ["Estado del mes actual", p.estadoMesActual],
+    ])
+  );
+
+  cont.appendChild(
+    bloqueInfo("Link de pago (Paggo)", [
+      ["Estado en Paggo", p.paggoStatus],
+      ["Link de pago", p.linkPago ? `<a href="${p.linkPago}" target="_blank" rel="noopener">Abrir link ↗</a>` : "—"],
+      ["Fecha del link", p.fechaLink || "—"],
+      [
+        "Link de WhatsApp de cobro",
+        p.linkWhatsappPago ? `<a href="${p.linkWhatsappPago}" target="_blank" rel="noopener">Abrir WhatsApp ↗</a>` : "—",
+      ],
+    ])
+  );
+
+  cont.appendChild(
+    bloqueInfo("Recordatorios de cobro", [
+      ["Día de recordatorio", p.diaRecordatorio],
+      ["Día de envío de link", p.diaEnvioLink],
+      ["¿Hoy toca enviar?", siNo(p.esDiaDeEnvio)],
+      ["Link enviado", siNo(p.linkEnviado)],
+      ["Recordatorio enviado", siNo(p.recordatorioEnviado)],
+      ["Error de envío", p.errorEnvio || "—"],
+      ["WhatsApp", p.whatsapp || "—"],
+    ])
+  );
+
+  const bloqueComprobante = document.createElement("div");
+  bloqueComprobante.className = "bloque-info";
+  const tituloComp = document.createElement("p");
+  tituloComp.className = "bloque-info-titulo";
+  tituloComp.textContent = "Comprobante";
+  bloqueComprobante.appendChild(tituloComp);
+
+  if (p.comprobantes && p.comprobantes.length) {
+    p.comprobantes.forEach((c, i) => {
+      const enlace = document.createElement("a");
+      enlace.href = c.url;
+      enlace.target = "_blank";
+      enlace.rel = "noopener";
+      enlace.className = "enlace-comprobante";
+      enlace.textContent = "📎 Ver comprobante " + (i + 1);
+      bloqueComprobante.appendChild(enlace);
+    });
+  } else {
+    bloqueComprobante.appendChild(filaInfo("Comprobante subido", "— No"));
+  }
+  bloqueComprobante.appendChild(filaInfo("Fecha del comprobante", p.fechaComprobante || "—"));
+
+  const labelSubir = document.createElement("label");
+  labelSubir.className = "btn-secundario btn-ancho btn-subir-foto btn-subir-comprobante";
+  labelSubir.textContent = "📎 Subir comprobante nuevo";
+  labelSubir.setAttribute("for", "inputComprobantePago");
+  const inputSubir = document.createElement("input");
+  inputSubir.type = "file";
+  inputSubir.id = "inputComprobantePago";
+  inputSubir.accept = "image/*,application/pdf";
+  inputSubir.hidden = true;
+  inputSubir.addEventListener("change", () => subirComprobantePago(inputSubir.files[0]));
+  bloqueComprobante.appendChild(labelSubir);
+  bloqueComprobante.appendChild(inputSubir);
+  const mensajeComprobante = document.createElement("p");
+  mensajeComprobante.className = "mensaje-form";
+  mensajeComprobante.id = "mensajeComprobantePago";
+  bloqueComprobante.appendChild(mensajeComprobante);
+  cont.appendChild(bloqueComprobante);
+
+  const editable2 = document.createElement("div");
+  editable2.className = "campos-formulario";
+  editable2.appendChild(crearCampoEditablePago("campoPago_observaciones", "Observaciones", "textarea", p.observaciones));
+  cont.appendChild(editable2);
+
+  const chkWrap = document.createElement("label");
+  chkWrap.className = "opcion-checkbox";
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
+  chk.id = "campoPago_revisado";
+  chk.checked = !!p.revisado;
+  const chkSpan = document.createElement("span");
+  chkSpan.textContent = "Ya revisado por Recepción";
+  chkWrap.appendChild(chk);
+  chkWrap.appendChild(chkSpan);
+  cont.appendChild(chkWrap);
+
+  cont.appendChild(
+    bloqueInfo("Otros", [
+      ["Bloqueado", siNo(p.bloqueado)],
+      ["Creado", p.creado ? new Date(p.creado).toLocaleString("es-GT", { timeZone: "America/Guatemala" }) : "—"],
+    ])
+  );
+}
+
+async function subirComprobantePago(archivo) {
+  if (!archivo || !pagoEditandoId) return;
+  const mensajeEl = el("mensajeComprobantePago");
+  if (!mensajeEl) return;
+
+  if (archivo.size > TAMANO_MAX_ARCHIVO) {
+    mensajeEl.textContent = "El archivo es muy grande (máximo 8 MB).";
+    mensajeEl.className = "mensaje-form mensaje-form-error";
+    return;
+  }
+
+  mensajeEl.textContent = "Subiendo...";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const base64 = await leerArchivoBase64(archivo);
+    await llamarWorker({
+      accion: "subirComprobante",
+      pagoId: pagoEditandoId,
+      archivoBase64: base64,
+      nombreArchivo: archivo.name,
+      tipoArchivo: archivo.type,
+    });
+    const datos = await llamarWorker({ accion: "recepcionObtenerPago", clave: claveRecepcion, pagoId: pagoEditandoId });
+    renderDetallePago(datos.pago);
+    el("mensajeComprobantePago").textContent = "✅ Comprobante subido.";
+    el("mensajeComprobantePago").className = "mensaje-form mensaje-form-ok";
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.className = "mensaje-form mensaje-form-error";
+  }
 }
 
 el("btnCancelarPago").addEventListener("click", () => {
@@ -1145,16 +1455,18 @@ async function guardarPago() {
   boton.textContent = "Guardando...";
 
   try {
+    const factura = el("campoPago_factura").value;
     await llamarWorker({
       accion: "recepcionActualizarPago",
       clave: claveRecepcion,
       pagoId: pagoEditandoId,
       campos: {
-        estado: el("selectPagoEstado").value,
-        formaPago: el("selectPagoForma").value,
-        fechaPago: el("inputPagoFecha").value,
-        observaciones: el("inputPagoObservaciones").value.trim(),
-        revisado: el("chkPagoRevisado").checked,
+        estado: el("campoPago_estado").value,
+        formaPago: el("campoPago_formaPago").value,
+        fechaPago: el("campoPago_fechaPago").value,
+        factura: factura ? [factura] : [],
+        observaciones: el("campoPago_observaciones").value.trim(),
+        revisado: el("campoPago_revisado").checked,
       },
     });
     mensajeEl.textContent = "✅ Cambios guardados.";
