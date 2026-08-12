@@ -1075,7 +1075,8 @@ const VISTAS_PAGOS = [
   { id: "pagados", texto: "✅ Pagados" },
   { id: "ausentes_mes", texto: "🚫 Ausentes del mes" },
   { id: "morosos", texto: "⏰ Morosos" },
-  { id: "link_mes_actual", texto: "🔗 Por link (mes actual)" },
+  { id: "link_mes_actual", texto: "🔗 Link (mes actual)" },
+  { id: "link_recepcion_mes_actual", texto: "🔗 Link Recepción (mes actual)" },
   { id: "transferencia_mes_actual", texto: "🏦 Transferencia (mes actual)" },
   { id: "envio_link_hoy", texto: "💳 Enviar link hoy" },
 ];
