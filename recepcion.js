@@ -39,6 +39,7 @@ const PANTALLAS = [
   "pantallaAlumnas",
   "pantallaIngresos",
   "pantallaPagos",
+  "pantallaCanalAsistencia",
 ];
 
 function mostrarPantalla(id) {
@@ -262,10 +263,16 @@ el("btnMenuPagos").addEventListener("click", () => {
   inicializarPagos();
 });
 
+el("btnMenuCanalAsistencia").addEventListener("click", () => {
+  mostrarPantalla("pantallaCanalAsistencia");
+  cargarCanalAsistencia();
+});
+
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverIngresos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverPagos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverCanalAsistencia").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
   detenerAutoRefresco();
@@ -511,6 +518,90 @@ function detenerAutoRefresco() {
 }
 
 // ==========================================
+// CANAL DE ASISTENCIA (interruptor GLOBAL — aplica a TODA la
+// academia a la vez, no por alumna)
+// ==========================================
+// Decide si el aviso de "ya llegó a la academia" del biométrico se
+// manda por WhatsApp (GREEN-API) o por el Portal (notificación push)
+// — para TODAS las familias al mismo tiempo. Se guarda en la tabla
+// CONFIGURACION GENERAL de Airtable y lo lee worker-biometrico.js en
+// cada marca de asistencia.
+
+const OPCIONES_CANAL_ASISTENCIA = [
+  {
+    valor: "WhatsApp",
+    titulo: "📱 WhatsApp",
+    descripcion: "El aviso de asistencia llega por WhatsApp (GREEN-API), como hasta ahora.",
+  },
+  {
+    valor: "Portal",
+    titulo: "🔔 Portal",
+    descripcion:
+      "El aviso de asistencia llega como notificación push del Portal de Alumnas. Solo le llega a las familias que ya activaron las notificaciones desde el Portal en su celular — las que no lo hayan activado NO reciben ningún aviso.",
+  },
+];
+
+let canalAsistenciaActual = "";
+
+async function cargarCanalAsistencia() {
+  const cont = el("opcionesCanalAsistencia");
+  const mensajeEl = el("mensajeCanalAsistencia");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerCanalAsistencia", clave: claveRecepcion });
+    canalAsistenciaActual = datos.canal || "WhatsApp";
+    renderCanalAsistencia();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderCanalAsistencia() {
+  const cont = el("opcionesCanalAsistencia");
+  cont.innerHTML = "";
+
+  OPCIONES_CANAL_ASISTENCIA.forEach((op) => {
+    const activo = canalAsistenciaActual === op.valor;
+
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
+    tarjeta.innerHTML = `
+      <span class="tarjeta-resultado-nombre">${op.titulo}${activo ? " — ✅ Activo ahora para todas" : ""}</span>
+      <span class="tarjeta-resultado-detalle">${op.descripcion}</span>
+    `;
+    tarjeta.disabled = activo;
+    tarjeta.addEventListener("click", () => elegirCanalAsistencia(op.valor, op.titulo));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function elegirCanalAsistencia(canal, titulo) {
+  const confirmado = window.confirm(
+    `¿Cambiar el canal de asistencia a ${titulo} para TODAS las familias? Este cambio aplica de inmediato a todas las alumnas, no se puede elegir por alumna.`
+  );
+  if (!confirmado) return;
+
+  const mensajeEl = el("mensajeCanalAsistencia");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    await llamarWorker({ accion: "recepcionGuardarCanalAsistencia", clave: claveRecepcion, canal });
+    canalAsistenciaActual = canal;
+    renderCanalAsistencia();
+    mensajeEl.textContent = `✅ Listo — el aviso de asistencia ahora llega por ${titulo} para todas las familias.`;
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ==========================================
 // ALUMNAS
 // ==========================================
 
@@ -618,6 +709,24 @@ function crearControlAlumna(cfg, valor) {
       cont.appendChild(chip);
     });
     wrap.appendChild(cont);
+  } else if (cfg.tipo === "toggle2") {
+    const cont = document.createElement("div");
+    cont.className = "chips-contenedor";
+    cont.id = idControl;
+    const valorActual = valor || cfg.valorPorDefecto || cfg.opciones[0];
+    cfg.opciones.forEach((op, i) => {
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "chip" + (valorActual === op ? " activo" : "");
+      boton.textContent = (cfg.etiquetas && cfg.etiquetas[i]) || op;
+      boton.dataset.valor = op;
+      boton.addEventListener("click", () => {
+        cont.querySelectorAll(".chip").forEach((b) => b.classList.remove("activo"));
+        boton.classList.add("activo");
+      });
+      cont.appendChild(boton);
+    });
+    wrap.appendChild(cont);
   } else if (cfg.tipo === "checklistGrupos" || cfg.tipo === "checklistMaestras") {
     const lista = cfg.tipo === "checklistGrupos" ? (datosApoyo && datosApoyo.grupos) || [] : (datosApoyo && datosApoyo.maestras) || [];
     const cont = document.createElement("div");
@@ -665,6 +774,10 @@ function leerControlAlumna(cfg) {
   if (!control) return undefined;
   if (cfg.tipo === "chips") {
     return Array.from(control.querySelectorAll(".chip.activo")).map((c) => c.dataset.valor);
+  }
+  if (cfg.tipo === "toggle2") {
+    const activo = control.querySelector(".chip.activo");
+    return activo ? activo.dataset.valor : cfg.valorPorDefecto || cfg.opciones[0];
   }
   if (cfg.tipo === "checklistGrupos" || cfg.tipo === "checklistMaestras") {
     return Array.from(control.querySelectorAll("input[type=checkbox]:checked")).map((c) => c.value);
