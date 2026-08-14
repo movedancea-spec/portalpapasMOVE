@@ -481,6 +481,10 @@ function mostrarPerfilDesdeDatos(datos) {
   // notificaciones push en segundo plano, sin retrasar que se vea el
   // perfil. Ver sección "NOTIFICACIONES PUSH" más abajo.
   actualizarBloqueNotificacionesPush();
+
+  // El panel de ingresos del mes se arma plegado (no pide datos al
+  // Worker hasta que lo abran) — ver sección más abajo.
+  cargarAsistenciaMes();
 }
 
 // -------------------------------------
@@ -593,6 +597,12 @@ async function actualizarBloqueNotificacionesPush() {
     bloque.appendChild(
       crearAvisoNotificacionesPush("🔔 Las notificaciones del portal están activadas en este dispositivo.", true)
     );
+    const btnDesactivar = document.createElement("button");
+    btnDesactivar.type = "button";
+    btnDesactivar.className = "btn-enlace";
+    btnDesactivar.textContent = "Desactivar notificaciones en este dispositivo";
+    btnDesactivar.addEventListener("click", () => desactivarNotificacionesPush(btnDesactivar, suscripcionActual));
+    bloque.appendChild(btnDesactivar);
     return;
   }
 
@@ -652,6 +662,127 @@ async function activarNotificacionesPush(btn) {
     btn.disabled = false;
     btn.textContent = textoOriginal;
   }
+}
+
+// Quita las notificaciones SOLO de este navegador/dispositivo — si la
+// familia tiene otro celular suscrito (ej. el de papá), ese sigue
+// recibiendo avisos normal. Primero avisamos al Worker (mientras
+// todavía tenemos a mano el "endpoint" de esta suscripción) y luego
+// cancelamos la suscripción del lado del navegador.
+async function desactivarNotificacionesPush(btn, suscripcion) {
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Desactivando...";
+  mostrarError("");
+
+  try {
+    const alumnaIds = idsAlumnasActuales();
+    await llamarWorker({
+      accion: "eliminarSuscripcionPush",
+      alumnaIds,
+      endpoint: suscripcion.endpoint,
+    });
+    await suscripcion.unsubscribe();
+    await actualizarBloqueNotificacionesPush();
+  } catch (e) {
+    mostrarError("No se pudieron desactivar las notificaciones: " + e.message);
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+// -------------------------------------
+// INGRESOS DEL MES EN CURSO (marcas del biométrico)
+// -------------------------------------
+// Panel plegable (mismo patrón que "Objetivo mensual de clases" y
+// "Videos de mis clases") con la lista de días/horas en que la alumna
+// marcó su ingreso este mes. Se pregunta siempre por el mes Y año en
+// curso — no se borra nada de Airtable, simplemente el mes siguiente
+// esta lista vuelve a arrancar vacía sola, sin que nadie tenga que
+// borrar nada a mano.
+// -------------------------------------
+
+const NOMBRES_MESES_LARGOS = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+function asegurarBloqueAsistenciaMes() {
+  let bloque = el("bloqueAsistenciaMes");
+  if (bloque) return bloque;
+  bloque = document.createElement("div");
+  bloque.id = "bloqueAsistenciaMes";
+  bloque.style.margin = "14px 0";
+  const listaPerfil = el("perfilLista");
+  if (listaPerfil && listaPerfil.parentNode) {
+    listaPerfil.parentNode.insertBefore(bloque, listaPerfil);
+  }
+  return bloque;
+}
+
+function cargarAsistenciaMes() {
+  const bloque = asegurarBloqueAsistenciaMes();
+  if (!bloque || !alumnaSeleccionada) return;
+  bloque.innerHTML = "";
+
+  const mesActual = NOMBRES_MESES_LARGOS[new Date().getMonth()];
+  const textoCerrado = `📅 Ingresos de ${mesActual}`;
+  const textoAbierto = `📅 Ocultar ingresos de ${mesActual}`;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "btn-secundario btn-ancho";
+  btn.textContent = textoCerrado;
+
+  const panel = document.createElement("div");
+  panel.hidden = true;
+  panel.style.marginTop = "10px";
+
+  btn.addEventListener("click", async () => {
+    if (panel.hidden && !panel.dataset.cargado) {
+      panel.hidden = false;
+      btn.textContent = textoAbierto;
+      panel.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
+      try {
+        const datos = await llamarWorker({ accion: "obtenerAsistenciaMes", alumnaId: alumnaSeleccionada.id });
+        renderAsistenciaMes(panel, datos.registros || [], mesActual);
+        panel.dataset.cargado = "1";
+      } catch (e) {
+        panel.innerHTML = `<p class="lista-alumnas-aviso">${e.message}</p>`;
+      }
+    } else {
+      panel.hidden = !panel.hidden;
+      btn.textContent = panel.hidden ? textoCerrado : textoAbierto;
+    }
+  });
+
+  bloque.appendChild(btn);
+  bloque.appendChild(panel);
+}
+
+function renderAsistenciaMes(panel, registros, mesActual) {
+  panel.innerHTML = "";
+
+  if (!registros.length) {
+    const vacio = document.createElement("p");
+    vacio.className = "lista-alumnas-aviso";
+    vacio.textContent = `Todavía no hay ingresos registrados en ${mesActual}.`;
+    panel.appendChild(vacio);
+    return;
+  }
+
+  const contador = document.createElement("p");
+  contador.className = "lista-alumnas-aviso";
+  contador.textContent = `${registros.length} ingreso${registros.length === 1 ? "" : "s"} en ${mesActual}:`;
+  panel.appendChild(contador);
+
+  registros.forEach((r) => {
+    const fila = document.createElement("p");
+    fila.style.cssText =
+      "font-size:13.5px;padding:9px 14px;margin:0 0 6px;border-radius:12px;background:#fff0f6;color:#8a3b5e;";
+    fila.textContent = `🩰 ${r.fechaTexto} — ${r.horaTexto}`;
+    panel.appendChild(fila);
+  });
 }
 
 // Cuando se entró con la clave FAMILIAR (no la individual de esta
