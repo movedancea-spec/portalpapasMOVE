@@ -71,13 +71,32 @@
     </div>
 
     <p class="etiqueta-seccion">🎵 Spotify (el de la laptop)</p>
+    <div class="ahora-suena" id="bloqueAhoraSuena">
+      <p id="ahoraSuenaTexto">Cargando...</p>
+    </div>
     <button class="btn-grande btn-siguiente" data-spotify="reproducir" type="button">▶️ Reproducir</button>
     <div class="fila-botones-control">
       <button class="btn-secundario btn-control" data-spotify="anterior" type="button">⏮ Anterior</button>
       <button class="btn-secundario btn-control" data-spotify="pausar" type="button">⏸ Pausar</button>
       <button class="btn-secundario btn-control" data-spotify="siguiente" type="button">⏭ Siguiente</button>
     </div>
+    <div class="fila-botones-control" style="grid-template-columns:1fr 1fr;margin-top:8px;">
+      <button class="btn-secundario btn-control" data-spotify="volumen:bajar" type="button">🔉 Bajar volumen</button>
+      <button class="btn-secundario btn-control" data-spotify="volumen:subir" type="button">🔊 Subir volumen</button>
+    </div>
     <p class="pista-minutos">Antes de usarlo la primera vez, alguien debe darle play a Spotify manualmente una vez en la laptop.</p>
+
+    <p class="etiqueta-seccion">🔎 Buscar canción</p>
+    <input
+      type="text"
+      id="inputBuscarCancionControl"
+      class="input-texto"
+      placeholder="Nombre de la canción o artista"
+      autocomplete="off"
+    />
+    <button class="btn-secundario btn-control" id="btnBuscarCancionControl" type="button" style="width:100%;margin-top:8px;">Buscar</button>
+    <p class="mensaje-comando" id="mensajeBusquedaCancion"></p>
+    <div class="lista-resultados" id="listaResultadosCancion"></div>
 
     <p class="mensaje-comando" id="mensajeComandoControl"></p>
 

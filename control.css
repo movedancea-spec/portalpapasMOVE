@@ -90,3 +90,18 @@ font-size:clamp(12.5px,3.4vw,14px);
 color:#999;
 margin-top:16px;
 }
+
+.ahora-suena{
+text-align:center;
+font-weight:700;
+font-size:clamp(12.5px,3.4vw,14.5px);
+color:#ef4b9b;
+background:#fff0f6;
+border-radius:14px;
+padding:10px 12px;
+margin-bottom:12px;
+}
+
+.ahora-suena strong{
+color:#444;
+}

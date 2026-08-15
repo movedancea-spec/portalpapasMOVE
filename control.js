@@ -13,6 +13,7 @@
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
 let pinActual = "";
+let intervaloAhoraSuena = null;
 
 function el(id) {
   return document.getElementById(id);
@@ -79,6 +80,7 @@ async function conectarControl() {
     pinActual = pin;
     el("pinConectadoTexto").textContent = pin;
     mostrarPantalla("pantallaControl");
+    iniciarAhoraSuena();
   } catch (e) {
     msg.textContent = e.message;
   } finally {
@@ -126,10 +128,22 @@ async function enviarComando(comando, etiquetaExito, btnControl, accion = "contr
   mensaje.textContent = "Enviando...";
 
   try {
-    await llamarWorker({ accion, pin: pinActual, comando });
+    const datos = await llamarWorker({ accion, pin: pinActual, comando });
     mensaje.style.color = "#1f9d63";
-    mensaje.textContent = etiquetaExito || "Comando enviado ✅";
+    // etiquetaExito puede ser un texto fijo, o una función que arma el
+    // texto usando lo que devolvió el Worker (ej. el volumen de Spotify
+    // después de subirlo/bajarlo, que cambia cada vez).
+    const texto = typeof etiquetaExito === "function" ? etiquetaExito(datos) : etiquetaExito;
+    mensaje.textContent = texto || "Comando enviado ✅";
     if (navigator.vibrate) navigator.vibrate(30);
+
+    // Después de un comando de Spotify que cambia lo que está sonando,
+    // se refresca "Ahora suena" un momento después (le da tiempo a
+    // Spotify de actualizar su propio estado) en vez de esperar al
+    // siguiente ciclo automático de 6 segundos.
+    if (accion === "spotifyComando" && comando !== "volumen:subir" && comando !== "volumen:bajar") {
+      setTimeout(actualizarAhoraSuena, 800);
+    }
   } catch (e) {
     mensaje.style.color = "#e0245e";
     // Si el código ya venció (por ejemplo, la maestra ya cerró la
@@ -138,6 +152,7 @@ async function enviarComando(comando, etiquetaExito, btnControl, accion = "contr
     // ningún lado.
     if (e.message.indexOf("válido") !== -1) {
       pinActual = "";
+      detenerAhoraSuena();
       mostrarPantalla("pantallaPin");
       el("mensajeErrorPin").textContent = e.message;
       inputPin.value = "";
@@ -156,6 +171,8 @@ const ETIQUETAS_SPOTIFY = {
   pausar: "⏸ En pausa",
   siguiente: "⏭ Siguiente canción",
   anterior: "⏮ Canción anterior",
+  "volumen:subir": (datos) => `🔊 Volumen: ${datos && datos.volumen != null ? datos.volumen : "?"}%`,
+  "volumen:bajar": (datos) => `🔉 Volumen: ${datos && datos.volumen != null ? datos.volumen : "?"}%`,
 };
 
 document.querySelectorAll("[data-spotify]").forEach((btn) => {
@@ -163,6 +180,136 @@ document.querySelectorAll("[data-spotify]").forEach((btn) => {
     enviarComando(btn.dataset.spotify, ETIQUETAS_SPOTIFY[btn.dataset.spotify], btn, "spotifyComando")
   );
 });
+
+// Convierte texto a HTML seguro, para poder mostrar nombres de
+// canciones/artistas (que vienen de Spotify, no los escribimos
+// nosotros) sin arriesgarse a romper el HTML de la página.
+function escaparHtml(texto) {
+  const div = document.createElement("div");
+  div.textContent = texto == null ? "" : String(texto);
+  return div.innerHTML;
+}
+
+// ---------- Spotify: "Ahora suena" ----------
+// Mientras la pantalla de control esté abierta y conectada, se revisa
+// cada 6 segundos qué está sonando en Spotify y se muestra el nombre.
+
+async function actualizarAhoraSuena() {
+  if (!pinActual) return;
+  const texto = el("ahoraSuenaTexto");
+  if (!texto) return;
+
+  try {
+    const datos = await llamarWorker({ accion: "spotifyEstado", pin: pinActual });
+    if (!datos.reproduciendo || !datos.cancion) {
+      texto.textContent = "⏸ Nada sonando ahora mismo";
+    } else {
+      texto.innerHTML = `🎵 <strong>${escaparHtml(datos.cancion)}</strong>${datos.artista ? " — " + escaparHtml(datos.artista) : ""}`;
+    }
+  } catch (e) {
+    // No se muestra como error grande — es solo información de fondo,
+    // así que se deja un texto discreto y se sigue intentando en el
+    // siguiente ciclo.
+    texto.textContent = "No se pudo leer qué está sonando ahora.";
+  }
+}
+
+function iniciarAhoraSuena() {
+  detenerAhoraSuena();
+  actualizarAhoraSuena();
+  intervaloAhoraSuena = setInterval(actualizarAhoraSuena, 6000);
+}
+
+function detenerAhoraSuena() {
+  if (intervaloAhoraSuena) {
+    clearInterval(intervaloAhoraSuena);
+    intervaloAhoraSuena = null;
+  }
+}
+
+// ---------- Spotify: buscar canción ----------
+
+el("btnBuscarCancionControl").addEventListener("click", buscarCancion);
+el("inputBuscarCancionControl").addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter") buscarCancion();
+});
+
+async function buscarCancion() {
+  if (!pinActual) return;
+  const input = el("inputBuscarCancionControl");
+  const texto = input.value.trim();
+  const lista = el("listaResultadosCancion");
+  const mensaje = el("mensajeBusquedaCancion");
+
+  if (!texto) {
+    mensaje.textContent = "Escribe el nombre de una canción o artista.";
+    lista.innerHTML = "";
+    return;
+  }
+
+  const boton = el("btnBuscarCancionControl");
+  boton.disabled = true;
+  mensaje.style.color = "#999";
+  mensaje.textContent = "Buscando...";
+  lista.innerHTML = "";
+
+  try {
+    const datos = await llamarWorker({ accion: "spotifyBuscar", pin: pinActual, texto });
+    renderResultadosCancion(datos.canciones || []);
+    mensaje.textContent = "";
+  } catch (e) {
+    mensaje.style.color = "#e0245e";
+    mensaje.textContent = e.message;
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+function renderResultadosCancion(canciones) {
+  const lista = el("listaResultadosCancion");
+  lista.innerHTML = "";
+
+  if (!canciones.length) {
+    const vacio = document.createElement("p");
+    vacio.className = "lista-vacia";
+    vacio.textContent = "No se encontraron canciones con ese nombre.";
+    lista.appendChild(vacio);
+    return;
+  }
+
+  canciones.forEach((cancion) => {
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado";
+    tarjeta.innerHTML = `
+      <span class="tarjeta-resultado-nombre">${escaparHtml(cancion.nombre)}</span>
+      <span class="tarjeta-resultado-detalle">${escaparHtml(cancion.artista)}${cancion.album ? " · " + escaparHtml(cancion.album) : ""}</span>
+    `;
+    tarjeta.addEventListener("click", () => reproducirCancionElegida(cancion, tarjeta));
+    lista.appendChild(tarjeta);
+  });
+}
+
+async function reproducirCancionElegida(cancion, tarjeta) {
+  if (!pinActual) return;
+  const mensaje = el("mensajeBusquedaCancion");
+  tarjeta.disabled = true;
+  mensaje.style.color = "#999";
+  mensaje.textContent = "Poniendo la canción...";
+
+  try {
+    await llamarWorker({ accion: "spotifyReproducirCancion", pin: pinActual, uri: cancion.uri });
+    mensaje.style.color = "#1f9d63";
+    mensaje.textContent = `▶️ Sonando: ${cancion.nombre}`;
+    if (navigator.vibrate) navigator.vibrate(30);
+    setTimeout(actualizarAhoraSuena, 800);
+  } catch (e) {
+    mensaje.style.color = "#e0245e";
+    mensaje.textContent = e.message;
+  } finally {
+    tarjeta.disabled = false;
+  }
+}
 
 // ---------- selector de minutos del cronómetro ----------
 // Mismas opciones que en la laptop (30 segundos, y de 1 a 30 minutos),
@@ -203,5 +350,6 @@ el("btnDesconectarControl").addEventListener("click", () => {
   inputPin.value = "";
   el("mensajeErrorPin").textContent = "";
   el("mensajeComandoControl").textContent = "";
+  detenerAhoraSuena();
   mostrarPantalla("pantallaPin");
 });
