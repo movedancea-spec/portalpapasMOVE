@@ -55,6 +55,16 @@ let pinControlRemoto = "";
 let ultimoIdComandoRemoto = 0;
 let intervaloControlRemoto = null;
 
+// ---------- visualizador de música (Spotify) en la pestaña Clase ----------
+// Puramente decorativo: como el navegador no "escucha" el audio real
+// de Spotify (suena aparte, en la laptop, no dentro de esta página),
+// no se puede sincronizar al beat exacto. En vez de eso, se pregunta
+// cada pocos segundos si Spotify está reproduciendo algo (reusando el
+// mismo PIN del control remoto) y el anillo se anima solo mientras
+// haya música sonando — así se ve vivo, pero nunca depende de que
+// Spotify esté conectado (si falla, simplemente no se muestra).
+let intervaloVisualizadorMusica = null;
+
 // ---------- audio ----------
 let audioCtx = null;
 
@@ -503,6 +513,9 @@ function cambiarTab(nombre) {
   // Al entrar a la pestaña de Recepción, la maestra ya "vio" las
   // respuestas pendientes — se marcan leídas y se apaga la alarma.
   if (nombre === "Recepcion") marcarLeidosRecepcion();
+  // Al entrar a la pestaña Clase, se refresca el visualizador de
+  // música de una vez, en vez de esperar hasta 6 segundos.
+  if (nombre === "Clase") actualizarVisualizadorMusica();
 }
 
 // ---------- control remoto desde el celular ----------
@@ -553,6 +566,7 @@ function iniciarControlRemoto() {
   iniciarPinControlRemoto();
   if (intervaloControlRemoto) clearInterval(intervaloControlRemoto);
   intervaloControlRemoto = setInterval(revisarComandosRemotos, 2000);
+  iniciarVisualizadorMusica();
 }
 
 function detenerControlRemoto() {
@@ -563,6 +577,63 @@ function detenerControlRemoto() {
   pinControlRemoto = "";
   ultimoIdComandoRemoto = 0;
   actualizarBadgeControlRemoto("");
+  detenerVisualizadorMusica();
+}
+
+// Convierte texto a HTML seguro, para poder mostrar el nombre de la
+// canción/artista (viene de Spotify, no lo escribimos nosotros) sin
+// arriesgarse a romper el HTML de la página.
+function escaparHtmlClase(texto) {
+  const div = document.createElement("div");
+  div.textContent = texto == null ? "" : String(texto);
+  return div.innerHTML;
+}
+
+function iniciarVisualizadorMusica() {
+  if (intervaloVisualizadorMusica) clearInterval(intervaloVisualizadorMusica);
+  actualizarVisualizadorMusica();
+  intervaloVisualizadorMusica = setInterval(actualizarVisualizadorMusica, 6000);
+}
+
+function detenerVisualizadorMusica() {
+  if (intervaloVisualizadorMusica) {
+    clearInterval(intervaloVisualizadorMusica);
+    intervaloVisualizadorMusica = null;
+  }
+  const bloque = el("visualizadorMusica");
+  if (bloque) bloque.hidden = true;
+}
+
+async function actualizarVisualizadorMusica() {
+  const bloque = el("visualizadorMusica");
+  if (!bloque) return;
+  // Solo vale la pena preguntar si la pestaña Clase está a la vista —
+  // igual que el resto de los auto-refrescos del panel.
+  if (el("modoClase").hidden) return;
+  if (!pinControlRemoto) {
+    bloque.hidden = true;
+    return;
+  }
+
+  try {
+    const datos = await llamarWorker({ accion: "spotifyEstado", pin: pinControlRemoto });
+    const texto = el("visualizadorTexto");
+    bloque.hidden = false;
+    if (datos.reproduciendo && datos.cancion) {
+      bloque.classList.add("sonando");
+      texto.innerHTML = `<strong>${escaparHtmlClase(datos.cancion)}</strong>${
+        datos.artista ? " — " + escaparHtmlClase(datos.artista) : ""
+      }`;
+    } else {
+      bloque.classList.remove("sonando");
+      texto.textContent = "⏸ Sin música por ahora";
+    }
+  } catch (e) {
+    // Spotify no está conectado, la cuenta no es Premium, etc. — el
+    // visualizador es un extra decorativo, así que si algo falla
+    // simplemente se esconde en vez de mostrar un error en pantalla.
+    bloque.hidden = true;
+  }
 }
 
 async function revisarComandosRemotos() {

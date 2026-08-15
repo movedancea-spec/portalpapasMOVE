@@ -695,6 +695,85 @@ animation:pulso .6s ease infinite alternate;
 .btn-alarma-fin:active{ transform:scale(.97); }
 
 /*=====================================
+MODO CLASE: visualizador de música (Spotify)
+=====================================*/
+
+.visualizador-musica{
+text-align:center;
+margin-bottom:14px;
+padding:14px 10px 10px;
+background:linear-gradient(180deg,#fff0f6,#fff9fc);
+border-radius:18px;
+border:2px solid #ffe3f0;
+}
+
+.visualizador-anillos{
+position:relative;
+width:84px;
+height:84px;
+margin:4px auto 8px;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.visualizador-anillo{
+position:absolute;
+inset:0;
+border-radius:50%;
+border:3px solid #ef4b9b;
+opacity:0;
+}
+
+.visualizador-musica.sonando .visualizador-anillo{
+animation:visualizadorPulso 2.1s ease-out infinite;
+}
+
+.visualizador-anillo-1{ animation-delay:0s; }
+.visualizador-anillo-2{ animation-delay:.7s; }
+.visualizador-anillo-3{ animation-delay:1.4s; }
+
+@keyframes visualizadorPulso{
+0%{ transform:scale(.35); opacity:.85; }
+100%{ transform:scale(1.35); opacity:0; }
+}
+
+.visualizador-nota{
+position:relative;
+z-index:1;
+font-size:26px;
+filter:grayscale(1);
+opacity:.45;
+transition:opacity .4s ease, filter .4s ease, transform .4s ease;
+}
+
+.visualizador-musica.sonando .visualizador-nota{
+filter:grayscale(0);
+opacity:1;
+animation:visualizadorNotaLatido 1.05s ease-in-out infinite;
+}
+
+@keyframes visualizadorNotaLatido{
+0%,100%{ transform:scale(1); }
+50%{ transform:scale(1.18); }
+}
+
+.visualizador-texto{
+font-size:clamp(12.5px,3.4vw,14px);
+font-weight:700;
+color:#999;
+margin:0;
+}
+
+.visualizador-musica.sonando .visualizador-texto{
+color:#666;
+}
+
+.visualizador-musica.sonando .visualizador-texto strong{
+color:#ef4b9b;
+}
+
+/*=====================================
 MODO CLASE: cronómetro
 =====================================*/
 
