@@ -897,9 +897,10 @@ function sonarBeep() {
   try {
     const ctx = asegurarAudioCtx();
     if (!ctx) return;
-    // Volumen alto (0.85 de 1) y onda "square" en vez de "sine": una
-    // señal cuadrada suena más fuerte y más "cortante" a la misma
-    // intensidad, para que se note mejor sobre la música de la clase.
+    // Volumen a la mitad de lo que tenía antes (0.425 de 1, era 0.85) y
+    // onda "square" en vez de "sine": una señal cuadrada suena más
+    // fuerte y más "cortante" a la misma intensidad, para que se note
+    // sobre la música de la clase sin quedar tan alto como antes.
     // La rampita de subida/bajada (attack/release) evita que se
     // escuche un "clic" seco al prender/apagar cada nota.
     [0, 0.18, 0.36].forEach((delay, i) => {
@@ -911,8 +912,8 @@ function sonarBeep() {
       const inicio = ctx.currentTime + delay;
       const fin = inicio + 0.15;
       gain.gain.setValueAtTime(0, inicio);
-      gain.gain.linearRampToValueAtTime(0.85, inicio + 0.015);
-      gain.gain.setValueAtTime(0.85, fin - 0.02);
+      gain.gain.linearRampToValueAtTime(0.425, inicio + 0.015);
+      gain.gain.setValueAtTime(0.425, fin - 0.02);
       gain.gain.linearRampToValueAtTime(0, fin);
 
       osc.connect(gain);
