@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Control remoto</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="recepcion.css" />
+<link rel="stylesheet" href="control.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">📱 Control remoto</div>
+
+  <!-- ============ PANTALLA: ENTRAR CON EL CÓDIGO PIN ============ -->
+  <section id="pantallaPin" class="pantalla">
+    <p class="subtitulo">Escribe el código que aparece en la pantalla de la clase</p>
+    <input
+      type="text"
+      id="inputPinControl"
+      class="input-clave"
+      placeholder="----"
+      inputmode="numeric"
+      autocomplete="off"
+      maxlength="4"
+    />
+    <button class="btn-grande btn-siguiente" id="btnConectarControl">Conectar →</button>
+    <p class="mensaje-error" id="mensajeErrorPin"></p>
+  </section>
+
+  <!-- ============ PANTALLA: BOTONES DE CONTROL ============ -->
+  <section id="pantallaControl" class="pantalla" hidden>
+    <p class="estado-conexion" id="estadoConexionControl">✅ Conectado — código <span id="pinConectadoTexto"></span></p>
+
+    <p class="etiqueta-seccion">⏱ Cronómetro</p>
+    <div class="fila-botones-control">
+      <button class="btn-secundario btn-control" data-comando="cronometro:iniciar" type="button">▶️ Iniciar</button>
+      <button class="btn-secundario btn-control" data-comando="cronometro:pausar" type="button">⏸ Pausar</button>
+      <button class="btn-secundario btn-control" data-comando="cronometro:reiniciar" type="button">🔁 Reiniciar</button>
+    </div>
+
+    <p class="etiqueta-seccion">🎡 Ruleta</p>
+    <button class="btn-grande btn-siguiente" data-comando="ruleta:girar" type="button">🎉 Girar ruleta</button>
+
+    <p class="etiqueta-seccion">⭐ Calificación de la clase</p>
+    <div class="fila-botones-control">
+      <button class="btn-secundario btn-control" data-comando="calificacion:Excelente" type="button">🌟 Excelente</button>
+      <button class="btn-secundario btn-control" data-comando="calificacion:Buena" type="button">👍 Buena</button>
+      <button class="btn-secundario btn-control" data-comando="calificacion:Regular" type="button">🙂 Regular</button>
+    </div>
+
+    <p class="etiqueta-seccion">📑 Cambiar de pestaña</p>
+    <div class="grid-tabs-control">
+      <button class="btn-menu btn-tab-control" data-comando="tab:Bienvenida" type="button">👋 Bienvenida</button>
+      <button class="btn-menu btn-tab-control" data-comando="tab:Clase" type="button">💃 Clase</button>
+      <button class="btn-menu btn-tab-control" data-comando="tab:Cierre" type="button">🎀 Cierre</button>
+      <button class="btn-menu btn-tab-control" data-comando="tab:Bitacora" type="button">📓 Bitácora</button>
+      <button class="btn-menu btn-tab-control" data-comando="tab:Video" type="button">🎥 Video</button>
+      <button class="btn-menu btn-tab-control" data-comando="tab:Recepcion" type="button">💬 Recepción</button>
+    </div>
+
+    <p class="mensaje-comando" id="mensajeComandoControl"></p>
+
+    <button class="btn-enlace" id="btnDesconectarControl" type="button">Desconectar de este código</button>
+  </section>
+
+</div>
+
+<script src="control.js"></script>
+</body>
+</html>

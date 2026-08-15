@@ -41,6 +41,20 @@ let alarmaFinApagada = false; // una vez apagada, no vuelve a sonar en esta clas
 let ruletaIntervalo = null;
 let ruletaGirando = false;
 
+// ---------- control remoto desde el celular ----------
+// La laptop (donde está abierto este Panel de Clase, conectado a la
+// pantalla del salón) genera un código PIN y lo muestra en una
+// burbuja flotante. Desde el celular, la maestra entra a
+// control.html, escribe el PIN y desde ahí puede manejar el
+// cronómetro, la ruleta, la calificación y el cambio de pestañas sin
+// tener que regresar a la laptop. Los comandos se recogen aquí cada 2
+// segundos y se ejecutan "tocando" los mismos botones de siempre —
+// nunca se duplica la lógica del cronómetro/ruleta/etc., solo se
+// dispara desde otro lado.
+let pinControlRemoto = "";
+let ultimoIdComandoRemoto = 0;
+let intervaloControlRemoto = null;
+
 // ---------- audio ----------
 let audioCtx = null;
 
@@ -305,6 +319,7 @@ async function abrirPanel(grupo) {
   iniciarAutoRefrescoBienvenida();
   cargarMensajesRecepcionPanel();
   iniciarAutoRefrescoRecepcion();
+  iniciarControlRemoto();
 }
 
 async function cargarPanelClase() {
@@ -488,6 +503,127 @@ function cambiarTab(nombre) {
   // Al entrar a la pestaña de Recepción, la maestra ya "vio" las
   // respuestas pendientes — se marcan leídas y se apaga la alarma.
   if (nombre === "Recepcion") marcarLeidosRecepcion();
+}
+
+// ---------- control remoto desde el celular ----------
+
+function asegurarBadgeControlRemoto() {
+  if (el("badgeControlRemoto")) return;
+  const badge = document.createElement("div");
+  badge.id = "badgeControlRemoto";
+  badge.hidden = true;
+  badge.style.cssText =
+    "position:fixed;left:10px;bottom:10px;z-index:9999;background:#ef4b9b;color:#fff;" +
+    "font-family:'Poppins',sans-serif;font-weight:700;font-size:12px;line-height:1.35;" +
+    "padding:8px 12px;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,0.28);" +
+    "text-align:center;max-width:160px;pointer-events:none;";
+  document.body.appendChild(badge);
+}
+
+function actualizarBadgeControlRemoto(pin) {
+  asegurarBadgeControlRemoto();
+  const badge = el("badgeControlRemoto");
+  if (!pin) {
+    badge.hidden = true;
+    return;
+  }
+  badge.innerHTML =
+    '📱 Control remoto<br><span style="font-size:21px;letter-spacing:3px;">' + pin + "</span>";
+  badge.hidden = false;
+}
+
+// Le pide al Worker un código nuevo (esto crea el "buzón" en el KV).
+// Si por lo que sea no se puede (Worker sin el KV configurado
+// todavía, sin conexión, etc.), simplemente no aparece la burbuja del
+// código y el resto del Panel de Clase sigue funcionando normal — el
+// control remoto es un extra, nunca algo de lo que dependa la clase.
+async function iniciarPinControlRemoto() {
+  try {
+    const datos = await llamarWorker({ accion: "controlRemotoIniciar" });
+    pinControlRemoto = datos.pin || "";
+    ultimoIdComandoRemoto = 0;
+    actualizarBadgeControlRemoto(pinControlRemoto);
+  } catch (e) {
+    pinControlRemoto = "";
+    actualizarBadgeControlRemoto("");
+  }
+}
+
+function iniciarControlRemoto() {
+  iniciarPinControlRemoto();
+  if (intervaloControlRemoto) clearInterval(intervaloControlRemoto);
+  intervaloControlRemoto = setInterval(revisarComandosRemotos, 2000);
+}
+
+function detenerControlRemoto() {
+  if (intervaloControlRemoto) {
+    clearInterval(intervaloControlRemoto);
+    intervaloControlRemoto = null;
+  }
+  pinControlRemoto = "";
+  ultimoIdComandoRemoto = 0;
+  actualizarBadgeControlRemoto("");
+}
+
+async function revisarComandosRemotos() {
+  if (!pinControlRemoto) return;
+  try {
+    const datos = await llamarWorker({
+      accion: "controlRemotoObtener",
+      pin: pinControlRemoto,
+      desdeId: ultimoIdComandoRemoto,
+    });
+    if (!datos.activo) {
+      // El código venció (más de 6 horas) — se genera uno nuevo solo,
+      // sin interrumpir a la maestra ni pedirle que haga nada.
+      await iniciarPinControlRemoto();
+      return;
+    }
+    (datos.comandos || []).forEach((c) => {
+      ejecutarComandoRemoto(c.comando);
+      if (c.id > ultimoIdComandoRemoto) ultimoIdComandoRemoto = c.id;
+    });
+  } catch (e) {
+    // Si falla una consulta (sin señal un instante, etc.) se intenta
+    // de nuevo sola en el siguiente ciclo de 2 segundos.
+  }
+}
+
+// Ejecuta un comando que llegó del celular — "tocando" el mismo botón
+// que usaría la maestra directamente en la laptop, para no duplicar
+// nada de la lógica del cronómetro, la ruleta, la calificación, etc.
+function ejecutarComandoRemoto(comando) {
+  if (!comando) return;
+
+  if (comando === "cronometro:iniciar") {
+    el("btnIniciarCronometro").click();
+    return;
+  }
+  if (comando === "cronometro:pausar") {
+    el("btnPausarCronometro").click();
+    return;
+  }
+  if (comando === "cronometro:reiniciar") {
+    el("btnReiniciarCronometro").click();
+    return;
+  }
+  if (comando === "ruleta:girar") {
+    el("btnRuleta").click();
+    return;
+  }
+  if (comando.indexOf("calificacion:") === 0) {
+    const categoria = comando.slice("calificacion:".length);
+    const btn = document.querySelector('.btn-calificacion[data-categoria="' + categoria + '"]');
+    if (btn) btn.click();
+    return;
+  }
+  if (comando.indexOf("tab:") === 0) {
+    const nombreTab = comando.slice("tab:".length);
+    if (["Bienvenida", "Clase", "Cierre", "Bitacora", "Video", "Recepcion"].includes(nombreTab)) {
+      cambiarTab(nombreTab);
+    }
+    return;
+  }
 }
 
 // ---------- modo bienvenida ----------
@@ -1472,6 +1608,7 @@ el("btnNuevaClase").addEventListener("click", () => {
   detenerAutoRefrescoRecepcion();
   detenerAlarmaRecepcion();
   reiniciarRuletaVisual();
+  detenerControlRemoto();
   grupoActual = null;
   alumnasPanel = [];
   calificacionHoyActual = null;
@@ -1489,6 +1626,7 @@ el("btnCerrarSesionPanel").addEventListener("click", () => {
   detenerAutoRefrescoRecepcion();
   detenerAlarmaRecepcion();
   reiniciarRuletaVisual();
+  detenerControlRemoto();
   maestraId = "";
   nombreMaestra = "";
   gruposMaestra = [];

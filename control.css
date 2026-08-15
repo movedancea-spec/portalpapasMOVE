@@ -1,0 +1,65 @@
+/* ===================================================
+   MOVE — CONTROL REMOTO DEL PANEL DE CLASE
+   Se apoya en recepcion.css para todo lo base
+   (contenedor, botones, input de clave, etc.) — aquí
+   solo van los estilos propios de esta pantalla.
+=================================================== */
+
+.estado-conexion{
+text-align:center;
+font-weight:700;
+font-size:clamp(13px,3.6vw,15px);
+color:#1f9d63;
+background:#effaf3;
+border-radius:14px;
+padding:10px 12px;
+margin-bottom:16px;
+}
+
+.etiqueta-seccion{
+font-weight:800;
+font-size:clamp(14px,3.8vw,16px);
+color:#ef4b9b;
+margin-top:20px;
+margin-bottom:8px;
+}
+
+.fila-botones-control{
+display:grid;
+grid-template-columns:1fr 1fr 1fr;
+gap:8px;
+}
+
+.btn-control{
+margin-top:0;
+padding:clamp(12px,4vw,16px) 6px;
+font-size:clamp(12.5px,3.4vw,14.5px);
+}
+
+.btn-control:active,
+.btn-tab-control:active{
+transform:scale(.96);
+background:#fff0f6;
+}
+
+.grid-tabs-control{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.btn-tab-control{
+justify-content:center;
+text-align:center;
+font-size:clamp(13.5px,3.6vw,15px);
+padding:14px 10px;
+}
+
+.mensaje-comando{
+min-height:20px;
+text-align:center;
+font-weight:700;
+font-size:clamp(12.5px,3.4vw,14px);
+color:#999;
+margin-top:16px;
+}
