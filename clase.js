@@ -595,6 +595,18 @@ async function revisarComandosRemotos() {
 function ejecutarComandoRemoto(comando) {
   if (!comando) return;
 
+  if (comando.indexOf("cronometro:minutos:") === 0) {
+    // Igual que en la laptop: solo se puede cambiar el tiempo mientras
+    // el cronómetro está detenido o en pausa, nunca mientras corre.
+    if (cronIntervalo) return;
+    const segundos = comando.slice("cronometro:minutos:".length);
+    const select = el("selectorMinutos");
+    if (select) {
+      select.value = segundos;
+      select.dispatchEvent(new Event("change"));
+    }
+    return;
+  }
   if (comando === "cronometro:iniciar") {
     el("btnIniciarCronometro").click();
     return;

@@ -106,22 +106,24 @@ const ETIQUETAS_COMANDO = {
 };
 
 document.querySelectorAll("[data-comando]").forEach((btn) => {
-  btn.addEventListener("click", () => enviarComandoControl(btn));
+  btn.addEventListener("click", () => enviarComando(btn.dataset.comando, ETIQUETAS_COMANDO[btn.dataset.comando], btn));
 });
 
-async function enviarComandoControl(btn) {
+// Función genérica: manda cualquier comando al buzón de este PIN.
+// La usan tanto los botones fijos (data-comando) como el selector de
+// minutos del cronómetro, que arma su comando dinámicamente.
+async function enviarComando(comando, etiquetaExito, btnControl) {
   if (!pinActual) return;
-  const comando = btn.dataset.comando;
   const mensaje = el("mensajeComandoControl");
 
-  btn.disabled = true;
+  if (btnControl) btnControl.disabled = true;
   mensaje.style.color = "#999";
   mensaje.textContent = "Enviando...";
 
   try {
     await llamarWorker({ accion: "controlRemotoEnviar", pin: pinActual, comando });
     mensaje.style.color = "#1f9d63";
-    mensaje.textContent = ETIQUETAS_COMANDO[comando] || "Comando enviado ✅";
+    mensaje.textContent = etiquetaExito || "Comando enviado ✅";
     if (navigator.vibrate) navigator.vibrate(30);
   } catch (e) {
     mensaje.style.color = "#e0245e";
@@ -138,9 +140,41 @@ async function enviarComandoControl(btn) {
       mensaje.textContent = e.message;
     }
   } finally {
-    btn.disabled = false;
+    if (btnControl) btnControl.disabled = false;
   }
 }
+
+// ---------- selector de minutos del cronómetro ----------
+// Mismas opciones que en la laptop (30 segundos, y de 1 a 30 minutos),
+// para que lo que se elija aquí se vea idéntico allá.
+
+function poblarSelectorMinutosControl() {
+  const select = el("selectorMinutosControl");
+  select.innerHTML = "";
+
+  const opciones = [{ seg: 30, texto: "30 segundos" }];
+  for (let m = 1; m <= 30; m++) {
+    opciones.push({ seg: m * 60, texto: m === 1 ? "1 minuto" : `${m} minutos` });
+  }
+
+  opciones.forEach((op) => {
+    const opt = document.createElement("option");
+    opt.value = String(op.seg);
+    opt.textContent = op.texto;
+    select.appendChild(opt);
+  });
+
+  select.value = "60"; // mismo valor por defecto que trae la laptop al abrir una clase
+}
+
+poblarSelectorMinutosControl();
+
+el("btnFijarMinutosControl").addEventListener("click", () => {
+  const select = el("selectorMinutosControl");
+  const segundos = select.value;
+  const texto = select.options[select.selectedIndex].textContent;
+  enviarComando("cronometro:minutos:" + segundos, "⏱ Tiempo puesto en " + texto, el("btnFijarMinutosControl"));
+});
 
 // ---------- desconectar ----------
 

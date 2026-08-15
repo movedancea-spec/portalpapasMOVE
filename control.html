@@ -39,6 +39,11 @@
     <p class="estado-conexion" id="estadoConexionControl">✅ Conectado — código <span id="pinConectadoTexto"></span></p>
 
     <p class="etiqueta-seccion">⏱ Cronómetro</p>
+    <div class="fila-selector-minutos">
+      <select id="selectorMinutosControl" class="input-select"></select>
+      <button class="btn-secundario btn-fijar-minutos" id="btnFijarMinutosControl" type="button">Fijar</button>
+    </div>
+    <p class="pista-minutos">Para cambiar el tiempo, primero pausa o reinicia el cronómetro.</p>
     <div class="fila-botones-control">
       <button class="btn-secundario btn-control" data-comando="cronometro:iniciar" type="button">▶️ Iniciar</button>
       <button class="btn-secundario btn-control" data-comando="cronometro:pausar" type="button">⏸ Pausar</button>

@@ -24,10 +24,37 @@ margin-top:20px;
 margin-bottom:8px;
 }
 
+.fila-selector-minutos{
+display:flex;
+gap:8px;
+align-items:stretch;
+}
+
+.fila-selector-minutos .input-select{
+flex:1;
+margin-bottom:0;
+}
+
+.btn-fijar-minutos{
+margin-top:0;
+flex-shrink:0;
+padding:0 18px;
+font-size:clamp(13px,3.6vw,15px);
+}
+
+.pista-minutos{
+font-size:clamp(11.5px,3.2vw,13px);
+color:#aaa;
+font-weight:600;
+margin-top:6px;
+text-align:center;
+}
+
 .fila-botones-control{
 display:grid;
 grid-template-columns:1fr 1fr 1fr;
 gap:8px;
+margin-top:14px;
 }
 
 .btn-control{
