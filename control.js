@@ -109,10 +109,15 @@ document.querySelectorAll("[data-comando]").forEach((btn) => {
   btn.addEventListener("click", () => enviarComando(btn.dataset.comando, ETIQUETAS_COMANDO[btn.dataset.comando], btn));
 });
 
-// Función genérica: manda cualquier comando al buzón de este PIN.
-// La usan tanto los botones fijos (data-comando) como el selector de
-// minutos del cronómetro, que arma su comando dinámicamente.
-async function enviarComando(comando, etiquetaExito, btnControl) {
+// Función genérica: manda cualquier comando al Worker con este PIN.
+// Por default va al buzón de comandos que revisa la laptop
+// (accion "controlRemotoEnviar" — cronómetro, ruleta, calificación,
+// pestañas). Los botones de Spotify usan la MISMA función pero con
+// accion "spotifyComando", que el Worker ejecuta directo contra la
+// cuenta de Spotify conectada (no pasa por el buzón ni por la
+// laptop) — por eso Spotify sigue funcionando aunque el Panel de
+// Clase esté cerrado, mientras el código PIN siga activo.
+async function enviarComando(comando, etiquetaExito, btnControl, accion = "controlRemotoEnviar") {
   if (!pinActual) return;
   const mensaje = el("mensajeComandoControl");
 
@@ -121,7 +126,7 @@ async function enviarComando(comando, etiquetaExito, btnControl) {
   mensaje.textContent = "Enviando...";
 
   try {
-    await llamarWorker({ accion: "controlRemotoEnviar", pin: pinActual, comando });
+    await llamarWorker({ accion, pin: pinActual, comando });
     mensaje.style.color = "#1f9d63";
     mensaje.textContent = etiquetaExito || "Comando enviado ✅";
     if (navigator.vibrate) navigator.vibrate(30);
@@ -143,6 +148,21 @@ async function enviarComando(comando, etiquetaExito, btnControl) {
     if (btnControl) btnControl.disabled = false;
   }
 }
+
+// ---------- Spotify (laptop) ----------
+
+const ETIQUETAS_SPOTIFY = {
+  reproducir: "▶️ Reproduciendo",
+  pausar: "⏸ En pausa",
+  siguiente: "⏭ Siguiente canción",
+  anterior: "⏮ Canción anterior",
+};
+
+document.querySelectorAll("[data-spotify]").forEach((btn) => {
+  btn.addEventListener("click", () =>
+    enviarComando(btn.dataset.spotify, ETIQUETAS_SPOTIFY[btn.dataset.spotify], btn, "spotifyComando")
+  );
+});
 
 // ---------- selector de minutos del cronómetro ----------
 // Mismas opciones que en la laptop (30 segundos, y de 1 a 30 minutos),
