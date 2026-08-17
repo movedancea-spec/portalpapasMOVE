@@ -40,6 +40,7 @@ const PANTALLAS = [
   "pantallaIngresos",
   "pantallaPagos",
   "pantallaCanalAsistencia",
+  "pantallaCanalChat",
 ];
 
 function mostrarPantalla(id) {
@@ -268,11 +269,17 @@ el("btnMenuCanalAsistencia").addEventListener("click", () => {
   cargarCanalAsistencia();
 });
 
+el("btnMenuCanalChat").addEventListener("click", () => {
+  mostrarPantalla("pantallaCanalChat");
+  cargarCanalChat();
+});
+
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverIngresos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverPagos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverCanalAsistencia").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverCanalChat").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
   detenerAutoRefresco();
@@ -594,6 +601,90 @@ async function elegirCanalAsistencia(canal, titulo) {
     canalAsistenciaActual = canal;
     renderCanalAsistencia();
     mensajeEl.textContent = `✅ Listo — el aviso de asistencia ahora llega por ${titulo} para todas las familias.`;
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ==========================================
+// CANAL DE CHAT (interruptor GLOBAL — igual que el de asistencia, pero
+// para el aviso de mensaje nuevo del Chat de Maestras)
+// ==========================================
+// Decide si el aviso de "tienes un mensaje nuevo" del Chat de Maestras
+// se manda por WhatsApp (GREEN-API) o por el Portal (notificación
+// push) — para TODAS las maestras y familias al mismo tiempo. Se
+// guarda en la tabla CONFIGURACION GENERAL de Airtable (campo "CANAL
+// CHAT") y lo lee worker.js (chatEnviar) en cada mensaje.
+
+const OPCIONES_CANAL_CHAT = [
+  {
+    valor: "WhatsApp",
+    titulo: "📱 WhatsApp",
+    descripcion: "El aviso de mensaje nuevo llega por WhatsApp (GREEN-API), como hasta ahora.",
+  },
+  {
+    valor: "Portal",
+    titulo: "🔔 Portal",
+    descripcion:
+      "El aviso de mensaje nuevo llega como notificación push del Portal. Solo le llega a quienes ya activaron las notificaciones desde el Portal (familias: en el Portal de Alumnas; maestras: en el Portal de Maestras) — quienes no las hayan activado NO reciben ningún aviso.",
+  },
+];
+
+let canalChatActual = "";
+
+async function cargarCanalChat() {
+  const cont = el("opcionesCanalChat");
+  const mensajeEl = el("mensajeCanalChat");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerCanalChat", clave: claveRecepcion });
+    canalChatActual = datos.canal || "WhatsApp";
+    renderCanalChat();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderCanalChat() {
+  const cont = el("opcionesCanalChat");
+  cont.innerHTML = "";
+
+  OPCIONES_CANAL_CHAT.forEach((op) => {
+    const activo = canalChatActual === op.valor;
+
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
+    tarjeta.innerHTML = `
+      <span class="tarjeta-resultado-nombre">${op.titulo}${activo ? " — ✅ Activo ahora para todas" : ""}</span>
+      <span class="tarjeta-resultado-detalle">${op.descripcion}</span>
+    `;
+    tarjeta.disabled = activo;
+    tarjeta.addEventListener("click", () => elegirCanalChat(op.valor, op.titulo));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function elegirCanalChat(canal, titulo) {
+  const confirmado = window.confirm(
+    `¿Cambiar el canal de chat a ${titulo} para TODAS las maestras y familias? Este cambio aplica de inmediato, no se puede elegir por maestra ni por alumna.`
+  );
+  if (!confirmado) return;
+
+  const mensajeEl = el("mensajeCanalChat");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    await llamarWorker({ accion: "recepcionGuardarCanalChat", clave: claveRecepcion, canal });
+    canalChatActual = canal;
+    renderCanalChat();
+    mensajeEl.textContent = `✅ Listo — el aviso de mensaje nuevo del chat ahora llega por ${titulo} para todas.`;
     mensajeEl.classList.add("mensaje-form-ok");
   } catch (e) {
     mensajeEl.textContent = e.message;
