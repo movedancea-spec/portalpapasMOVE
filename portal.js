@@ -735,6 +735,20 @@ function idsAlumnasActuales() {
   return alumnaSeleccionada ? [alumnaSeleccionada.id] : [];
 }
 
+// Nombres de la(s) alumna(s) que quedan cubiertas por las
+// notificaciones de ESTE navegador en este momento — en modo familia
+// (clave familiar / hijas unidas) son TODAS las hermanas a la vez; si
+// no, es solo la que está viendo ahorita. Se usa para que el botón de
+// activar/desactivar diga con nombre y apellido a quién cubre, en vez
+// de dejarlo ambiguo.
+function nombresAlumnasActuales() {
+  const nombres = modoFamilia ? datosHijasFamilia.map((d) => d.nombre) : alumnaSeleccionada ? [alumnaSeleccionada.nombre] : [];
+  const limpios = nombres.filter(Boolean);
+  if (!limpios.length) return "";
+  if (limpios.length === 1) return limpios[0];
+  return limpios.slice(0, -1).join(", ") + " y " + limpios[limpios.length - 1];
+}
+
 function asegurarBloqueNotificacionesPush() {
   let bloque = el("bloqueNotificacionesPush");
   if (bloque) return bloque;
@@ -820,8 +834,33 @@ async function actualizarBloqueNotificacionesPush() {
   }
 
   if (Notification.permission === "granted" && suscripcionActual) {
+    // Refuerzo silencioso: si el navegador YA tenía el permiso
+    // concedido y una suscripción válida (por ejemplo, porque mamá ya
+    // las había activado antes viendo el perfil de OTRA hija, sin
+    // clave familiar), nos aseguramos de que la hija (o hijas) que se
+    // están viendo AHORA MISMO también queden conectadas — sin que
+    // haga falta tocar ningún botón. guardarSuscripcionPush ya
+    // deduplica por endpoint, así que repetir esto no genera nada
+    // duplicado, solo confirma que quede bien guardado.
+    const idsParaReforzar = idsAlumnasActuales();
+    if (idsParaReforzar.length) {
+      llamarWorker({
+        accion: "guardarSuscripcionPush",
+        alumnaIds: idsParaReforzar,
+        subscription: suscripcionActual.toJSON(),
+      }).catch(() => {
+        // Si falla, no interrumpimos nada — la próxima vez que se
+        // abra el perfil se vuelve a intentar solo.
+      });
+    }
+
+    const nombres = nombresAlumnasActuales();
     bloque.appendChild(
-      crearAvisoNotificacionesPush("🔔 Las notificaciones del portal están activadas en este dispositivo.", true)
+      crearAvisoNotificacionesPush(
+        "🔔 Las notificaciones del portal están activadas en este dispositivo" +
+          (nombres ? " para " + nombres + "." : "."),
+        true
+      )
     );
     const btnDesactivar = document.createElement("button");
     btnDesactivar.type = "button";
@@ -842,10 +881,11 @@ async function actualizarBloqueNotificacionesPush() {
     return;
   }
 
+  const nombresParaActivar = nombresAlumnasActuales();
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "btn-secundario btn-ancho";
-  btn.textContent = "🔔 Activar notificaciones del portal";
+  btn.textContent = "🔔 Activar notificaciones" + (nombresParaActivar ? " para " + nombresParaActivar : " del portal");
   btn.addEventListener("click", () => activarNotificacionesPush(btn));
   bloque.appendChild(btn);
 }
