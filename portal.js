@@ -11,13 +11,16 @@
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
 // Llave pública VAPID (no es secreta — se usa del lado del navegador
-// para suscribirse a notificaciones push). La llave PRIVADA vive solo
-// como Secret en el Worker del biométrico (move-checkin-v2), nunca
-// aquí. Si algún día se regeneran las llaves VAPID, hay que actualizar
-// este valor Y el Secret del Worker al mismo tiempo (si no, las
-// suscripciones viejas dejan de servir).
+// para suscribirse a notificaciones push). Con esta MISMA suscripción
+// se avisa tanto la asistencia del biométrico (la manda el Worker
+// move-checkin-v2) como los mensajes nuevos del Chat de Maestras (los
+// manda el Worker portalalumnas, worker.js). Por eso la llave PRIVADA
+// tiene que estar guardada, con el mismo valor, como Secret
+// VAPID_PRIVATE_KEY en LOS DOS Workers. Si algún día se regenera la
+// llave, hay que actualizar este valor Y los dos Secrets al mismo
+// tiempo (si no, las suscripciones viejas dejan de servir).
 const VAPID_PUBLIC_KEY =
-  "BI1Y3s7t3NTi1pMdGW8Y5FTfAalzD-aBK6WFJS7DHrYUgH8URG1PKpUtj-l0M_zhlZ3zV3ROjGP6EsGXkkBiMmc";
+  "BCDloougzpanTx9ZqIX5pEUVkCfwJqSZzxZUFmvm41gUQRzuyecawgi4WZhSePFEoY0DpAm-CvmPrWOJYx8Mvlk";
 
 // Nombre EXACTO del campo "autorizo el show" en Airtable (tal como está
 // guardado en CONFIGURACION PORTAL ALUMNAS → CAMPO EN ALUMNAS), para
@@ -588,6 +591,38 @@ async function actualizarBloqueNotificacionesPush() {
   try {
     const registro = await navigator.serviceWorker.ready;
     suscripcionActual = await registro.pushManager.getSubscription();
+
+    // Si la suscripción que ya tiene este navegador quedó armada con
+    // una llave VAPID VIEJA (por ejemplo, porque se tuvo que
+    // regenerar), el navegador jamás la deja "reactivar" con la llave
+    // nueva sin antes darla de baja — y mostrarle a la familia "ya
+    // están activadas" sería mentira, porque esa suscripción vieja ya
+    // no le sirve a los Workers. La damos de baja sola, sin pedirle
+    // nada, para que abajo aparezca de nuevo el botón de activar y
+    // quede al día con un solo toque.
+    if (suscripcionActual) {
+      const llaveActualBytes = new Uint8Array(suscripcionActual.options.applicationServerKey);
+      const llaveEsperadaBytes = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      const coinciden =
+        llaveActualBytes.length === llaveEsperadaBytes.length &&
+        llaveActualBytes.every((b, i) => b === llaveEsperadaBytes[i]);
+      if (!coinciden) {
+        try {
+          const alumnaIds = idsAlumnasActuales();
+          await llamarWorker({
+            accion: "eliminarSuscripcionPush",
+            alumnaIds,
+            endpoint: suscripcionActual.endpoint,
+          });
+        } catch (e) {
+          // No pasa nada si esto falla — igual la damos de baja del
+          // navegador, y si quedó un registro viejo en Airtable el
+          // Worker ya lo limpia solo la próxima vez que falle un envío.
+        }
+        await suscripcionActual.unsubscribe();
+        suscripcionActual = null;
+      }
+    }
   } catch (e) {
     // Si algo falla revisando el estado actual, simplemente ofrecemos
     // el botón de activar más abajo.
