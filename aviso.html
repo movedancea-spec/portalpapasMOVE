@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Aviso a mis alumnas</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="aviso.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">Aviso a mis alumnas</div>
+
+  <!-- ============ PANTALLA 0: CLAVE DE MAESTRA ============ -->
+  <section id="pantallaLogin" class="pantalla">
+    <p class="subtitulo">🔒 Escribe tu clave de maestra</p>
+    <input type="password" id="inputClaveMaestra" class="input-clave" placeholder="••••" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnEntrarMaestra">Entrar →</button>
+
+    <button class="btn-enlace" id="btnMostrarRecuperarMaestra" type="button">¿Olvidaste tu clave?</button>
+
+    <div id="bloqueRecuperarMaestra" hidden>
+      <p class="aviso-familia">Busca tu nombre para que te reenviemos tu clave por WhatsApp.</p>
+      <input type="text" id="buscarRecuperarMaestra" class="buscador" placeholder="Escribe tu nombre..." autocomplete="off" />
+      <div id="listaRecuperarMaestra" class="lista-alumnas"></div>
+
+      <div id="bloqueConfirmarRecuperarMaestra" hidden>
+        <p class="nombre-elegido" id="nombreRecuperarMaestraElegida"></p>
+        <button class="btn-secundario btn-ancho" id="btnEnviarRecuperarMaestra" type="button">📲 Enviarme mi clave por WhatsApp</button>
+      </div>
+    </div>
+
+    <p class="mensaje-recuperar" id="mensajeRecuperarMaestra" hidden></p>
+
+    <p class="mensaje-error" id="mensajeErrorLogin"></p>
+  </section>
+
+  <!-- ============ PANTALLA 1: ELEGIR GRUPO ============ -->
+  <section id="pantallaGrupos" class="pantalla" hidden>
+    <div class="barra-superior">
+      <a class="btn-volver" href="portal-maestras.html">← Portal</a>
+      <span class="barra-titulo">¿A cuál grupo?</span>
+    </div>
+    <p class="subtitulo">📣 ¿A las alumnas de cuál de tus grupos le mandamos el aviso?</p>
+    <div id="listaGrupos" class="lista-grupos"></div>
+    <p class="mensaje-error" id="mensajeErrorGrupos"></p>
+  </section>
+
+  <!-- ============ PANTALLA 2: ESCRIBIR EL AVISO ============ -->
+  <section id="pantallaAviso" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverGrupos" type="button">← Grupos</button>
+      <span class="barra-titulo" id="nombreGrupoAviso"></span>
+    </div>
+
+    <p class="pista-campo">
+      Este aviso solo se manda por el Portal (notificación push + se ve al abrir el Portal de Alumnas) a las familias de este grupo — nunca por WhatsApp. Queda guardado en Airtable, pero en el Portal solo se ve durante este mes.
+    </p>
+
+    <p class="etiqueta-campo">Título</p>
+    <input type="text" id="inputAvisoTitulo" class="input-texto" placeholder="Ej. Traer zapatos de punta el jueves" autocomplete="off" />
+
+    <p class="etiqueta-campo">Mensaje</p>
+    <textarea id="inputAvisoMensaje" class="input-textarea" rows="4" placeholder="Escribe el aviso completo..."></textarea>
+
+    <p class="etiqueta-campo">Imagen o PDF (opcional)</p>
+    <label class="btn-secundario btn-ancho btn-subir-foto" for="inputAdjuntoAviso">📎 Elegir archivo</label>
+    <input type="file" id="inputAdjuntoAviso" accept="image/*,.pdf" hidden />
+    <p class="alumna-elegida" id="nombreAdjuntoAviso" hidden></p>
+
+    <button class="btn-grande btn-siguiente" id="btnMandarAviso" type="button">📣 Mandar aviso</button>
+    <p class="mensaje-form" id="mensajeAviso"></p>
+  </section>
+
+</div>
+
+<script src="sesionmaestra.js"></script>
+<script src="aviso.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    let registroSW = null;
+
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("sw.js")
+        .then((registro) => {
+          registroSW = registro;
+        })
+        .catch(() => {});
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && registroSW) {
+        registroSW.update().catch(() => {});
+      }
+    });
+  }
+</script>
+</body>
+</html>

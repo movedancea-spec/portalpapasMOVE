@@ -490,6 +490,12 @@ function mostrarPerfilDesdeDatos(datos) {
   // se vea el perfil.
   cargarAnunciosPortal();
 
+  // Avisos que la maestra del grupo le mande solo a esta alumna (ver
+  // sección "AVISO DE LA MAESTRA" más abajo) — sección aparte de los
+  // Anuncios de Recepción, para que se note que es un mensaje de SU
+  // maestra.
+  cargarAvisoMaestraPortal();
+
   // El panel de ingresos del mes se arma plegado (no pide datos al
   // Worker hasta que lo abran) — ver sección más abajo.
   cargarAsistenciaMes();
@@ -568,6 +574,64 @@ function crearAdjuntoAnuncio(adjunto) {
   enlace.textContent = "📎 Ver " + (adjunto.filename || "archivo adjunto");
   enlace.style.cssText = "display:inline-block;margin-top:10px;font-size:13px;color:#c2185b;font-weight:600;text-decoration:underline;";
   return enlace;
+}
+
+// ==========================================
+// AVISO DE LA MAESTRA (mensaje que la maestra del grupo le manda SOLO
+// a las alumnas de ESE grupo — a diferencia de los Anuncios de
+// Recepción, que van a TODAS las familias) — igual que los Anuncios,
+// solo se muestran los del MES EN CURSO; el mes que viene este bloque
+// deja de traerlos, pero el historial completo se queda guardado para
+// siempre en Airtable, tabla AVISOS MAESTRA. Siempre llega por el
+// Portal (nunca por WhatsApp).
+// ==========================================
+async function cargarAvisoMaestraPortal() {
+  const bloque = el("bloqueAvisoMaestra");
+  if (!bloque || !alumnaSeleccionada || !alumnaSeleccionada.id) return;
+
+  try {
+    const datos = await llamarWorker({ accion: "avisosMaestraDeAlumna", alumnaId: alumnaSeleccionada.id });
+    renderAvisoMaestraPortal(datos.avisos || []);
+  } catch (e) {
+    // Si falla, simplemente no se muestra nada — no es algo tan
+    // crítico como para interrumpir el resto del perfil con un error.
+    bloque.innerHTML = "";
+  }
+}
+
+function renderAvisoMaestraPortal(avisos) {
+  const bloque = el("bloqueAvisoMaestra");
+  if (!bloque) return;
+  bloque.innerHTML = "";
+  if (!avisos.length) return;
+
+  avisos.forEach((a) => {
+    const caja = document.createElement("div");
+    caja.style.cssText =
+      "background:#f4f0ff;border:1px solid #ddd2ff;border-radius:14px;padding:12px 14px;margin:0 0 10px;";
+
+    const firma = document.createElement("p");
+    const deQuien = [a.maestra, a.grupo].filter(Boolean).join(" · ");
+    firma.textContent = "👩‍🏫 " + (deQuien || "Tu maestra");
+    firma.style.cssText = "font-weight:700;font-size:12px;color:#7a5cd6;margin:0 0 4px;";
+    caja.appendChild(firma);
+
+    const titulo = document.createElement("p");
+    titulo.textContent = a.titulo;
+    titulo.style.cssText = "font-weight:700;font-size:14.5px;color:#4b2ea8;margin:0 0 4px;";
+    caja.appendChild(titulo);
+
+    const cuerpo = document.createElement("p");
+    cuerpo.textContent = a.mensaje;
+    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;";
+    caja.appendChild(cuerpo);
+
+    if (a.adjunto && a.adjunto.url) {
+      caja.appendChild(crearAdjuntoAnuncio(a.adjunto));
+    }
+
+    bloque.appendChild(caja);
+  });
 }
 
 // -------------------------------------
