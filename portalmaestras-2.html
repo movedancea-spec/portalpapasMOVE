@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Portal de Maestras — MOVE Dance Academy</title>
+<meta name="theme-color" content="#ef4b9b" />
+<meta name="description" content="Todo lo que necesitas como maestra de MOVE Dance Academy, en un solo lugar." />
+<link rel="manifest" href="manifestmaestras.json" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="MOVE Maestras" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="maestras.css" />
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
+
+html{width:100%;min-height:100%;}
+
+body{
+  width:100%;
+  min-height:100dvh;
+  overflow-y:auto;
+  overflow-x:hidden;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:30px 20px;
+  background:linear-gradient(-45deg,#ffffff,#fff4fb,#ffe9f5,#fff6fc,#ffffff);
+  background-size:400% 400%;
+  animation:gradientMove 18s ease infinite;
+  position:relative;
+}
+
+@keyframes gradientMove{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+
+.fondo-decorado{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none;}
+.burbuja{position:absolute;border-radius:50%;background:radial-gradient(circle at 30% 30%, rgba(239,75,155,.18), rgba(239,75,155,0));animation:flotar 10s ease-in-out infinite;}
+.burbuja-1{width:260px;height:260px;top:-60px;left:-60px;}
+.burbuja-2{width:200px;height:200px;bottom:5%;right:-40px;animation-delay:2s;}
+.burbuja-3{width:150px;height:150px;top:40%;right:10%;animation-delay:4s;}
+@keyframes flotar{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-20px) scale(1.05);}}
+
+.container{
+  width:92%;
+  max-width:560px;
+  margin:20px auto;
+  padding:clamp(22px,6vw,38px);
+  border-radius:clamp(22px,5vw,36px);
+  background:rgba(255,255,255,.6);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  box-shadow:0 20px 60px rgba(239,75,155,.18), 0 6px 15px rgba(0,0,0,.05);
+  text-align:center;
+  position:relative;
+  z-index:20;
+}
+
+.logo{
+  width:75%;
+  max-width:230px;
+  margin:auto;
+  display:block;
+  margin-bottom:6px;
+  filter:drop-shadow(0 15px 25px rgba(239,75,155,.25));
+}
+
+.title{
+  font-size:clamp(21px,5.5vw,28px);
+  font-weight:800;
+  color:#ef4b9b;
+  margin-top:6px;
+  margin-bottom:8px;
+}
+
+.subtitulo{
+  font-size:clamp(14px,3.8vw,16px);
+  font-weight:600;
+  color:#777;
+  margin-bottom:26px;
+  line-height:1.5;
+}
+
+.enlaces{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  text-align:left;
+}
+
+.tarjeta-enlace{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  background:white;
+  border:2px solid #ffd8ea;
+  border-radius:20px;
+  padding:16px 18px;
+  text-decoration:none;
+  transition:.18s;
+  box-shadow:0 6px 16px rgba(239,75,155,.10);
+}
+
+.tarjeta-enlace:hover,
+.tarjeta-enlace:active{
+  border-color:#ef4b9b;
+  transform:translateY(-2px);
+  box-shadow:0 10px 22px rgba(239,75,155,.20);
+}
+
+.tarjeta-emoji{
+  font-size:clamp(26px,7vw,32px);
+  flex-shrink:0;
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(180deg,#ffe3f0,#ffd0e6);
+}
+
+.tarjeta-texto{flex:1;}
+
+.tarjeta-titulo{
+  font-size:clamp(15.5px,4.2vw,17.5px);
+  font-weight:800;
+  color:#ef4b9b;
+  margin-bottom:2px;
+}
+
+.tarjeta-descripcion{
+  font-size:clamp(12.5px,3.4vw,14px);
+  font-weight:600;
+  color:#999;
+  line-height:1.4;
+}
+
+.tarjeta-flecha{
+  font-size:20px;
+  color:#ef4b9b;
+  flex-shrink:0;
+}
+
+.footer{
+  margin-top:30px;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  color:#c98bab;
+  text-align:center;
+}
+
+@media(max-width:360px){
+  .container{width:96%;margin:10px auto;}
+}
+</style>
+</head>
+<body>
+
+<div class="fondo-decorado">
+  <div class="burbuja burbuja-1"></div>
+  <div class="burbuja burbuja-2"></div>
+  <div class="burbuja burbuja-3"></div>
+</div>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">🩰 Portal de Maestras</div>
+
+  <!-- ============ PANTALLA 0: CLAVE DE MAESTRA ============ -->
+  <section id="pantallaLoginPortalMaestra" class="pantalla">
+    <p class="subtitulo">🔒 Escribe tu clave de maestra</p>
+    <input type="password" id="inputClavePortalMaestra" class="input-clave" placeholder="••••" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnEntrarPortalMaestra" type="button">Entrar →</button>
+
+    <button class="btn-enlace" id="btnMostrarRecuperarPortalMaestra" type="button">¿Olvidaste tu clave?</button>
+
+    <div id="bloqueRecuperarPortalMaestra" hidden>
+      <p class="aviso-familia">Busca tu nombre para que te reenviemos tu clave por WhatsApp.</p>
+      <input type="text" id="buscarRecuperarPortalMaestra" class="buscador" placeholder="Escribe tu nombre..." autocomplete="off" />
+      <div id="listaRecuperarPortalMaestra" class="lista-alumnas"></div>
+
+      <div id="bloqueConfirmarRecuperarPortalMaestra" hidden>
+        <p class="nombre-elegido" id="nombreRecuperarPortalMaestraElegida"></p>
+        <button class="btn-secundario btn-ancho" id="btnEnviarRecuperarPortalMaestra" type="button">📲 Enviarme mi clave por WhatsApp</button>
+      </div>
+    </div>
+
+    <p class="mensaje-recuperar" id="mensajeRecuperarPortalMaestra" hidden></p>
+    <p class="mensaje-error" id="mensajeErrorPortalMaestra"></p>
+  </section>
+
+  <!-- ============ PANTALLA 1: MENÚ PERSONAL ============ -->
+  <section id="pantallaMenuPortalMaestra" class="pantalla" hidden>
+    <p class="perfil-nombre" id="saludoPortalMaestra">¡Hola! 👋</p>
+    <p class="subtitulo">Todo lo que necesitas para tu día a día en MOVE, en un solo lugar 💗</p>
+
+    <div class="enlaces">
+
+      <a class="tarjeta-enlace" href="maestras.html">
+        <div class="tarjeta-emoji">💬</div>
+        <div class="tarjeta-texto">
+          <p class="tarjeta-titulo">Chat de Maestras</p>
+          <p class="tarjeta-descripcion">Habla en privado con las familias de tus alumnas</p>
+        </div>
+        <div class="tarjeta-flecha">→</div>
+      </a>
+
+      <a class="tarjeta-enlace" href="clase.html">
+        <div class="tarjeta-emoji">🎬</div>
+        <div class="tarjeta-texto">
+          <p class="tarjeta-titulo">Panel de Clase</p>
+          <p class="tarjeta-descripcion">Cronómetro, ruleta y reacciones para usar en vivo durante tu clase</p>
+        </div>
+        <div class="tarjeta-flecha">→</div>
+      </a>
+
+      <a class="tarjeta-enlace" href="https://movedancea-spec.github.io/evaluacionesmove/">
+        <div class="tarjeta-emoji">📝</div>
+        <div class="tarjeta-texto">
+          <p class="tarjeta-titulo">Evaluaciones</p>
+          <p class="tarjeta-descripcion">Registra la evaluación de tus alumnas</p>
+        </div>
+        <div class="tarjeta-flecha">→</div>
+      </a>
+
+      <a class="tarjeta-enlace" href="https://movedancea-spec.github.io/pruebasmove/">
+        <div class="tarjeta-emoji">⭐</div>
+        <div class="tarjeta-texto">
+          <p class="tarjeta-titulo">Clases de Prueba</p>
+          <p class="tarjeta-descripcion">Revisa y da seguimiento a las alumnas de prueba</p>
+        </div>
+        <div class="tarjeta-flecha">→</div>
+      </a>
+
+    </div>
+
+    <button class="btn-enlace" id="btnCerrarSesionPortalMaestra" type="button">Cerrar sesión</button>
+  </section>
+
+  <p class="footer">MOVE DANCE ACADEMY</p>
+
+</div>
+
+<script src="sesionmaestra.js"></script>
+<script>
+  // ==========================================
+  // PORTAL DE MAESTRAS — LOGIN + PORTAL PERSONAL
+  // ==========================================
+  // Esta pantalla ahora es el "hogar" de la maestra: entra con su clave UNA
+  // vez aquí y las demás secciones (Chat de Maestras, Panel de Clase) la
+  // reconocen solas gracias a sesionmaestra.js — no hace falta escribir la
+  // clave otra vez en cada una.
+
+  const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
+
+  function el(id) {
+    return document.getElementById(id);
+  }
+
+  let maestraIdPortal = "";
+  let nombrePortalMaestra = "";
+  let maestrasParaRecuperarPortal = [];
+  let maestraSeleccionadaRecuperarPortal = null;
+
+  async function llamarWorkerPortal(payload) {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const datos = await res.json();
+    if (!datos.success) {
+      throw new Error(datos.error || "Ocurrió un error inesperado.");
+    }
+    return datos;
+  }
+
+  function mostrarErrorPortalMaestra(msg) {
+    el("mensajeErrorPortalMaestra").textContent = msg || "";
+  }
+
+  function mostrarMenuPortalMaestra() {
+    el("pantallaLoginPortalMaestra").hidden = true;
+    el("pantallaMenuPortalMaestra").hidden = false;
+    el("saludoPortalMaestra").textContent = `¡Hola, ${nombrePortalMaestra}! 👋`;
+  }
+
+  // ---------- login ----------
+
+  async function entrarPortalMaestra(claveAuto) {
+    // Si claveAuto viene como texto, es un intento AUTOMÁTICO (sesión
+    // compartida guardada de una visita anterior) — no tocamos el botón ni
+    // mostramos errores si falla, solo dejamos la pantalla de login normal.
+    const esAuto = typeof claveAuto === "string";
+    const clave = esAuto ? claveAuto : el("inputClavePortalMaestra").value.trim();
+
+    if (!clave) {
+      if (!esAuto) mostrarErrorPortalMaestra("Escribe tu clave.");
+      return;
+    }
+
+    const btn = el("btnEntrarPortalMaestra");
+    let textoOriginal = "";
+    if (!esAuto) {
+      btn.disabled = true;
+      textoOriginal = btn.textContent;
+      btn.textContent = "Entrando...";
+    }
+    mostrarErrorPortalMaestra("");
+
+    try {
+      const datos = await llamarWorkerPortal({ accion: "maestraEntrar", clave });
+      nombrePortalMaestra = datos.nombre || "Maestra";
+      maestraIdPortal = datos.maestraId || "";
+      guardarSesionMaestraCompartida(clave, maestraIdPortal, nombrePortalMaestra);
+      el("inputClavePortalMaestra").value = "";
+      mostrarMenuPortalMaestra();
+    } catch (e) {
+      if (esAuto) {
+        borrarSesionMaestraCompartida();
+      } else {
+        mostrarErrorPortalMaestra(e.message);
+      }
+    } finally {
+      if (!esAuto) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+      }
+    }
+  }
+
+  el("btnEntrarPortalMaestra").addEventListener("click", () => entrarPortalMaestra());
+  el("inputClavePortalMaestra").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") entrarPortalMaestra();
+  });
+
+  // ---------- recuperar clave ----------
+
+  el("btnMostrarRecuperarPortalMaestra").addEventListener("click", mostrarBloqueRecuperarPortalMaestra);
+  el("buscarRecuperarPortalMaestra").addEventListener("input", (e) => renderListaRecuperarPortalMaestra(e.target.value));
+  el("btnEnviarRecuperarPortalMaestra").addEventListener("click", enviarRecuperarPortalMaestra);
+
+  async function mostrarBloqueRecuperarPortalMaestra() {
+    const bloque = el("bloqueRecuperarPortalMaestra");
+    const yaAbierto = !bloque.hidden;
+    bloque.hidden = yaAbierto;
+    mostrarErrorPortalMaestra("");
+    el("mensajeRecuperarPortalMaestra").hidden = true;
+
+    if (yaAbierto) return;
+
+    el("buscarRecuperarPortalMaestra").value = "";
+    el("listaRecuperarPortalMaestra").innerHTML = "";
+    el("bloqueConfirmarRecuperarPortalMaestra").hidden = true;
+    maestraSeleccionadaRecuperarPortal = null;
+
+    if (maestrasParaRecuperarPortal.length) return;
+
+    try {
+      const datos = await llamarWorkerPortal({ accion: "maestrasActivas" });
+      maestrasParaRecuperarPortal = datos.maestras || [];
+    } catch (e) {
+      mostrarErrorPortalMaestra(e.message);
+    }
+  }
+
+  function renderListaRecuperarPortalMaestra(filtro) {
+    const cont = el("listaRecuperarPortalMaestra");
+    cont.innerHTML = "";
+    const texto = (filtro || "").trim().toLowerCase();
+
+    if (!texto) return;
+
+    const filtradas = maestrasParaRecuperarPortal.filter((m) => m.nombre.toLowerCase().includes(texto));
+
+    if (!filtradas.length) {
+      const aviso = document.createElement("p");
+      aviso.className = "lista-alumnas-aviso";
+      aviso.textContent = "No encontramos ese nombre.";
+      cont.appendChild(aviso);
+      return;
+    }
+
+    filtradas.slice(0, 30).forEach((m) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = m.nombre;
+      btn.addEventListener("click", () => seleccionarRecuperarPortalMaestra(m));
+      cont.appendChild(btn);
+    });
+  }
+
+  function seleccionarRecuperarPortalMaestra(m) {
+    maestraSeleccionadaRecuperarPortal = m;
+    el("nombreRecuperarPortalMaestraElegida").textContent = m.nombre;
+    el("buscarRecuperarPortalMaestra").value = "";
+    el("listaRecuperarPortalMaestra").innerHTML = "";
+    el("bloqueConfirmarRecuperarPortalMaestra").hidden = false;
+    el("mensajeRecuperarPortalMaestra").hidden = true;
+  }
+
+  async function enviarRecuperarPortalMaestra() {
+    if (!maestraSeleccionadaRecuperarPortal) return;
+    const btn = el("btnEnviarRecuperarPortalMaestra");
+    const msg = el("mensajeRecuperarPortalMaestra");
+    btn.disabled = true;
+    const textoOriginal = btn.textContent;
+    btn.textContent = "Enviando...";
+    msg.hidden = true;
+    mostrarErrorPortalMaestra("");
+
+    try {
+      const datos = await llamarWorkerPortal({
+        accion: "maestraRecuperarClave",
+        maestraId: maestraSeleccionadaRecuperarPortal.id,
+      });
+      msg.textContent =
+        "✅ Te enviamos tu clave por WhatsApp al número terminado en " +
+        (datos.ultimosDigitos || "****") +
+        ".";
+      msg.hidden = false;
+    } catch (e) {
+      mostrarErrorPortalMaestra(e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  }
+
+  // ---------- cerrar sesión ----------
+
+  el("btnCerrarSesionPortalMaestra").addEventListener("click", () => {
+    borrarSesionMaestraCompartida();
+    maestraIdPortal = "";
+    nombrePortalMaestra = "";
+    el("inputClavePortalMaestra").value = "";
+    mostrarErrorPortalMaestra("");
+    el("pantallaMenuPortalMaestra").hidden = true;
+    el("pantallaLoginPortalMaestra").hidden = false;
+  });
+
+  // ---------- arranque ----------
+  // Si ya inició sesión antes (aquí mismo, en el Chat de Maestras o en el
+  // Panel de Clase), entra directo a su menú personal sin pedirle la clave.
+  const sesionGuardadaPortal = leerSesionMaestraCompartida();
+  if (sesionGuardadaPortal && sesionGuardadaPortal.clave) {
+    entrarPortalMaestra(sesionGuardadaPortal.clave);
+  }
+</script>
+<script>
+  // Registra el Service Worker y le pide revisar actualizaciones cada vez
+  // que se vuelve a esta pantalla — así la app toma lo último que se subió
+  // sin que haya que borrar caché a mano.
+  if ("serviceWorker" in navigator) {
+    let registroSW = null;
+
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("sw.js")
+        .then((registro) => {
+          registroSW = registro;
+        })
+        .catch(() => {
+          // Si falla el registro, la página sigue funcionando normal.
+        });
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && registroSW) {
+        registroSW.update().catch(() => {});
+      }
+    });
+  }
+</script>
+</body>
+</html>
