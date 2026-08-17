@@ -125,31 +125,46 @@ el("inputClaveMaestra").addEventListener("keydown", (e) => {
   if (e.key === "Enter") entrarMaestra();
 });
 
-async function entrarMaestra() {
-  const clave = el("inputClaveMaestra").value.trim();
+async function entrarMaestra(claveAuto) {
+  // Si claveAuto viene como texto, es un intento AUTOMÁTICO (la sesión
+  // compartida que dejó guardada el Portal de Maestras u otra pantalla) —
+  // en ese caso no tocamos el botón ni mostramos errores si falla, solo
+  // borramos la sesión guardada y se queda la pantalla de login normal.
+  const esAuto = typeof claveAuto === "string";
+  const clave = esAuto ? claveAuto : el("inputClaveMaestra").value.trim();
   const mensajeError = el("mensajeErrorLogin");
-  mensajeError.textContent = "";
+  if (!esAuto) mensajeError.textContent = "";
 
   if (!clave) {
-    mensajeError.textContent = "Escribe tu clave.";
+    if (!esAuto) mensajeError.textContent = "Escribe tu clave.";
     return;
   }
 
   const boton = el("btnEntrarMaestra");
-  boton.disabled = true;
-  const textoOriginal = boton.textContent;
-  boton.textContent = "Entrando...";
+  let textoOriginal = "";
+  if (!esAuto) {
+    boton.disabled = true;
+    textoOriginal = boton.textContent;
+    boton.textContent = "Entrando...";
+  }
 
   try {
     const datos = await llamarWorker({ accion: "maestraEntrar", clave });
     maestraId = datos.maestraId;
     nombreMaestra = datos.nombre || "Maestra";
+    guardarSesionMaestraCompartida(clave, maestraId, nombreMaestra);
     await cargarGrupos();
   } catch (e) {
-    mensajeError.textContent = e.message;
+    if (esAuto) {
+      borrarSesionMaestraCompartida();
+    } else {
+      mensajeError.textContent = e.message;
+    }
   } finally {
-    boton.disabled = false;
-    boton.textContent = textoOriginal;
+    if (!esAuto) {
+      boton.disabled = false;
+      boton.textContent = textoOriginal;
+    }
   }
 }
 
@@ -1718,5 +1733,17 @@ el("btnCerrarSesionPanel").addEventListener("click", () => {
   alumnasPanel = [];
   calificacionHoyActual = null;
   el("inputClaveMaestra").value = "";
+  // "Salir" es un cierre de sesión de verdad: borra también la sesión
+  // compartida, para que no vuelva a entrar sola la próxima vez que abra
+  // esta pantalla (ni el Portal de Maestras ni el Chat de Maestras).
+  borrarSesionMaestraCompartida();
   mostrarPantalla("pantallaLogin");
 });
+
+// ---------- sesión compartida (Portal de Maestras) ----------
+// Si ya inició sesión antes (en el Portal de Maestras o en el Chat de
+// Maestras), entra directo a sus grupos sin pedirle la clave otra vez.
+const sesionCompartidaClase = leerSesionMaestraCompartida();
+if (sesionCompartidaClase && sesionCompartidaClase.clave) {
+  entrarMaestra(sesionCompartidaClase.clave);
+}
