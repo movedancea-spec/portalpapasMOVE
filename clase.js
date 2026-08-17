@@ -516,7 +516,62 @@ el("tabRecepcion").addEventListener("click", () => cambiarTab("Recepcion"));
 // aparte (sin perder el cronómetro ni el resto del estado del Panel
 // de Clase), para que una alumna pueda marcar su asistencia ahí mismo
 // sin tener que bajar a recepción.
+//
+// Solo debe usarse durante el horario de clases (2:00 p.m. a 9:00
+// p.m., hora de Guatemala) — fuera de ese rango el botón se ve
+// apagado y, si lo tocan, avisa el horario en vez de abrir el
+// biométrico.
+function dentroHorarioAsistencia() {
+  try {
+    const horaGuate = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Guatemala",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date());
+    const [h, m] = horaGuate.split(":").map(Number);
+    const minutosDelDia = h * 60 + m;
+    return minutosDelDia >= 14 * 60 && minutosDelDia <= 21 * 60; // 2:00 p.m. – 9:00 p.m.
+  } catch (e) {
+    // Si por lo que sea no se puede calcular la hora, no bloqueamos
+    // el botón (mejor dejar pasar que dejar a alguien sin poder
+    // marcar su asistencia por un error nuestro).
+    return true;
+  }
+}
+
+function actualizarBotonMarcarAsistencia() {
+  const btn = el("btnMarcarAsistencia");
+  if (!btn) return;
+  const habilitado = dentroHorarioAsistencia();
+  btn.classList.toggle("deshabilitado", !habilitado);
+  btn.title = habilitado ? "" : "Disponible de 2:00 p.m. a 9:00 p.m. (hora de Guatemala)";
+}
+
+function avisarFueraDeHorarioAsistencia() {
+  let aviso = el("avisoFueraHorarioAsistencia");
+  if (!aviso) {
+    aviso = document.createElement("div");
+    aviso.id = "avisoFueraHorarioAsistencia";
+    aviso.className = "aviso-flotante-horario";
+    document.body.appendChild(aviso);
+  }
+  aviso.textContent = "⏰ El registro de asistencia solo está disponible de 2:00 p.m. a 9:00 p.m. (hora de Guatemala).";
+  aviso.hidden = false;
+  clearTimeout(avisarFueraDeHorarioAsistencia._temporizador);
+  avisarFueraDeHorarioAsistencia._temporizador = setTimeout(() => {
+    aviso.hidden = true;
+  }, 3500);
+}
+
+actualizarBotonMarcarAsistencia();
+setInterval(actualizarBotonMarcarAsistencia, 15000);
+
 el("btnMarcarAsistencia").addEventListener("click", () => {
+  if (!dentroHorarioAsistencia()) {
+    avisarFueraDeHorarioAsistencia();
+    return;
+  }
   window.open("https://movedancea-spec.github.io/BIOMETRICO-V4/", "_blank", "noopener");
 });
 

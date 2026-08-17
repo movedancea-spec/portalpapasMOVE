@@ -12,7 +12,7 @@
 // página — sin tener que borrar caché a mano ni subir un número de versión
 // nuevo cada vez.
 
-const CACHE_NAME = "move-portal-v38";
+const CACHE_NAME = "move-portal-v39";
 
 const ARCHIVOS_APP = [
   "./",
