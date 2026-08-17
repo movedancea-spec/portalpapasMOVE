@@ -41,6 +41,7 @@ const PANTALLAS = [
   "pantallaPagos",
   "pantallaCanalAsistencia",
   "pantallaCanalChat",
+  "pantallaAnuncios",
 ];
 
 function mostrarPantalla(id) {
@@ -274,12 +275,19 @@ el("btnMenuCanalChat").addEventListener("click", () => {
   cargarCanalChat();
 });
 
+el("btnMenuAnuncios").addEventListener("click", () => {
+  mostrarPantalla("pantallaAnuncios");
+  cargarCanalAnuncios();
+  prepararFormularioAnuncio();
+});
+
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverIngresos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverPagos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverCanalAsistencia").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverCanalChat").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverAnuncios").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
   detenerAutoRefresco();
@@ -691,6 +699,171 @@ async function elegirCanalChat(canal, titulo) {
     mensajeEl.classList.add("mensaje-form-error");
   }
 }
+
+// ==========================================
+// ANUNCIOS (interruptor GLOBAL — mismo patrón que asistencia/chat —
+// más el formulario para escribir y mandar un anuncio/recordatorio a
+// las familias, a las maestras, o a ambas)
+// ==========================================
+
+const OPCIONES_CANAL_ANUNCIOS = [
+  {
+    valor: "WhatsApp",
+    titulo: "📱 WhatsApp",
+    descripcion: "Los anuncios llegan por WhatsApp (GREEN-API), mandados uno por uno para no verse como mensajería masiva.",
+  },
+  {
+    valor: "Portal",
+    titulo: "🔔 Portal",
+    descripcion:
+      "Los anuncios llegan como notificación push del Portal. Solo le llega a quienes ya activaron las notificaciones (familias: Portal de Alumnas; maestras: Portal de Maestras) — quienes no las hayan activado NO reciben ningún aviso, aunque sí queda guardado en su Portal para que lo vean al entrar.",
+  },
+];
+
+const OPCIONES_DESTINATARIO_ANUNCIO = ["Familias", "Maestras", "Ambas"];
+
+let canalAnunciosActual = "";
+
+async function cargarCanalAnuncios() {
+  const cont = el("opcionesCanalAnuncios");
+  const mensajeEl = el("mensajeCanalAnuncios");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerCanalAnuncios", clave: claveRecepcion });
+    canalAnunciosActual = datos.canal || "WhatsApp";
+    renderCanalAnuncios();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderCanalAnuncios() {
+  const cont = el("opcionesCanalAnuncios");
+  cont.innerHTML = "";
+
+  OPCIONES_CANAL_ANUNCIOS.forEach((op) => {
+    const activo = canalAnunciosActual === op.valor;
+
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
+    tarjeta.innerHTML = `
+      <span class="tarjeta-resultado-nombre">${op.titulo}${activo ? " — ✅ Activo ahora para todas" : ""}</span>
+      <span class="tarjeta-resultado-detalle">${op.descripcion}</span>
+    `;
+    tarjeta.disabled = activo;
+    tarjeta.addEventListener("click", () => elegirCanalAnuncios(op.valor, op.titulo));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function elegirCanalAnuncios(canal, titulo) {
+  const confirmado = window.confirm(
+    `¿Cambiar el canal de anuncios a ${titulo} para TODOS los anuncios? Este cambio aplica de inmediato.`
+  );
+  if (!confirmado) return;
+
+  const mensajeEl = el("mensajeCanalAnuncios");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    await llamarWorker({ accion: "recepcionGuardarCanalAnuncios", clave: claveRecepcion, canal });
+    canalAnunciosActual = canal;
+    renderCanalAnuncios();
+    mensajeEl.textContent = `✅ Listo — los anuncios ahora llegan por ${titulo}.`;
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+let archivoAnuncio = null;
+
+function prepararFormularioAnuncio() {
+  poblarSelectSimple("selectAnuncioDestinatario", OPCIONES_DESTINATARIO_ANUNCIO, false);
+  el("inputAnuncioTitulo").value = "";
+  el("inputAnuncioMensaje").value = "";
+  el("inputAdjuntoAnuncio").value = "";
+  el("nombreAdjuntoAnuncio").hidden = true;
+  archivoAnuncio = null;
+  const mensajeEl = el("mensajeAnuncio");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+}
+
+el("inputAdjuntoAnuncio").addEventListener("change", () => {
+  const archivo = el("inputAdjuntoAnuncio").files[0];
+  if (!archivo) return;
+  if (archivo.size > TAMANO_MAX_ARCHIVO) {
+    alert("El archivo es muy grande (máximo 8 MB). Intenta con uno más liviano.");
+    el("inputAdjuntoAnuncio").value = "";
+    return;
+  }
+  archivoAnuncio = archivo;
+  const nombreEl = el("nombreAdjuntoAnuncio");
+  nombreEl.textContent = "📎 " + archivo.name;
+  nombreEl.hidden = false;
+});
+
+el("btnMandarAnuncio").addEventListener("click", async () => {
+  const titulo = el("inputAnuncioTitulo").value.trim();
+  const mensaje = el("inputAnuncioMensaje").value.trim();
+  const destinatario = el("selectAnuncioDestinatario").value;
+  const mensajeEl = el("mensajeAnuncio");
+
+  if (!titulo) {
+    mensajeEl.textContent = "Escribe un título para el anuncio.";
+    mensajeEl.className = "mensaje-form mensaje-form-error";
+    return;
+  }
+  if (!mensaje) {
+    mensajeEl.textContent = "Escribe el mensaje del anuncio.";
+    mensajeEl.className = "mensaje-form mensaje-form-error";
+    return;
+  }
+
+  const aQuien = destinatario === "Ambas" ? "FAMILIAS y MAESTRAS" : destinatario === "Familias" ? "TODAS las familias" : "TODAS las maestras";
+  const confirmado = window.confirm(`¿Mandar este anuncio a ${aQuien}?\n\n"${titulo}"\n\n${mensaje}`);
+  if (!confirmado) return;
+
+  const btn = el("btnMandarAnuncio");
+  btn.disabled = true;
+  btn.textContent = "Mandando...";
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const payload = { accion: "recepcionMandarAnuncio", clave: claveRecepcion, titulo, mensaje, destinatario };
+
+    if (archivoAnuncio) {
+      btn.textContent = "Subiendo archivo...";
+      payload.archivoBase64 = await leerArchivoBase64(archivoAnuncio);
+      payload.nombreArchivo = archivoAnuncio.name;
+      payload.tipoArchivo = archivoAnuncio.type;
+      btn.textContent = "Mandando...";
+    }
+
+    const datos = await llamarWorker(payload);
+    mensajeEl.textContent = "✅ " + (datos.resumen || "Anuncio mandado.");
+    mensajeEl.classList.add("mensaje-form-ok");
+    el("inputAnuncioTitulo").value = "";
+    el("inputAnuncioMensaje").value = "";
+    el("inputAdjuntoAnuncio").value = "";
+    el("nombreAdjuntoAnuncio").hidden = true;
+    archivoAnuncio = null;
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "📢 Mandar anuncio";
+  }
+});
 
 // ==========================================
 // ALUMNAS

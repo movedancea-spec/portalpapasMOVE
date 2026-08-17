@@ -65,6 +65,10 @@
         <span class="btn-menu-icono">💬</span>
         <span class="btn-menu-texto">Canal de chat</span>
       </button>
+      <button class="btn-menu" id="btnMenuAnuncios" type="button">
+        <span class="btn-menu-icono">📢</span>
+        <span class="btn-menu-texto">Anuncios</span>
+      </button>
     </div>
 
     <button class="btn-enlace" id="btnSalirMenu" type="button">Salir</button>
@@ -240,6 +244,48 @@
       <p class="lista-vacia">Cargando...</p>
     </div>
     <p class="mensaje-form" id="mensajeCanalChat"></p>
+  </section>
+
+  <!-- ============ PANTALLA: ANUNCIOS (canal + escribir) ============ -->
+  <section id="pantallaAnuncios" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverAnuncios" type="button">← Menú</button>
+      <span class="barra-titulo">📢 Anuncios</span>
+    </div>
+
+    <p class="subtitulo">¿Por dónde llegan los anuncios?</p>
+    <p class="pista-campo">
+      Un solo interruptor para TODOS los anuncios — no se elige por anuncio. El cambio aplica de inmediato.
+    </p>
+
+    <div id="opcionesCanalAnuncios" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+    <p class="mensaje-form" id="mensajeCanalAnuncios"></p>
+
+    <div class="separador-lista"></div>
+
+    <p class="subtitulo">Escribir un anuncio o recordatorio</p>
+    <p class="pista-campo">
+      Queda guardado para siempre en Airtable (organizado por mes y año). En el Portal de Alumnas/Maestras solo se ve durante el mes en que se manda.
+    </p>
+
+    <p class="etiqueta-campo">Título</p>
+    <input type="text" id="inputAnuncioTitulo" class="input-texto" placeholder="Ej. No hay clases el lunes" autocomplete="off" />
+
+    <p class="etiqueta-campo">Mensaje</p>
+    <textarea id="inputAnuncioMensaje" class="input-textarea" rows="4" placeholder="Escribe el anuncio completo..."></textarea>
+
+    <p class="etiqueta-campo">¿A quién va?</p>
+    <select id="selectAnuncioDestinatario" class="input-select"></select>
+
+    <p class="etiqueta-campo">Imagen o PDF (opcional)</p>
+    <label class="btn-secundario btn-ancho btn-subir-foto" for="inputAdjuntoAnuncio">📎 Elegir archivo</label>
+    <input type="file" id="inputAdjuntoAnuncio" accept="image/*,.pdf" hidden />
+    <p class="alumna-elegida" id="nombreAdjuntoAnuncio" hidden></p>
+
+    <button class="btn-grande btn-siguiente" id="btnMandarAnuncio" type="button">📢 Mandar anuncio</button>
+    <p class="mensaje-form" id="mensajeAnuncio"></p>
   </section>
 
 </div>

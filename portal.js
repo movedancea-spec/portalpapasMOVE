@@ -485,9 +485,89 @@ function mostrarPerfilDesdeDatos(datos) {
   // perfil. Ver sección "NOTIFICACIONES PUSH" más abajo.
   actualizarBloqueNotificacionesPush();
 
+  // Anuncios/recordatorios generales de este mes (ver sección
+  // "ANUNCIOS" más abajo) — tampoco se espera, para no retrasar que
+  // se vea el perfil.
+  cargarAnunciosPortal();
+
   // El panel de ingresos del mes se arma plegado (no pide datos al
   // Worker hasta que lo abran) — ver sección más abajo.
   cargarAsistenciaMes();
+}
+
+// ==========================================
+// ANUNCIOS (recordatorios generales que Recepción manda a todas las
+// familias — ej. "no hay clases el lunes") — solo se muestran los del
+// MES EN CURSO; el mes que viene, este bloque simplemente deja de
+// traerlos (el historial completo se queda guardado para siempre en
+// Airtable, tabla ANUNCIOS, eso nunca se borra).
+// ==========================================
+async function cargarAnunciosPortal() {
+  const bloque = el("bloqueAnuncios");
+  if (!bloque) return;
+
+  try {
+    const datos = await llamarWorker({ accion: "obtenerAnunciosMes", publico: "Familias" });
+    renderAnunciosPortal(datos.anuncios || []);
+  } catch (e) {
+    // Si falla, simplemente no se muestra nada — no es algo tan
+    // crítico como para interrumpir el resto del perfil con un error.
+    bloque.innerHTML = "";
+  }
+}
+
+function renderAnunciosPortal(anuncios) {
+  const bloque = el("bloqueAnuncios");
+  if (!bloque) return;
+  bloque.innerHTML = "";
+  if (!anuncios.length) return;
+
+  anuncios.forEach((a) => {
+    const caja = document.createElement("div");
+    caja.style.cssText =
+      "background:#fff0f6;border:1px solid #ffd3e6;border-radius:14px;padding:12px 14px;margin:0 0 10px;";
+
+    const titulo = document.createElement("p");
+    titulo.textContent = "📢 " + a.titulo;
+    titulo.style.cssText = "font-weight:700;font-size:14.5px;color:#c2185b;margin:0 0 4px;";
+    caja.appendChild(titulo);
+
+    const cuerpo = document.createElement("p");
+    cuerpo.textContent = a.mensaje;
+    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;";
+    caja.appendChild(cuerpo);
+
+    if (a.adjunto && a.adjunto.url) {
+      caja.appendChild(crearAdjuntoAnuncio(a.adjunto));
+    }
+
+    bloque.appendChild(caja);
+  });
+}
+
+// La imagen/PDF que Recepción haya adjuntado al anuncio (opcional):
+// si es imagen, se ve directo como miniatura clickeable; si es
+// cualquier otra cosa (normalmente un PDF), se muestra como un enlace
+// "Ver archivo" que lo abre en una pestaña nueva.
+function crearAdjuntoAnuncio(adjunto) {
+  const esImagen = (adjunto.tipo || "").startsWith("image/");
+
+  if (esImagen) {
+    const img = document.createElement("img");
+    img.src = adjunto.url;
+    img.alt = adjunto.filename || "Adjunto del anuncio";
+    img.style.cssText = "display:block;max-width:100%;border-radius:10px;margin-top:10px;cursor:pointer;";
+    img.addEventListener("click", () => window.open(adjunto.url, "_blank", "noopener"));
+    return img;
+  }
+
+  const enlace = document.createElement("a");
+  enlace.href = adjunto.url;
+  enlace.target = "_blank";
+  enlace.rel = "noopener";
+  enlace.textContent = "📎 Ver " + (adjunto.filename || "archivo adjunto");
+  enlace.style.cssText = "display:inline-block;margin-top:10px;font-size:13px;color:#c2185b;font-weight:600;text-decoration:underline;";
+  return enlace;
 }
 
 // -------------------------------------
