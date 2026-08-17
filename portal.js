@@ -271,6 +271,8 @@ function mostrarPantalla(id) {
     "pantallaPerfil",
     "pantallaEvaluaciones",
     "pantallaHistorialPagos",
+    "pantallaMensajesAnuncios",
+    "pantallaMensajesMaestra",
     "pantallaSelectorMaestra",
     "pantallaChat",
   ];
@@ -485,16 +487,14 @@ function mostrarPerfilDesdeDatos(datos) {
   // perfil. Ver sección "NOTIFICACIONES PUSH" más abajo.
   actualizarBloqueNotificacionesPush();
 
-  // Anuncios/recordatorios generales de este mes (ver sección
-  // "ANUNCIOS" más abajo) — tampoco se espera, para no retrasar que
-  // se vea el perfil.
-  cargarAnunciosPortal();
-
-  // Avisos que la maestra del grupo le mande solo a esta alumna (ver
-  // sección "AVISO DE LA MAESTRA" más abajo) — sección aparte de los
-  // Anuncios de Recepción, para que se note que es un mensaje de SU
-  // maestra.
-  cargarAvisoMaestraPortal();
+  // Los Mensajes de Recepción y los Avisos de la maestra ya NO se
+  // muestran solos al entrar — quedan detrás de sus propios botones
+  // ("📢 Mensajes de Recepción" / "👩‍🏫 Mensajes de tu maestra"), cada
+  // uno abre su propia pantalla con TODO el historial de este mes y
+  // la fecha/hora exacta de cada uno (ver secciones "MENSAJES DE
+  // RECEPCIÓN" y "AVISO DE LA MAESTRA" más abajo) — así queda un
+  // registro real al que se puede volver, en vez de un mensaje que
+  // aparece un momento y ya.
 
   // El panel de ingresos del mes se arma plegado (no pide datos al
   // Worker hasta que lo abran) — ver sección más abajo.
@@ -502,36 +502,69 @@ function mostrarPerfilDesdeDatos(datos) {
 }
 
 // ==========================================
-// ANUNCIOS (recordatorios generales que Recepción manda a todas las
-// familias — ej. "no hay clases el lunes") — solo se muestran los del
-// MES EN CURSO; el mes que viene, este bloque simplemente deja de
-// traerlos (el historial completo se queda guardado para siempre en
-// Airtable, tabla ANUNCIOS, eso nunca se borra).
+// MENSAJES DE RECEPCIÓN (anuncios/recordatorios generales que
+// Recepción manda a todas las familias — ej. "no hay clases el
+// lunes") — viven detrás del botón "📢 Mensajes de Recepción" en el
+// perfil, con fecha y hora de cuándo se mandó cada uno, para que quede
+// un registro real al que la familia pueda volver. Solo se muestran
+// los del MES EN CURSO; el mes que viene, esta pantalla simplemente
+// deja de traerlos (el historial completo se queda guardado para
+// siempre en Airtable, tabla ANUNCIOS, eso nunca se borra).
 // ==========================================
-async function cargarAnunciosPortal() {
-  const bloque = el("bloqueAnuncios");
-  if (!bloque) return;
 
+// Fecha y hora en la zona horaria de Guatemala, en un formato corto y
+// legible (ej. "15 ago, 3:45 p.m.") — mismo formato que ya se usa para
+// los videos de clase, para que el portal se vea consistente.
+function formatearFechaHoraMensajePortal(iso) {
+  if (!iso) return "";
   try {
-    const datos = await llamarWorker({ accion: "obtenerAnunciosMes", publico: "Familias" });
-    renderAnunciosPortal(datos.anuncios || []);
+    return new Date(iso).toLocaleString("es-GT", {
+      timeZone: "America/Guatemala",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } catch (e) {
-    // Si falla, simplemente no se muestra nada — no es algo tan
-    // crítico como para interrumpir el resto del perfil con un error.
-    bloque.innerHTML = "";
+    return "";
   }
 }
 
-function renderAnunciosPortal(anuncios) {
-  const bloque = el("bloqueAnuncios");
-  if (!bloque) return;
-  bloque.innerHTML = "";
-  if (!anuncios.length) return;
+el("btnMensajesAnuncios").addEventListener("click", abrirMensajesAnuncios);
+el("btnAtrasMensajesAnuncios").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
+
+async function abrirMensajesAnuncios() {
+  mostrarPantalla("pantallaMensajesAnuncios");
+  const cont = el("listaMensajesAnuncios");
+  cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "obtenerAnunciosMes", publico: "Familias" });
+    renderMensajesAnuncios(datos.anuncios || []);
+  } catch (e) {
+    cont.innerHTML = "";
+    mostrarError(e.message);
+  }
+}
+
+function renderMensajesAnuncios(anuncios) {
+  const cont = el("listaMensajesAnuncios");
+  cont.innerHTML = "";
+
+  if (!anuncios.length) {
+    cont.innerHTML = '<p class="lista-alumnas-aviso">Todavía no hay mensajes de Recepción este mes.</p>';
+    return;
+  }
 
   anuncios.forEach((a) => {
     const caja = document.createElement("div");
     caja.style.cssText =
       "background:#fff0f6;border:1px solid #ffd3e6;border-radius:14px;padding:12px 14px;margin:0 0 10px;";
+
+    const fecha = document.createElement("p");
+    fecha.textContent = "🕐 " + formatearFechaHoraMensajePortal(a.fecha);
+    fecha.style.cssText = "font-weight:700;font-size:11.5px;color:#a15277;margin:0 0 4px;";
+    caja.appendChild(fecha);
 
     const titulo = document.createElement("p");
     titulo.textContent = "📢 " + a.titulo;
@@ -547,7 +580,7 @@ function renderAnunciosPortal(anuncios) {
       caja.appendChild(crearAdjuntoAnuncio(a.adjunto));
     }
 
-    bloque.appendChild(caja);
+    cont.appendChild(caja);
   });
 }
 
@@ -577,33 +610,47 @@ function crearAdjuntoAnuncio(adjunto) {
 }
 
 // ==========================================
-// AVISO DE LA MAESTRA (mensaje que la maestra del grupo le manda SOLO
-// a las alumnas de ESE grupo — a diferencia de los Anuncios de
-// Recepción, que van a TODAS las familias) — igual que los Anuncios,
-// solo se muestran los del MES EN CURSO; el mes que viene este bloque
-// deja de traerlos, pero el historial completo se queda guardado para
+// MENSAJES DE TU MAESTRA (avisos que la maestra de cada grupo le manda
+// SOLO a las alumnas de ESE grupo — a diferencia de los Mensajes de
+// Recepción, que van a TODAS las familias) — viven detrás del botón
+// "👩‍🏫 Mensajes de tu maestra" en el perfil, con fecha y hora de
+// cuándo se mandó cada uno. Igual que los de Recepción, solo se
+// muestran los del MES EN CURSO; el mes que viene esta pantalla deja
+// de traerlos, pero el historial completo se queda guardado para
 // siempre en Airtable, tabla AVISOS MAESTRA. Siempre llega por el
 // Portal (nunca por WhatsApp).
 // ==========================================
-async function cargarAvisoMaestraPortal() {
-  const bloque = el("bloqueAvisoMaestra");
-  if (!bloque || !alumnaSeleccionada || !alumnaSeleccionada.id) return;
+
+el("btnMensajesMaestra").addEventListener("click", abrirMensajesMaestra);
+el("btnAtrasMensajesMaestra").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
+
+async function abrirMensajesMaestra() {
+  mostrarPantalla("pantallaMensajesMaestra");
+  const cont = el("listaMensajesMaestra");
+  cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
+
+  if (!alumnaSeleccionada || !alumnaSeleccionada.id) {
+    cont.innerHTML = "";
+    return;
+  }
 
   try {
     const datos = await llamarWorker({ accion: "avisosMaestraDeAlumna", alumnaId: alumnaSeleccionada.id });
-    renderAvisoMaestraPortal(datos.avisos || []);
+    renderMensajesMaestra(datos.avisos || []);
   } catch (e) {
-    // Si falla, simplemente no se muestra nada — no es algo tan
-    // crítico como para interrumpir el resto del perfil con un error.
-    bloque.innerHTML = "";
+    cont.innerHTML = "";
+    mostrarError(e.message);
   }
 }
 
-function renderAvisoMaestraPortal(avisos) {
-  const bloque = el("bloqueAvisoMaestra");
-  if (!bloque) return;
-  bloque.innerHTML = "";
-  if (!avisos.length) return;
+function renderMensajesMaestra(avisos) {
+  const cont = el("listaMensajesMaestra");
+  cont.innerHTML = "";
+
+  if (!avisos.length) {
+    cont.innerHTML = '<p class="lista-alumnas-aviso">Todavía no hay mensajes de tu maestra este mes.</p>';
+    return;
+  }
 
   avisos.forEach((a) => {
     const caja = document.createElement("div");
@@ -612,8 +659,8 @@ function renderAvisoMaestraPortal(avisos) {
 
     const firma = document.createElement("p");
     const deQuien = [a.maestra, a.grupo].filter(Boolean).join(" · ");
-    firma.textContent = "👩‍🏫 " + (deQuien || "Tu maestra");
-    firma.style.cssText = "font-weight:700;font-size:12px;color:#7a5cd6;margin:0 0 4px;";
+    firma.textContent = "👩‍🏫 " + (deQuien || "Tu maestra") + " · 🕐 " + formatearFechaHoraMensajePortal(a.fecha);
+    firma.style.cssText = "font-weight:700;font-size:11.5px;color:#7a5cd6;margin:0 0 4px;";
     caja.appendChild(firma);
 
     const titulo = document.createElement("p");
@@ -630,7 +677,7 @@ function renderAvisoMaestraPortal(avisos) {
       caja.appendChild(crearAdjuntoAnuncio(a.adjunto));
     }
 
-    bloque.appendChild(caja);
+    cont.appendChild(caja);
   });
 }
 

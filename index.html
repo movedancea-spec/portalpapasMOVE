@@ -109,9 +109,8 @@
     <img id="fotoPerfil" class="foto-perfil" hidden />
     <p class="perfil-nombre" id="perfilNombre"></p>
 
-    <div id="bloqueAvisoMaestra"></div>
-
-    <div id="bloqueAnuncios"></div>
+    <button class="btn-grande btn-siguiente" id="btnMensajesAnuncios" type="button">📢 Mensajes e información importante MOVE</button>
+    <button class="btn-grande btn-siguiente" id="btnMensajesMaestra" type="button">👩‍🏫 Mensajes de tu maestra</button>
 
     <div id="bloqueFamilia" class="bloque-familia">
       <div id="chipsFamilia" class="chips-familia"></div>
@@ -217,6 +216,22 @@
     <p class="perfil-nombre" id="historialTitulo">📅 Historial de mensualidades</p>
     <div id="listaHistorialPagos" class="lista-historial-pagos"></div>
     <button class="btn-grande btn-siguiente" id="btnAtrasHistorial">← Volver al perfil</button>
+  </section>
+
+  <!-- ============ PANTALLA 5B: MENSAJES DE RECEPCIÓN ============ -->
+  <section id="pantallaMensajesAnuncios" class="pantalla" hidden>
+    <p class="perfil-nombre">📢 Mensajes e información importante MOVE</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Anuncios y recordatorios de este mes, con fecha y hora de cuándo se mandaron.</p>
+    <div id="listaMensajesAnuncios" class="lista-historial-pagos"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasMensajesAnuncios">← Volver al perfil</button>
+  </section>
+
+  <!-- ============ PANTALLA 5C: MENSAJES DE TU MAESTRA ============ -->
+  <section id="pantallaMensajesMaestra" class="pantalla" hidden>
+    <p class="perfil-nombre">👩‍🏫 Mensajes de tu maestra</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Avisos de este mes de la maestra de cada uno de tus grupos, con fecha y hora de cuándo se mandaron.</p>
+    <div id="listaMensajesMaestra" class="lista-historial-pagos"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasMensajesMaestra">← Volver al perfil</button>
   </section>
 
   <!-- ============ PANTALLA 6A: ELEGIR MAESTRA ============ -->
