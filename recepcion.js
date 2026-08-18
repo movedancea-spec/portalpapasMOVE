@@ -28,6 +28,13 @@ let pollIntervalo = null;
 let alarmaIntervalo = null;
 let audioCtx = null;
 
+// Grupos que Recepción abrió a propósito desde "＋ Elegir un grupo
+// para escribir", aunque todavía no tengan ningún mensaje hoy — así
+// puede empezar la conversación ella primero, en vez de solo
+// contestar a las que ya escribió una maestra. Se guarda en memoria
+// (no en Airtable): { grupoId, grupo, abiertaEn }.
+let hilosManualAbiertos = [];
+
 function el(id) {
   return document.getElementById(id);
 }
@@ -36,6 +43,7 @@ const PANTALLAS = [
   "pantallaLogin",
   "pantallaMenu",
   "pantallaRecepcion",
+  "pantallaElegirGrupoChat",
   "pantallaAlumnas",
   "pantallaIngresos",
   "pantallaPagos",
@@ -282,6 +290,7 @@ el("btnMenuAnuncios").addEventListener("click", () => {
 });
 
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverElegirGrupoChat").addEventListener("click", () => mostrarPantalla("pantallaRecepcion"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverIngresos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverPagos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -295,6 +304,7 @@ el("btnSalirMenu").addEventListener("click", () => {
   claveRecepcion = "";
   mensajesActuales = [];
   datosApoyo = null;
+  hilosManualAbiertos = [];
   mostrarPantalla("pantallaLogin");
 });
 
@@ -337,6 +347,15 @@ function formatearHora(iso) {
 // atendido.
 function agruparPorGrupo() {
   const hilos = new Map();
+
+  // Primero los grupos que Recepción abrió a propósito (sin mensajes
+  // todavía), para que su hilo (vacío) ya aparezca y pueda escribir.
+  hilosManualAbiertos.forEach((h) => {
+    if (!hilos.has(h.grupoId)) {
+      hilos.set(h.grupoId, { grupoId: h.grupoId, grupo: h.grupo, mensajes: [], abiertaEn: h.abiertaEn });
+    }
+  });
+
   mensajesActuales.forEach((m) => {
     const clave = m.grupoId || m.grupo || "sin-grupo";
     if (!hilos.has(clave)) {
@@ -348,7 +367,12 @@ function agruparPorGrupo() {
   const lista = Array.from(hilos.values()).map((hilo) => {
     hilo.mensajes.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
     hilo.pendiente = hilo.mensajes.some((m) => m.autor === "Maestra" && !m.atendido);
-    hilo.ultimaFecha = hilo.mensajes.length ? hilo.mensajes[hilo.mensajes.length - 1].fecha : null;
+    // Un hilo recién abierto por Recepción (sin mensajes aún) usa la
+    // hora en que lo abrió, para que se ordene como "recién tocado"
+    // en vez de desaparecer al fondo de la lista.
+    hilo.ultimaFecha = hilo.mensajes.length
+      ? hilo.mensajes[hilo.mensajes.length - 1].fecha
+      : hilo.abiertaEn || new Date().toISOString();
     return hilo;
   });
 
@@ -388,6 +412,7 @@ function renderSolicitudes() {
 function crearTarjetaHilo(hilo) {
   const tarjeta = document.createElement("div");
   tarjeta.className = "tarjeta-hilo " + (hilo.pendiente ? "pendiente" : "atendida");
+  if (hilo.grupoId) tarjeta.dataset.grupoId = hilo.grupoId;
 
   const header = document.createElement("div");
   header.className = "tarjeta-hilo-header";
@@ -406,7 +431,11 @@ function crearTarjetaHilo(hilo) {
 
   const chat = document.createElement("div");
   chat.className = "chat-mensajes-hilo";
-  hilo.mensajes.forEach((m) => chat.appendChild(crearBurbuja(m)));
+  if (!hilo.mensajes.length) {
+    chat.innerHTML = '<p class="lista-vacia">Todavía no hay mensajes — escríbele tú primero. 👇</p>';
+  } else {
+    hilo.mensajes.forEach((m) => chat.appendChild(crearBurbuja(m)));
+  }
   tarjeta.appendChild(chat);
 
   // Sin GRUPO ID no se puede contestar ni marcar como atendido con
@@ -515,6 +544,69 @@ async function marcarHiloAtendido(hilo, boton) {
   } catch (e) {
     boton.disabled = false;
     boton.textContent = "✅ Marcar como atendido (sin responder)";
+  }
+}
+
+// ---------- elegir grupo para escribir primero ----------
+// Deja que Recepción arranque una conversación con cualquier grupo,
+// no solo contestar a los que ya escribió una maestra hoy.
+
+let gruposChatCache = [];
+
+el("btnElegirGrupoChat").addEventListener("click", abrirElegirGrupoChat);
+
+async function abrirElegirGrupoChat() {
+  mostrarPantalla("pantallaElegirGrupoChat");
+  el("inputBuscarGrupoChat").value = "";
+  el("listaGruposChat").innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    const datos = await asegurarDatosApoyo();
+    gruposChatCache = (datos.grupos || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    renderListaGruposChat(gruposChatCache);
+  } catch (e) {
+    el("listaGruposChat").innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderListaGruposChat(grupos) {
+  const cont = el("listaGruposChat");
+  cont.innerHTML = "";
+  if (!grupos.length) {
+    cont.innerHTML = '<p class="lista-vacia">No se encontró ningún grupo con ese nombre.</p>';
+    return;
+  }
+  grupos.forEach((g) => {
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado";
+    tarjeta.innerHTML = `<span class="tarjeta-resultado-nombre">🩰 ${g.nombre}</span>`;
+    tarjeta.addEventListener("click", () => elegirGrupoChat(g));
+    cont.appendChild(tarjeta);
+  });
+}
+
+el("inputBuscarGrupoChat").addEventListener("input", () => {
+  const texto = el("inputBuscarGrupoChat").value.trim().toLowerCase();
+  const filtrados = texto
+    ? gruposChatCache.filter((g) => g.nombre.toLowerCase().includes(texto))
+    : gruposChatCache;
+  renderListaGruposChat(filtrados);
+});
+
+function elegirGrupoChat(grupo) {
+  if (!hilosManualAbiertos.some((h) => h.grupoId === grupo.id)) {
+    hilosManualAbiertos.push({ grupoId: grupo.id, grupo: grupo.nombre, abiertaEn: new Date().toISOString() });
+  }
+  mostrarPantalla("pantallaRecepcion");
+  renderSolicitudes();
+
+  // Lleva la vista hasta la tarjeta de este grupo y deja el cursor
+  // listo en su caja de texto, para que Recepción escriba de una vez.
+  const tarjeta = document.querySelector(`.tarjeta-hilo[data-grupo-id="${CSS.escape(grupo.id)}"]`);
+  if (tarjeta) {
+    tarjeta.scrollIntoView({ behavior: "smooth", block: "center" });
+    const input = tarjeta.querySelector(".chat-input-hilo");
+    if (input) input.focus();
   }
 }
 
