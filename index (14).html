@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>MOVE Dance Academy - Portal de Alumnas</title>
+
+<!-- App instalable (PWA) -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#F2568A" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Portal Move Dance" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" href="icons/icon-192.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="portal.css" />
+</head>
+<body>
+
+<div class="floating floating1"></div>
+<div class="floating floating2"></div>
+<div class="floating floating3"></div>
+<div class="floating floating4"></div>
+
+<div id="temaDecoracion" class="tema-decoracion" aria-hidden="true"></div>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">Portal de Alumnas</div>
+  <p class="tema-banner" id="temaBanner" hidden></p>
+
+  <!-- ============ PANTALLA 0: CARGANDO ============ -->
+  <section id="pantallaCargando" class="pantalla">
+    <p class="loading-text">✨ Cargando información...</p>
+  </section>
+
+  <!-- ============ PANTALLA 1: BUSCAR/ELEGIR ALUMNA ============ -->
+  <section id="pantallaAlumna" class="pantalla" hidden>
+    <button class="chip-familia chip-familia-guardada" id="btnEntrarFamiliaGuardada" type="button" hidden></button>
+
+    <p class="subtitulo">🔎 Busca tu nombre</p>
+    <input type="text" id="buscarAlumna" class="buscador" placeholder="Escribe tu nombre..." />
+    <div id="listaAlumnas" class="lista-alumnas"></div>
+
+    <button class="btn-enlace" id="btnMostrarClaveFamiliar" type="button">👨‍👩‍👧‍👦 ¿Tienes una clave familiar? Entra con ella</button>
+    <div id="bloqueClaveFamiliar" hidden>
+      <input type="text" id="inputClaveFamiliar" class="input-clave-chica" placeholder="Escribe la clave familiar" autocomplete="off" />
+      <button class="btn-secundario btn-ancho" id="btnEntrarFamilia" type="button">Entrar</button>
+
+      <button class="btn-enlace" id="btnMostrarRecuperarFamiliar" type="button">¿Olvidaste la clave familiar?</button>
+      <div id="bloqueRecuperarFamiliar" hidden>
+        <p class="aviso-familia">Busca a una de tus hijas: te enviamos la clave familiar al WhatsApp o correo que ya tenemos registrado para ella.</p>
+        <input type="text" id="buscarHijaRecuperarFamiliar" class="buscador" placeholder="Escribe su nombre..." autocomplete="off" />
+        <div id="listaHijaRecuperarFamiliar" class="lista-alumnas"></div>
+
+        <div id="bloqueOpcionesRecuperarFamiliar" hidden>
+          <p class="nombre-elegido" id="nombreHijaRecuperarFamiliar"></p>
+          <div class="recuperar-opciones">
+            <button class="btn-secundario" id="btnRecuperarFamiliarWhatsapp" type="button">📲 Por WhatsApp</button>
+            <button class="btn-secundario" id="btnMostrarRecuperarFamiliarCorreo" type="button">✉️ Por correo</button>
+          </div>
+
+          <div id="bloqueRecuperarFamiliarCorreo" hidden>
+            <input type="email" id="inputRecuperarFamiliarCorreo" class="input-clave-chica" placeholder="Escribe tu correo registrado" autocomplete="email" />
+            <button class="btn-secundario btn-ancho" id="btnEnviarRecuperarFamiliarCorreo" type="button">Enviar clave familiar a mi correo</button>
+          </div>
+        </div>
+
+        <p class="mensaje-recuperar" id="mensajeRecuperarFamiliar" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PANTALLA 2: CLAVE ============ -->
+  <section id="pantallaClave" class="pantalla" hidden>
+    <p class="nombre-elegido" id="nombreElegido"></p>
+    <p class="subtitulo">🔒 Escribe tu clave del portal</p>
+    <input type="password" id="inputClave" class="input-clave" placeholder="••••" autocomplete="off" />
+
+    <div class="nav-botones">
+      <button class="btn-secundario" id="btnAtrasClave">← No soy yo</button>
+      <button class="btn-grande btn-siguiente" id="btnEntrar">Entrar →</button>
+    </div>
+
+    <button class="btn-enlace" id="btnMostrarRecuperar" type="button">¿Olvidaste tu clave?</button>
+
+    <div id="bloqueRecuperar" hidden>
+      <div class="recuperar-opciones">
+        <button class="btn-secundario" id="btnRecuperarWhatsapp" type="button">📲 Por WhatsApp</button>
+        <button class="btn-secundario" id="btnMostrarRecuperarCorreo" type="button">✉️ Por correo</button>
+      </div>
+
+      <div id="bloqueRecuperarCorreo" hidden>
+        <input type="email" id="inputRecuperarCorreo" class="input-clave-chica" placeholder="Escribe tu correo registrado" autocomplete="email" />
+        <button class="btn-secundario btn-ancho" id="btnEnviarRecuperarCorreo" type="button">Enviar clave a mi correo</button>
+      </div>
+    </div>
+
+    <p class="mensaje-recuperar" id="mensajeRecuperarClave" hidden></p>
+  </section>
+
+  <!-- ============ PANTALLA 3: PERFIL ============ -->
+  <section id="pantallaPerfil" class="pantalla" hidden>
+    <img id="fotoPerfil" class="foto-perfil" hidden />
+    <div class="bloque-foto-perfil">
+      <label class="btn-editar-foto-perfil" for="inputFotoPerfil" id="labelFotoPerfil">
+        <span id="textoFotoPerfil">📷 Cambiar foto</span>
+      </label>
+      <input type="file" id="inputFotoPerfil" accept="image/*" hidden />
+    </div>
+    <p class="mensaje-clave-ok" id="mensajeFotoPerfilOk" hidden>✅ Foto actualizada.</p>
+    <p class="perfil-nombre" id="perfilNombre"></p>
+
+    <button class="btn-grande btn-siguiente" id="btnMensajesAnuncios" type="button">📢 Mensajes e información importante MOVE</button>
+    <button class="btn-grande btn-siguiente" id="btnMensajesMaestra" type="button">👩‍🏫 Mensajes de tu maestra</button>
+
+    <div id="bloqueFamilia" class="bloque-familia">
+      <div id="chipsFamilia" class="chips-familia"></div>
+
+      <button class="btn-enlace" id="btnUnirFamilia" type="button">🔗 Unir con otra hija (funciona en cualquier dispositivo)</button>
+      <div id="bloqueUnirFamilia" hidden>
+        <p class="aviso-familia">Busca a tu otra hija y escribe su clave para unirlas en el mismo grupo familiar permanente.</p>
+        <input type="text" id="buscarHermanaUnir" class="buscador" placeholder="Escribe su nombre..." autocomplete="off" />
+        <div id="listaHermanaUnir" class="lista-alumnas"></div>
+
+        <div id="bloqueConfirmarUnir" hidden>
+          <p class="nombre-elegido" id="nombreHermanaUnirElegida"></p>
+          <input type="password" id="inputClaveHermanaUnir" class="input-clave-chica" placeholder="Clave de tu otra hija" autocomplete="off" />
+
+          <p class="aviso-familia">Si es la primera vez que unen a dos hijas, elige aquí la clave familiar que van a usar juntas. Si ya tienen una clave familiar, déjalo en blanco.</p>
+          <input type="password" id="inputClaveFamiliarNuevaUnir" class="input-clave-chica" placeholder="Nueva clave familiar (opcional)" autocomplete="new-password" minlength="6" />
+          <input type="password" id="inputClaveFamiliarNuevaUnirConfirmar" class="input-clave-chica" placeholder="Confirmar clave familiar (opcional)" autocomplete="new-password" minlength="6" />
+
+          <button class="btn-secundario btn-ancho" id="btnConfirmarUnirFamilia" type="button">Unir a las dos</button>
+          <button class="btn-enlace" id="btnCancelarUnirFamilia" type="button">Cancelar</button>
+        </div>
+
+        <p class="mensaje-clave-ok" id="mensajeUnirFamiliaOk" hidden></p>
+      </div>
+    </div>
+
+    <div id="perfilLista" class="perfil-lista"></div>
+
+    <div id="bloqueObjetivosMensuales">
+      <button class="btn-secundario btn-ancho" id="btnObjetivosMensuales" type="button" hidden>🎯 Objetivo mensual de clases</button>
+      <div id="panelObjetivosMensuales" class="panel-objetivos-mensuales" hidden></div>
+    </div>
+
+    <section id="seccionPago" class="seccion-pago" hidden>
+      <p class="pago-titulo">💳 Mensualidad de este mes</p>
+      <div class="pago-fila">
+        <span class="perfil-etiqueta">Estado</span>
+        <span id="pagoEstadoBadge"></span>
+      </div>
+      <p class="pago-monto" id="pagoMonto" hidden></p>
+
+      <button class="btn-grande btn-siguiente" id="btnGenerarLink" hidden>Generar link de pago →</button>
+      <a class="btn-grande btn-siguiente btn-link-pago" id="linkPagar" href="#" target="_blank" rel="noopener" hidden>💳 Pagar ahora</a>
+
+      <div id="bloqueComprobante">
+        <p class="campo-label" id="comprobanteEtiqueta">📎 Sube tu comprobante de pago</p>
+        <label class="btn-secundario btn-subir-archivo" id="labelSubirArchivo" style="display:block;">
+          <span id="textoSubirArchivo">Elegir archivo</span>
+          <input type="file" id="inputComprobante" accept="image/*,.pdf" hidden />
+        </label>
+        <p class="comprobante-ok" id="comprobanteOk" hidden>✅ Ya subiste tu comprobante de pago.</p>
+      </div>
+    </section>
+
+    <section id="seccionPagosEspeciales" class="seccion-pago" hidden>
+      <p class="pago-titulo">🎽 Pagos especiales (trajes / competencias)</p>
+      <div id="listaPagosEspeciales" class="lista-pagos-especiales"></div>
+    </section>
+
+    <button class="btn-grande btn-siguiente" id="btnVerEvaluaciones">📊 Ver mis evaluaciones</button>
+
+    <div id="bloqueVideosClase">
+      <button class="btn-secundario btn-ancho" id="btnVideosClase" type="button" hidden>🎥 Videos de mis clases</button>
+      <div id="panelVideosClase" class="panel-videos-clase" hidden></div>
+    </div>
+
+    <button class="btn-grande btn-siguiente" id="btnHistorialPagos">📅 Historial de mensualidades</button>
+
+    <button class="btn-grande btn-siguiente" id="btnChat">💬 Hablar con las maestras</button>
+
+    <section id="seccionCambiarClave" class="seccion-pago">
+      <p class="pago-titulo" id="tituloCambiarClave">🔒 Cambiar mi clave</p>
+
+      <div id="bloqueCambiarClaveIndividual">
+        <input type="password" id="inputClaveNueva" class="input-clave-chica" placeholder="Nueva clave (mínimo 6 caracteres)" autocomplete="new-password" minlength="6" />
+        <input type="password" id="inputClaveConfirmar" class="input-clave-chica" placeholder="Confirmar nueva clave" autocomplete="new-password" minlength="6" />
+        <button class="btn-secundario btn-ancho" id="btnGuardarClave">Guardar nueva clave</button>
+        <p class="mensaje-clave-ok" id="mensajeClaveOk" hidden>✅ Tu clave se actualizó correctamente.</p>
+      </div>
+
+      <div id="bloqueCambiarClaveFamiliar" hidden>
+        <p class="aviso-familia">Esta es la clave familiar compartida (con la que ven a todas las hijas juntas). Si quieres cambiar la clave de una sola hija en particular, entra buscando su nombre directamente, no con la clave familiar.</p>
+        <input type="password" id="inputClaveFamiliarNueva" class="input-clave-chica" placeholder="Nueva clave familiar (mínimo 6 caracteres)" autocomplete="new-password" minlength="6" />
+        <input type="password" id="inputClaveFamiliarConfirmar" class="input-clave-chica" placeholder="Confirmar nueva clave familiar" autocomplete="new-password" minlength="6" />
+        <button class="btn-secundario btn-ancho" id="btnGuardarClaveFamiliar">Guardar nueva clave familiar</button>
+        <p class="mensaje-clave-ok" id="mensajeClaveFamiliarOk" hidden>✅ La clave familiar se actualizó correctamente.</p>
+      </div>
+    </section>
+
+    <button class="btn-grande btn-siguiente" id="btnSalir">← Salir</button>
+    <button class="btn-enlace" id="btnOlvidarDispositivo" type="button">🗑 Olvidar hijas guardadas en este dispositivo</button>
+  </section>
+
+  <!-- ============ PANTALLA 4: EVALUACIONES ============ -->
+  <section id="pantallaEvaluaciones" class="pantalla" hidden>
+    <p class="perfil-nombre" id="evaluacionesTitulo">📊 Mis evaluaciones</p>
+    <div id="listaEvaluaciones" class="lista-evaluaciones"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasEvaluaciones">← Volver al perfil</button>
+  </section>
+
+  <!-- ============ PANTALLA 5: HISTORIAL DE MENSUALIDADES ============ -->
+  <section id="pantallaHistorialPagos" class="pantalla" hidden>
+    <p class="perfil-nombre" id="historialTitulo">📅 Historial de mensualidades</p>
+    <div id="listaHistorialPagos" class="lista-historial-pagos"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasHistorial">← Volver al perfil</button>
+  </section>
+
+  <!-- ============ PANTALLA 5B: MENSAJES DE RECEPCIÓN ============ -->
+  <section id="pantallaMensajesAnuncios" class="pantalla" hidden>
+    <p class="perfil-nombre">📢 Mensajes e información importante MOVE</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Anuncios y recordatorios de este mes, con fecha y hora de cuándo se mandaron.</p>
+    <div id="listaMensajesAnuncios" class="lista-historial-pagos"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasMensajesAnuncios">← Volver al perfil</button>
+  </section>
+
+  <!-- ============ PANTALLA 5C: MENSAJES DE TU MAESTRA ============ -->
+  <section id="pantallaMensajesMaestra" class="pantalla" hidden>
+    <p class="perfil-nombre">👩‍🏫 Mensajes de tu maestra</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Avisos de este mes de la maestra de cada uno de tus grupos, con fecha y hora de cuándo se mandaron.</p>
+    <div id="listaMensajesMaestra" class="lista-historial-pagos"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasMensajesMaestra">← Volver al perfil</button>
+  </section>
+
+  <!-- ============ PANTALLA 6A: ELEGIR MAESTRA ============ -->
+  <section id="pantallaSelectorMaestra" class="pantalla" hidden>
+    <p class="perfil-nombre">💬 ¿Con quién quieres hablar?</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Cada conversación es privada, solo entre ustedes dos.</p>
+    <div id="listaMaestrasChat" class="lista-alumnas"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasSelectorMaestra">← Volver al perfil</button>
+  </section>
+
+  <!-- ============ PANTALLA 6B: CHAT CON UNA MAESTRA ============ -->
+  <section id="pantallaChat" class="pantalla" hidden>
+    <p class="perfil-nombre" id="chatTitulo">💬 Hablar con las maestras</p>
+    <div id="chatMensajes" class="chat-mensajes"></div>
+    <div class="chat-caja">
+      <textarea id="chatInput" class="chat-input" placeholder="Escribe tu mensaje..." rows="1"></textarea>
+      <button class="chat-btn-enviar" id="btnChatEnviar">➤</button>
+    </div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasChat">← Elegir otra maestra</button>
+  </section>
+
+  <p class="mensaje-error" id="mensajeError"></p>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="portal.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    let registroSW = null;
+
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("sw.js")
+        .then((registro) => {
+          registroSW = registro;
+        })
+        .catch(() => {
+          // Si falla el registro, el portal sigue funcionando normal
+          // (solo no queda instalable / con caché offline).
+        });
+    });
+
+    // Cada vez que se abre o se vuelve a esta pestaña/app (por ejemplo,
+    // al tocar el ícono desde la pantalla de inicio del celular, o al
+    // volver a ella después de tenerla en segundo plano), le pedimos al
+    // navegador que revise de una vez si hay una versión nueva del
+    // Service Worker — así no hay que esperar a que el navegador la
+    // revise solo (puede tardar horas) ni hay que quitar y volver a
+    // poner el ícono para que tome lo último que se subió al portal.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && registroSW) {
+        registroSW.update().catch(() => {});
+      }
+    });
+  }
+</script>
+</body>
+</html>
