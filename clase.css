@@ -370,6 +370,15 @@ cursor:pointer;
 transition:.15s;
 }
 
+/* Punto rojo sobre la pestaña de Recepción cuando hay una respuesta
+   suya sin ver — así se nota aunque la maestra esté en otra pestaña
+   (Bienvenida, Clase, etc.), no solo cuando ya está en "Recepción". */
+.tab-btn-alerta{
+font-size:11px;
+animation:tabAlertaPulso 1.4s ease infinite;
+}
+@keyframes tabAlertaPulso{0%,100%{opacity:.45;}50%{opacity:1;}}
+
 .tab-btn.activo{
 border-color:#ef4b9b;
 background:linear-gradient(180deg,#ff72b7,#ef4b9b);

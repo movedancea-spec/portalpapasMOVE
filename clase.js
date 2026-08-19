@@ -586,6 +586,9 @@ function cambiarTab(nombre) {
   // Al entrar a la pestaña Clase, se refresca el visualizador de
   // música de una vez, en vez de esperar hasta 6 segundos.
   if (nombre === "Clase") actualizarVisualizadorMusica();
+  // El punto rojo / banner de Recepción solo debe verse cuando NO
+  // está viendo ya esa pestaña (para no duplicar el aviso).
+  sincronizarAlertaRecepcion();
 }
 
 // ---------- control remoto desde el celular ----------
@@ -1589,9 +1592,14 @@ function renderMensajesRecepcion() {
 
 function iniciarAlarmaRecepcion() {
   el("btnApagarAlarmaRecepcion").hidden = false;
-  if (alarmaRecepcionIntervalo) return; // ya está sonando
-  sonarBeep();
-  alarmaRecepcionIntervalo = setInterval(sonarBeep, 3500);
+  if (!alarmaRecepcionIntervalo) {
+    sonarBeep();
+    alarmaRecepcionIntervalo = setInterval(sonarBeep, 3500);
+  }
+  // Se sincroniza AL FINAL, ya con alarmaRecepcionIntervalo puesto —
+  // si no, la primera vez el punto rojo / banner no alcanzaban a
+  // aparecer porque todavía se leía como "sin alarma".
+  sincronizarAlertaRecepcion();
 }
 
 function detenerAlarmaRecepcion() {
@@ -1600,6 +1608,54 @@ function detenerAlarmaRecepcion() {
     alarmaRecepcionIntervalo = null;
   }
   el("btnApagarAlarmaRecepcion").hidden = true;
+  sincronizarAlertaRecepcion();
+}
+
+// El sonido de la alarma se oye igual en cualquier pestaña, pero
+// antes NO aparecía nada en pantalla si la maestra no estaba
+// justo en la pestaña de Recepción — solo el pitido, sin poder
+// confirmar de dónde venía. Esto agrega dos avisos VISUALES que se
+// ven desde cualquier pestaña del Panel de Clase:
+//   1) un punto rojo sobre la pestaña "📞 Recepción"
+//   2) una franja rosa fija arriba de la pantalla, que al tocarla
+//      lleva directo a esa pestaña (y así se marca como leído,
+//      igual que ya pasaba al entrar a la pestaña a mano).
+// El banner no se muestra si ya está viendo la pestaña de Recepción
+// (ahí ya se ve el aviso normal, adentro del chat).
+function asegurarBannerAlertaRecepcion() {
+  if (el("bannerAlertaRecepcion")) return;
+  const banner = document.createElement("button");
+  banner.id = "bannerAlertaRecepcion";
+  banner.type = "button";
+  banner.hidden = true;
+  banner.textContent = "🔔 ¡Recepción te escribió! Toca para ver el mensaje";
+  banner.style.cssText =
+    "position:fixed;left:10px;right:10px;top:10px;z-index:9999;border:none;" +
+    "background:linear-gradient(180deg,#ff72b7,#ef4b9b);color:#fff;" +
+    "font-family:'Poppins',sans-serif;font-weight:800;font-size:clamp(13px,3.6vw,15px);line-height:1.3;" +
+    "padding:12px 16px;border-radius:16px;box-shadow:0 6px 18px rgba(239,75,155,.35);" +
+    "text-align:center;cursor:pointer;animation:bannerAlertaRecepcionPulso 1.4s ease infinite;";
+  banner.addEventListener("click", () => {
+    sonarBeep();
+    cambiarTab("Recepcion");
+  });
+  document.body.appendChild(banner);
+
+  if (!el("estiloBannerAlertaRecepcion")) {
+    const estilo = document.createElement("style");
+    estilo.id = "estiloBannerAlertaRecepcion";
+    estilo.textContent =
+      "@keyframes bannerAlertaRecepcionPulso{0%,100%{transform:scale(1);}50%{transform:scale(1.015);}}";
+    document.head.appendChild(estilo);
+  }
+}
+
+function sincronizarAlertaRecepcion() {
+  asegurarBannerAlertaRecepcion();
+  const hayAlarma = !!alarmaRecepcionIntervalo;
+  const enPestanaRecepcion = el("tabRecepcion").classList.contains("activo");
+  el("alertaTabRecepcion").hidden = !hayAlarma;
+  el("bannerAlertaRecepcion").hidden = !hayAlarma || enPestanaRecepcion;
 }
 
 async function marcarLeidosRecepcion() {
