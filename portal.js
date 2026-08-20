@@ -20,7 +20,7 @@ const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 // llave, hay que actualizar este valor Y los dos Secrets al mismo
 // tiempo (si no, las suscripciones viejas dejan de servir).
 const VAPID_PUBLIC_KEY =
-  "BCDloougzpanTx9ZqIX5pEUVkCfwJqSZzxZUFmvm41gUQRzuyecawgi4WZhSePFEoY0DpAm-CvmPrWOJYx8Mvlk";
+  "BMozI3yiN82kvY6ZUA3iEgrc7fAL1bB7x0wL_RcW2R7a3fvRg2zsW0BNU7Q0qK4_wA_TzbcZ6Gb1G_0n7jt4BEA";
 
 // Nombre EXACTO del campo "autorizo el show" en Airtable (tal como está
 // guardado en CONFIGURACION PORTAL ALUMNAS → CAMPO EN ALUMNAS), para
