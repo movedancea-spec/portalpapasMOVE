@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Caja de Entradas</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="recepcion.css" />
+<link rel="stylesheet" href="entradas-mapa.css" />
+<link rel="stylesheet" href="entradas-caja.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">🎟️ Caja de Entradas</div>
+
+  <!-- ============ PANTALLA: CLAVE ============ -->
+  <section id="pantallaLogin" class="pantalla">
+    <p class="subtitulo">🔒 Escribe la clave del panel</p>
+    <input type="password" id="inputClaveCaja" class="input-clave" placeholder="••••" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnEntrarCaja">Entrar →</button>
+    <p class="mensaje-error" id="mensajeErrorLogin"></p>
+  </section>
+
+  <!-- ============ PANTALLA: BUSCAR TURNO POR CÓDIGO ============ -->
+  <section id="pantallaBuscarCodigo" class="pantalla" hidden>
+    <p class="subtitulo">Código de la persona</p>
+    <p class="aviso-familia">Escribe el código que le dieron cuando se registró para escoger su turno.</p>
+    <input type="text" id="inputCodigoCaja" class="input-clave codigo-input" placeholder="ABC123" maxlength="6" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnBuscarCodigoCaja">Buscar turno →</button>
+    <p class="mensaje-error" id="mensajeErrorBuscar"></p>
+    <button class="btn-enlace" id="btnSalirCaja" type="button">Salir</button>
+  </section>
+
+  <!-- ============ PANTALLA: TURNO ENCONTRADO (no activo todavía / vencido / etc.) ============ -->
+  <section id="pantallaTurnoInfo" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverDesdeInfo" type="button">← Buscar otro</button>
+      <span class="barra-titulo">Turno</span>
+    </div>
+
+    <div class="tarjeta-turno">
+      <p class="numero-turno-grande" id="textoNumeroTurnoCaja">—</p>
+      <p class="texto-estado-turno" id="textoNombreTurnoCaja"></p>
+      <p class="detalle-estado-turno" id="textoEstadoTurnoCaja"></p>
+    </div>
+
+    <p class="mensaje-error" id="mensajeInfoTurno"></p>
+  </section>
+
+  <!-- ============ PANTALLA: ELEGIR FILAS Y COBRAR ============ -->
+  <section id="pantallaComprarCaja" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverComprarCaja" type="button">← Buscar otro</button>
+      <span class="barra-titulo">Elegir filas</span>
+    </div>
+
+    <p class="cronometro-turno" id="textoCronometroCaja"></p>
+    <p class="aviso-familia" id="avisoTurnoActivoCaja"></p>
+    <p class="aviso-familia">Toca una fila completa del mapa para elegirla. El precio es por fila completa (Q165 por butaca), no por butaca suelta.</p>
+
+    <div class="leyenda-mapa">
+      <span class="leyenda-item"><i class="punto punto-disponible"></i>Disponible</span>
+      <span class="leyenda-item"><i class="punto punto-seleccionada"></i>Seleccionada</span>
+      <span class="leyenda-item"><i class="punto punto-vendida"></i>Ocupada</span>
+    </div>
+
+    <div class="mapa-scroll" id="mapaScroll">
+      <div class="mapa-teatro">
+        <div class="escenario">ESCENARIO</div>
+        <div class="mapa-secciones" id="mapaSecciones">
+          <p class="lista-vacia">Cargando mapa de butacas...</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="mensaje-error" id="mensajeErrorComprarCaja"></p>
+  </section>
+
+  <!-- ============ PANTALLA: LINK GENERADO ============ -->
+  <section id="pantallaLinkGenerado" class="pantalla" hidden>
+    <p class="subtitulo">✅ Link de pago generado</p>
+    <p class="aviso-familia">Total a cobrar: <strong id="textoTotalLinkCaja">Q0.00</strong></p>
+    <p class="aviso-familia">El link ya se envió por WhatsApp a la persona. También puedes abrirlo aquí si hace falta.</p>
+    <a class="btn-grande btn-siguiente btn-link-pago" id="linkPagarCaja" href="#" target="_blank" rel="noopener">💳 Abrir link de pago</a>
+    <button class="btn-enlace" id="btnNuevaBusquedaDesdeLink" type="button">Buscar otro código →</button>
+  </section>
+
+</div>
+
+<!-- Barra fija con el total y el botón de cobrar, mientras se eligen filas -->
+<div class="barra-total" id="barraTotalSeleccionCaja" hidden>
+  <span class="barra-total-texto" id="textoTotalSeleccionCaja">Q0.00</span>
+  <button class="btn-pagar-total" id="btnCobrarFilas" disabled type="button">Generar link de pago →</button>
+</div>
+
+<script src="entradas-caja.js"></script>
+</body>
+</html>

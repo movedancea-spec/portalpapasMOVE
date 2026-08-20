@@ -1,0 +1,105 @@
+/* ===================================================
+   MOVE — PANTALLA EN VIVO DE ENTRADAS (recepción)
+   Pensada para quedar abierta en un monitor/tablet en
+   recepción: turno en curso, cronómetro, disponibilidad y
+   mapa de butacas, todo actualizándose solo.
+   Se apoya en recepcion.css y entradas-mapa.css.
+=================================================== */
+
+.container{
+max-width:760px;
+}
+
+.reloj-vivo{
+text-align:center;
+font-size:clamp(15px,4vw,18px);
+font-weight:700;
+color:#a15277;
+margin-bottom:14px;
+}
+
+.tarjeta-turno-vivo{
+border:2px solid #ffe3f0;
+border-radius:20px;
+padding:20px 16px;
+background:white;
+text-align:center;
+margin-bottom:14px;
+}
+
+.etiqueta-turno-vivo{
+font-size:12px;
+font-weight:800;
+letter-spacing:1px;
+color:#999;
+text-transform:uppercase;
+}
+
+.numero-turno-vivo{
+font-size:clamp(40px,13vw,64px);
+font-weight:800;
+color:#ef4b9b;
+line-height:1;
+margin-top:4px;
+}
+
+.nombre-turno-vivo{
+font-size:clamp(15px,4.2vw,18px);
+font-weight:700;
+color:#555;
+margin-top:4px;
+}
+
+.cronometro-turno-vivo{
+font-size:clamp(20px,6vw,28px);
+font-weight:800;
+color:#ef4b9b;
+margin-top:10px;
+}
+
+.cronometro-turno-vivo.urgente{
+color:#e0245e;
+animation:pulsoCronometroVivo .8s ease infinite alternate;
+}
+
+@keyframes pulsoCronometroVivo{
+from{ transform:scale(1); }
+to{ transform:scale(1.05); }
+}
+
+.grid-stats-vivo{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+margin-bottom:16px;
+}
+
+.stat-caja-vivo{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:2px;
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:12px 6px;
+background:#fffafc;
+}
+
+.stat-numero-vivo{
+font-size:clamp(20px,6vw,28px);
+font-weight:800;
+color:#ef4b9b;
+}
+
+.stat-etiqueta-vivo{
+font-size:11px;
+font-weight:700;
+color:#999;
+text-align:center;
+}
+
+/* El mapa aquí es de solo lectura — sin manita de "puedes hacer clic". */
+#pantallaTablero .fila-mapa{
+cursor:default;
+}

@@ -34,7 +34,7 @@
   <section id="pantallaRegistro" class="pantalla" hidden>
     <p class="subtitulo" id="textoEventoRegistro"></p>
     <p class="aviso-familia" id="avisoFilasDisponibles"></p>
-    <p class="aviso-familia">Regístrate con tu nombre y WhatsApp para que te asignemos un turno — por orden de llegada. Cuando sea tu turno, tendrás 15 minutos para elegir y pagar tus filas.</p>
+    <p class="aviso-familia">Regístrate con tu nombre y WhatsApp para que te asignemos un turno — por orden de llegada. Cuando sea tu turno, te avisamos por WhatsApp y tienes 10 minutos para presentarte en recepción con tu código y completar la compra.</p>
 
     <div class="campo-form">
       <p class="etiqueta-campo">Nombre completo</p>
@@ -79,7 +79,10 @@
       <p class="detalle-estado-turno" id="detalleEstadoTurno"></p>
     </div>
 
-    <button class="btn-grande btn-siguiente" id="btnIrAComprar" hidden type="button">Comprar mis entradas →</button>
+    <div id="bloqueTurnoActivo" hidden>
+      <p class="aviso-familia">Preséntate en recepción con tu código <strong id="textoCodigoActivo">—</strong> para elegir tus filas y pagar. Tienen tus datos listos, solo hace falta que estés ahí.</p>
+      <a class="btn-grande btn-siguiente btn-link-pago" id="linkPagoActivo" href="#" target="_blank" rel="noopener" hidden>💳 Pagar ahora →</a>
+    </div>
 
     <div id="bloqueResumenCompra" hidden>
       <p class="aviso-familia">Filas compradas:</p>
@@ -90,49 +93,6 @@
     <button class="btn-enlace" id="btnOtroCodigo" type="button">Consultar con otro código</button>
   </section>
 
-  <!-- ============ PANTALLA: COMPRAR FILAS ============ -->
-  <section id="pantallaComprar" class="pantalla" hidden>
-    <div class="barra-superior">
-      <button class="btn-volver" id="btnVolverComprar" type="button">← Mi turno</button>
-      <span class="barra-titulo">Elige tus filas</span>
-    </div>
-
-    <p class="cronometro-turno" id="textoCronometro"></p>
-    <p class="aviso-familia">Toca una fila completa del mapa para elegirla. El precio es por fila completa (Q165 por butaca), no por butaca suelta.</p>
-
-    <div class="leyenda-mapa">
-      <span class="leyenda-item"><i class="punto punto-disponible"></i>Disponible</span>
-      <span class="leyenda-item"><i class="punto punto-seleccionada"></i>Seleccionada</span>
-      <span class="leyenda-item"><i class="punto punto-vendida"></i>Ocupada</span>
-    </div>
-
-    <div class="mapa-scroll" id="mapaScroll">
-      <div class="mapa-teatro">
-        <div class="escenario">ESCENARIO</div>
-        <div class="mapa-secciones" id="mapaSecciones">
-          <p class="lista-vacia">Cargando mapa de butacas...</p>
-        </div>
-      </div>
-    </div>
-
-    <p class="mensaje-error" id="mensajeErrorComprar"></p>
-  </section>
-
-  <!-- ============ PANTALLA: LINK DE PAGO ============ -->
-  <section id="pantallaLinkPago" class="pantalla" hidden>
-    <p class="subtitulo">¡Ya casi! Completa tu pago</p>
-    <p class="aviso-familia">Total a pagar: <strong id="textoTotalLinkPago">Q0.00</strong></p>
-    <a class="btn-grande btn-siguiente btn-link-pago" id="linkPagarEntradas" href="#" target="_blank" rel="noopener">💳 Pagar ahora</a>
-    <p class="aviso-familia">Cuando termines de pagar, te avisamos por este mismo WhatsApp que tus entradas quedaron confirmadas.</p>
-    <button class="btn-enlace" id="btnVolverMiTurnoDesdeLink" type="button">← Ver mi turno</button>
-  </section>
-
-</div>
-
-<!-- Barra fija con el total y el botón de pago, mientras se eligen filas -->
-<div class="barra-total" id="barraTotalSeleccion" hidden>
-  <span class="barra-total-texto" id="textoTotalSeleccion">Q0.00</span>
-  <button class="btn-pagar-total" id="btnPagarFilas" disabled type="button">Generar link de pago →</button>
 </div>
 
 <script src="entradas.js"></script>

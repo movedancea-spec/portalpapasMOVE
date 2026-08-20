@@ -228,10 +228,7 @@ function pintarListaTurnos(turnos) {
     `;
 
     const der = document.createElement("div");
-    der.style.display = "flex";
-    der.style.flexDirection = "column";
-    der.style.alignItems = "flex-end";
-    der.style.gap = "4px";
+    der.className = "fila-turno-admin-derecha";
 
     const numero = document.createElement("span");
     numero.className = "fila-turno-admin-numero";
@@ -244,10 +241,70 @@ function pintarListaTurnos(turnos) {
     der.appendChild(numero);
     der.appendChild(badge);
 
+    // Borrar turno — completo, uno por uno, con confirmación. No se
+    // deja borrar un turno que ya completó su compra (entradas
+    // vendidas de verdad), para no perder ese registro por error.
+    if (t.estado !== "Completado") {
+      const btnBorrar = document.createElement("button");
+      btnBorrar.type = "button";
+      btnBorrar.className = "btn-borrar-turno";
+      btnBorrar.textContent = "🗑️ Borrar";
+      btnBorrar.addEventListener("click", () => borrarTurno(t));
+      der.appendChild(btnBorrar);
+    }
+
     fila.appendChild(info);
     fila.appendChild(der);
     cont.appendChild(fila);
   });
+}
+
+// ==========================================
+// BORRAR TURNO (uno por uno, con confirmación)
+// ==========================================
+
+async function borrarTurno(t) {
+  const confirmado = window.confirm(
+    `¿Borrar por completo el turno${t.numero ? " #" + t.numero : ""} de ${t.nombre || "esta persona"}? Esto no se puede deshacer.`
+  );
+  if (!confirmado) return;
+
+  try {
+    await llamarWorker({ accion: "entradasAdminBorrarTurno", clave: claveAdmin, turnoId: t.id });
+    await cargarPanel();
+  } catch (e) {
+    window.alert(e.message || "No se pudo borrar el turno.");
+  }
+}
+
+// ==========================================
+// SALTAR TURNO ACTIVO (solo Ana — si no se presentó)
+// ==========================================
+
+async function saltarTurnoActivo() {
+  const btn = el("btnSaltarTurno");
+  const msg = el("mensajeSaltarTurno");
+  msg.textContent = "";
+  msg.className = "mensaje-form";
+
+  const confirmado = window.confirm("¿Saltar el turno activo? Se le avisará al siguiente turno que ya le toca.");
+  if (!confirmado) return;
+
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Saltando...";
+  try {
+    await llamarWorker({ accion: "entradasAdminSaltarTurno", clave: claveAdmin });
+    msg.textContent = "✅ Turno saltado — se avisó al siguiente.";
+    msg.className = "mensaje-form mensaje-form-ok";
+    await cargarPanel();
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = "mensaje-form mensaje-form-error";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
 }
 
 async function guardarConfig() {
@@ -303,6 +360,7 @@ el("inputClaveAdmin").addEventListener("keydown", (e) => {
 
 el("btnActualizarPanel").addEventListener("click", cargarPanel);
 el("btnGuardarConfig").addEventListener("click", guardarConfig);
+el("btnSaltarTurno").addEventListener("click", saltarTurnoActivo);
 el("inputBuscarTurno").addEventListener("input", () => {
   if (panelActual) pintarListaTurnos(panelActual.turnos || []);
 });
