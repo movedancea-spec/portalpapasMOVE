@@ -248,16 +248,20 @@ function crearBloqueSeccion(titulo, filas) {
     bloque.appendChild(t);
   }
 
+  // La sección IZQUIERDA se dibuja como espejo de las demás (ver la
+  // clase CSS ".volteada" en entradas-mapa.css).
+  const voltear = titulo === "IZQUIERDA";
+
   (filas || [])
     .sort((a, b) => (a.letra || a.fila || "").localeCompare(b.letra || b.fila || ""))
-    .forEach((f) => bloque.appendChild(crearFilaMapa(f)));
+    .forEach((f) => bloque.appendChild(crearFilaMapa(f, voltear)));
 
   return bloque;
 }
 
-function crearFilaMapa(f) {
+function crearFilaMapa(f, voltear) {
   const div = document.createElement("div");
-  div.className = "fila-mapa";
+  div.className = "fila-mapa" + (voltear ? " volteada" : "");
   if (f.estado !== "Disponible") {
     div.classList.add(f.estado === "Vendida" ? "vendida" : "reservada");
   }
@@ -352,16 +356,20 @@ function crearBloqueSeccionAsientos(titulo, filas) {
     bloque.appendChild(t);
   }
 
+  // La sección IZQUIERDA se dibuja como espejo de las demás (ver la
+  // clase CSS ".volteada" en entradas-mapa.css).
+  const voltear = titulo === "IZQUIERDA";
+
   (filas || [])
     .sort((a, b) => (a.letra || a.fila || "").localeCompare(b.letra || b.fila || ""))
-    .forEach((f) => bloque.appendChild(crearFilaAsientosVivo(f)));
+    .forEach((f) => bloque.appendChild(crearFilaAsientosVivo(f, voltear)));
 
   return bloque;
 }
 
-function crearFilaAsientosVivo(f) {
+function crearFilaAsientosVivo(f, voltear) {
   const div = document.createElement("div");
-  div.className = "fila-mapa-individual";
+  div.className = "fila-mapa-individual" + (voltear ? " volteada" : "");
 
   const etiqueta = document.createElement("span");
   etiqueta.className = "fila-mapa-etiqueta";

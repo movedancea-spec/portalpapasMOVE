@@ -429,7 +429,7 @@ async function guardarTurnosIniciados() {
 
   if (activando && !yaEstaba) {
     const confirmado = window.confirm(
-      "¿Empezar a llamar turnos ahora? En cuanto guardes, se le avisa por WhatsApp al primer turno en la fila que ya le toca comprar."
+      "¿Empezar a llamar turnos ahora? En cuanto guardes, se le avisa por el Portal de Alumnas al primer turno en la fila que ya le toca comprar."
     );
     if (!confirmado) return;
   }

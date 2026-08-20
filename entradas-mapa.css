@@ -167,6 +167,21 @@ border-color:#e2e2e2;
 
 .fila-mapa:not(:disabled):active .asiento{ transform:scale(.85); }
 
+/* Espejo para la sección IZQUIERDA: la letra de la fila queda del
+   lado del pasillo central (a la derecha del bloque de asientos) en
+   vez del lado de la pared, al contrario que en CENTRO/DERECHA. Solo
+   cambia el orden VISUAL — los datos de cada butaca/fila siguen
+   siendo los mismos. */
+.fila-mapa.volteada,
+.fila-mapa-individual.volteada{
+flex-direction:row-reverse;
+}
+
+.fila-mapa.volteada .fila-mapa-asientos,
+.fila-mapa-individual.volteada .fila-mapa-asientos{
+flex-direction:row-reverse;
+}
+
 /*=====================================
 BUTACAS INDIVIDUALES (venta sin turnos) — cada asiento es su
 propio botón clicable, en vez de que toda la fila se elija junta.

@@ -244,17 +244,21 @@ function crearBloqueSeccion(titulo, filas) {
     bloque.appendChild(t);
   }
 
+  // La sección IZQUIERDA se dibuja como espejo de las demás (ver la
+  // clase CSS ".volteada" en entradas-mapa.css).
+  const voltear = titulo === "IZQUIERDA";
+
   (filas || [])
     .sort((a, b) => (a.letra || a.fila || "").localeCompare(b.letra || b.fila || ""))
-    .forEach((f) => bloque.appendChild(crearFilaMapa(f)));
+    .forEach((f) => bloque.appendChild(crearFilaMapa(f, voltear)));
 
   return bloque;
 }
 
-function crearFilaMapa(f) {
+function crearFilaMapa(f, voltear) {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "fila-mapa";
+  btn.className = "fila-mapa" + (voltear ? " volteada" : "");
   btn.dataset.id = f.id;
 
   const disponible = f.estado === "Disponible";
@@ -497,16 +501,20 @@ function crearBloqueSeccionIndividualCaja(titulo, filas) {
     bloque.appendChild(t);
   }
 
+  // La sección IZQUIERDA se dibuja como espejo de las demás (ver la
+  // clase CSS ".volteada" en entradas-mapa.css).
+  const voltear = titulo === "IZQUIERDA";
+
   (filas || [])
     .sort((a, b) => (a.letra || a.fila || "").localeCompare(b.letra || b.fila || ""))
-    .forEach((f) => bloque.appendChild(crearFilaIndividualCaja(f)));
+    .forEach((f) => bloque.appendChild(crearFilaIndividualCaja(f, voltear)));
 
   return bloque;
 }
 
-function crearFilaIndividualCaja(f) {
+function crearFilaIndividualCaja(f, voltear) {
   const div = document.createElement("div");
-  div.className = "fila-mapa-individual";
+  div.className = "fila-mapa-individual" + (voltear ? " volteada" : "");
 
   const etiqueta = document.createElement("span");
   etiqueta.className = "fila-mapa-etiqueta";

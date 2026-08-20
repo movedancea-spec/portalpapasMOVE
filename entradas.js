@@ -539,16 +539,21 @@ function crearBloqueSeccionIndividual(titulo, filas) {
     bloque.appendChild(t);
   }
 
+  // La sección IZQUIERDA se dibuja como espejo de las demás (la letra
+  // de la fila queda del lado del pasillo central en vez del lado de
+  // la pared) — ver la clase CSS ".volteada" en entradas-mapa.css.
+  const voltear = titulo === "IZQUIERDA";
+
   (filas || [])
     .sort((a, b) => (a.letra || a.fila || "").localeCompare(b.letra || b.fila || ""))
-    .forEach((f) => bloque.appendChild(crearFilaIndividual(f)));
+    .forEach((f) => bloque.appendChild(crearFilaIndividual(f, voltear)));
 
   return bloque;
 }
 
-function crearFilaIndividual(f) {
+function crearFilaIndividual(f, voltear) {
   const div = document.createElement("div");
-  div.className = "fila-mapa-individual";
+  div.className = "fila-mapa-individual" + (voltear ? " volteada" : "");
 
   const etiqueta = document.createElement("span");
   etiqueta.className = "fila-mapa-etiqueta";
