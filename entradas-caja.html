@@ -91,12 +91,76 @@
     <button class="btn-enlace" id="btnNuevaBusquedaDesdeLink" type="button">Buscar otro código →</button>
   </section>
 
+  <!-- ============ PANTALLA: PAGO EN EFECTIVO CONFIRMADO ============ -->
+  <section id="pantallaEfectivoConfirmado" class="pantalla" hidden>
+    <p class="subtitulo">✅ Pago en efectivo confirmado</p>
+    <p class="aviso-familia">Total cobrado: <strong id="textoTotalEfectivoCaja">Q0.00</strong></p>
+    <p class="aviso-familia">Las entradas ya quedaron marcadas como vendidas y se le avisó a la persona por WhatsApp.</p>
+    <button class="btn-enlace" id="btnNuevaBusquedaDesdeEfectivo" type="button">Buscar otro código →</button>
+  </section>
+
+  <!-- ============ PANTALLA: VENDER ASIENTOS INDIVIDUALES (sin turnos) ============ -->
+  <section id="pantallaAsientosCaja" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnSalirCajaIndividual" type="button">Salir</button>
+      <span class="barra-titulo">Vender asientos</span>
+    </div>
+
+    <p class="aviso-familia">Toca los asientos que la persona quiere — Q165 cada uno.</p>
+
+    <div class="leyenda-mapa">
+      <span class="leyenda-item"><i class="punto punto-disponible"></i>Disponible</span>
+      <span class="leyenda-item"><i class="punto punto-seleccionada"></i>Seleccionado</span>
+      <span class="leyenda-item"><i class="punto punto-vendida"></i>Ocupado</span>
+    </div>
+
+    <div class="mapa-scroll" id="mapaScrollCajaIndividual">
+      <div class="mapa-teatro">
+        <div class="escenario">ESCENARIO</div>
+        <div class="mapa-secciones" id="mapaSeccionesCajaIndividual">
+          <p class="lista-vacia">Cargando mapa de butacas...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">Nombre completo</p>
+      <input type="text" id="inputNombreCajaIndividual" class="input-texto" placeholder="Nombre y apellido" autocomplete="name" />
+    </div>
+    <div class="campo-form">
+      <p class="etiqueta-campo">WhatsApp</p>
+      <input type="tel" id="inputWhatsappCajaIndividual" class="input-texto" placeholder="Ej. 5555 5555" inputmode="numeric" autocomplete="tel" />
+    </div>
+
+    <p class="mensaje-error" id="mensajeErrorCajaIndividual"></p>
+  </section>
+
+  <!-- ============ PANTALLA: RESULTADO DE LA VENTA INDIVIDUAL ============ -->
+  <section id="pantallaResultadoCajaIndividual" class="pantalla" hidden>
+    <p class="subtitulo" id="tituloResultadoCajaIndividual">✅ Listo</p>
+    <p class="aviso-familia" id="detalleResultadoCajaIndividual"></p>
+    <a class="btn-grande btn-siguiente btn-link-pago" id="linkResultadoCajaIndividual" href="#" target="_blank" rel="noopener" hidden>💳 Abrir link de pago</a>
+    <button class="btn-enlace" id="btnNuevaVentaCajaIndividual" type="button">Vender a otra persona →</button>
+  </section>
+
 </div>
 
-<!-- Barra fija con el total y el botón de cobrar, mientras se eligen filas -->
-<div class="barra-total" id="barraTotalSeleccionCaja" hidden>
+<!-- Barra fija con el total y las dos formas de cobrar, mientras se eligen filas -->
+<div class="barra-total barra-total-caja" id="barraTotalSeleccionCaja" hidden>
   <span class="barra-total-texto" id="textoTotalSeleccionCaja">Q0.00</span>
-  <button class="btn-pagar-total" id="btnCobrarFilas" disabled type="button">Generar link de pago →</button>
+  <div class="barra-total-botones">
+    <button class="btn-pagar-total" id="btnCobrarFilas" disabled type="button">💳 Link de pago →</button>
+    <button class="btn-pagar-total btn-pagar-efectivo" id="btnCobrarEfectivo" disabled type="button">💵 Efectivo</button>
+  </div>
+</div>
+
+<!-- Barra fija con el total y las dos formas de cobrar, mientras se eligen asientos individuales -->
+<div class="barra-total barra-total-caja" id="barraTotalCajaIndividual" hidden>
+  <span class="barra-total-texto" id="textoTotalCajaIndividual">Q0.00</span>
+  <div class="barra-total-botones">
+    <button class="btn-pagar-total" id="btnGenerarLinkCajaIndividual" disabled type="button">💳 Link de pago →</button>
+    <button class="btn-pagar-total btn-pagar-efectivo" id="btnCobrarEfectivoCajaIndividual" disabled type="button">💵 Efectivo</button>
+  </div>
 </div>
 
 <script src="entradas-caja.js"></script>

@@ -19,6 +19,7 @@ let clavePantalla = "";
 let horaExpiraActual = null;
 let relojTimer = null;
 let refrescoTimer = null;
+let modoIndividual = false;
 
 function el(id) {
   return document.getElementById(id);
@@ -28,6 +29,7 @@ function mostrarPantalla(id) {
   ["pantallaLogin", "pantallaTablero"].forEach((p) => {
     el(p).hidden = p !== id;
   });
+  document.body.classList.toggle("modo-tablero", id === "pantallaTablero");
 }
 
 async function llamarWorker(payload) {
@@ -127,13 +129,22 @@ function detenerRefrescoAutomatico() {
 
 async function refrescarTablero() {
   try {
-    const [panel, mapa] = await Promise.all([
-      llamarWorker({ accion: "entradasAdminObtenerPanel", clave: clavePantalla }),
-      llamarWorker({ accion: "entradasObtenerMapaFilas", clave: clavePantalla }),
-    ]);
-    pintarTurnoActivo(panel.turnoActivo);
-    pintarStats(panel.conteoFilas || {});
-    pintarMapaTeatro(mapa.filas || []);
+    const panel = await llamarWorker({ accion: "entradasAdminObtenerPanel", clave: clavePantalla });
+    modoIndividual = !!(panel.config && panel.config.ventaIndividualHabilitada);
+    el("tarjetaTurnoVivo").hidden = modoIndividual;
+    el("tarjetaModoIndividualVivo").hidden = !modoIndividual;
+
+    if (modoIndividual) {
+      horaExpiraActual = null;
+      const mapa = await llamarWorker({ accion: "entradasObtenerMapaAsientos" });
+      pintarStatsAsientos(mapa.filas || []);
+      pintarMapaAsientosVivo(mapa.filas || []);
+    } else {
+      const mapa = await llamarWorker({ accion: "entradasObtenerMapaFilas", clave: clavePantalla });
+      pintarTurnoActivo(panel.turnoActivo);
+      pintarStats(panel.conteoFilas || {});
+      pintarMapaTeatro(mapa.filas || []);
+    }
   } catch (e) {
     // Un refresco fallido no debe tumbar la pantalla — simplemente
     // se intenta de nuevo en el siguiente ciclo automático.
@@ -265,6 +276,106 @@ function crearFilaMapa(f) {
   div.title = `Fila ${f.letra || f.fila} — ${f.cantidad} butacas${
     f.estado !== "Disponible" ? " (" + f.estado.toLowerCase() + ")" : ""
   }`;
+
+  div.appendChild(etiqueta);
+  div.appendChild(asientos);
+  return div;
+}
+
+// ==========================================
+// MAPA DE ASIENTOS INDIVIDUALES — SOLO LECTURA (venta sin turnos)
+// ==========================================
+
+function pintarStatsAsientos(filas) {
+  let disponibles = 0;
+  let vendidas = 0;
+  filas.forEach((f) => {
+    (f.butacas || []).forEach((b) => {
+      if (b.estado === "Disponible") disponibles++;
+      else vendidas++;
+    });
+  });
+  el("statDisponiblesVivo").textContent = disponibles;
+  el("statReservadasVivo").textContent = "—";
+  el("statVendidasVivo").textContent = vendidas;
+}
+
+function pintarMapaAsientosVivo(filas) {
+  const cont = el("mapaSecciones");
+  cont.innerHTML = "";
+
+  if (!filas.length) {
+    cont.innerHTML = '<p class="lista-vacia">No se pudo cargar el mapa de butacas.</p>';
+    return;
+  }
+
+  const porSeccion = {};
+  filas.forEach((f) => {
+    const s = f.seccion || "Otra";
+    (porSeccion[s] = porSeccion[s] || []).push(f);
+  });
+
+  const bloqueIzquierda = crearBloqueSeccionAsientos("IZQUIERDA", porSeccion["Izquierda"]);
+
+  const columnaCentro = document.createElement("div");
+  columnaCentro.className = "mapa-columna-centro";
+  const tituloCentro = document.createElement("p");
+  tituloCentro.className = "mapa-bloque-titulo";
+  tituloCentro.textContent = "CENTRO";
+  const filaCentro = document.createElement("div");
+  filaCentro.className = "mapa-grupo-centro";
+  filaCentro.appendChild(crearBloqueSeccionAsientos("", porSeccion["Centro-Izquierda"]));
+  const pasillo = document.createElement("div");
+  pasillo.className = "pasillo-central";
+  filaCentro.appendChild(pasillo);
+  filaCentro.appendChild(crearBloqueSeccionAsientos("", porSeccion["Centro-Derecha"]));
+  columnaCentro.appendChild(tituloCentro);
+  columnaCentro.appendChild(filaCentro);
+
+  const bloqueDerecha = crearBloqueSeccionAsientos("DERECHA", porSeccion["Derecha"]);
+
+  cont.appendChild(bloqueIzquierda);
+  cont.appendChild(columnaCentro);
+  cont.appendChild(bloqueDerecha);
+}
+
+function crearBloqueSeccionAsientos(titulo, filas) {
+  const bloque = document.createElement("div");
+  bloque.className = "mapa-bloque";
+
+  if (titulo) {
+    const t = document.createElement("p");
+    t.className = "mapa-bloque-titulo";
+    t.textContent = titulo;
+    bloque.appendChild(t);
+  }
+
+  (filas || [])
+    .sort((a, b) => (a.letra || a.fila || "").localeCompare(b.letra || b.fila || ""))
+    .forEach((f) => bloque.appendChild(crearFilaAsientosVivo(f)));
+
+  return bloque;
+}
+
+function crearFilaAsientosVivo(f) {
+  const div = document.createElement("div");
+  div.className = "fila-mapa-individual";
+
+  const etiqueta = document.createElement("span");
+  etiqueta.className = "fila-mapa-etiqueta";
+  etiqueta.textContent = f.letra || f.fila || "";
+
+  const asientos = document.createElement("span");
+  asientos.className = "fila-mapa-asientos";
+
+  (f.butacas || []).forEach((b) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "asiento-btn";
+    if (b.estado !== "Disponible") btn.disabled = true;
+    btn.title = `Fila ${f.letra || f.fila} — asiento ${b.numero}${b.estado !== "Disponible" ? " (" + b.estado.toLowerCase() + ")" : ""}`;
+    asientos.appendChild(btn);
+  });
 
   div.appendChild(etiqueta);
   div.appendChild(asientos);

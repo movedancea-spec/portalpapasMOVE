@@ -146,6 +146,9 @@ function pintarPanel(datos) {
   if (document.activeElement !== el("inputHoraApertura")) {
     el("inputHoraApertura").value = utcIsoAGuatemalaLocal(c.horaApertura);
   }
+  if (document.activeElement !== el("chkVentaIndividual")) {
+    el("chkVentaIndividual").checked = !!c.ventaIndividualHabilitada;
+  }
 
   const registroAbierto =
     c.ventaHabilitada && (!c.horaApertura || new Date() >= new Date(c.horaApertura));
@@ -187,8 +190,57 @@ function pintarPanel(datos) {
   el("statTurnosCancelado").textContent = datos.conteoTurnos["Cancelado"] || 0;
 
   el("textoIngresosConfirmados").textContent = `Q${Number(datos.ingresosConfirmados || 0).toFixed(2)}`;
+  el("textoDesgloseIngresos").textContent =
+    `Por turnos: Q${Number(datos.ingresosPorTurnos || 0).toFixed(2)} · Individual: Q${Number(
+      datos.ingresosIndividuales || 0
+    ).toFixed(2)}`;
 
   pintarListaTurnos(datos.turnos || []);
+  pintarListaComprasIndividuales(datos.comprasIndividuales || []);
+}
+
+const BADGE_POR_ESTADO_INDIVIDUAL = {
+  "Reservado": "badge-pendiente",
+  "Pagado": "badge-completado",
+  "Vencido": "badge-vencido",
+  "Cancelado": "badge-cancelado",
+};
+
+function pintarListaComprasIndividuales(compras) {
+  el("tarjetaComprasIndividuales").hidden = compras.length === 0;
+  if (!compras.length) return;
+
+  const cont = el("listaComprasIndividuales");
+  cont.innerHTML = "";
+  compras.forEach((c) => {
+    const fila = document.createElement("div");
+    fila.className = "fila-turno-admin";
+
+    const info = document.createElement("div");
+    info.className = "fila-turno-admin-info";
+    info.innerHTML = `
+      <span class="fila-turno-admin-nombre">${c.nombre || "(sin nombre)"}</span>
+      <span class="fila-turno-admin-detalle">${c.resumen || ""}${c.formaPago ? " · " + c.formaPago : ""}</span>
+    `;
+
+    const der = document.createElement("div");
+    der.className = "fila-turno-admin-derecha";
+
+    const total = document.createElement("span");
+    total.className = "fila-turno-admin-numero";
+    total.textContent = `Q${Number(c.total || 0).toFixed(2)}`;
+
+    const badge = document.createElement("span");
+    badge.className = "badge-turno " + (BADGE_POR_ESTADO_INDIVIDUAL[c.estado] || "badge-pendiente");
+    badge.textContent = c.estado || "";
+
+    der.appendChild(total);
+    der.appendChild(badge);
+
+    fila.appendChild(info);
+    fila.appendChild(der);
+    cont.appendChild(fila);
+  });
 }
 
 const BADGE_POR_ESTADO = {
@@ -307,6 +359,52 @@ async function saltarTurnoActivo() {
   }
 }
 
+// ==========================================
+// VENTA INDIVIDUAL (apaga el sistema de turnos)
+// ==========================================
+
+async function guardarVentaIndividual() {
+  const btn = el("btnGuardarVentaIndividual");
+  const msg = el("mensajeVentaIndividual");
+  msg.textContent = "";
+  msg.className = "mensaje-form";
+
+  const activando = el("chkVentaIndividual").checked;
+  const yaEstaba = panelActual && panelActual.config && !!panelActual.config.ventaIndividualHabilitada;
+
+  if (activando && !yaEstaba) {
+    const confirmado = window.confirm(
+      "¿Activar la venta individual? Desde este momento se apaga el sistema de turnos: cualquiera puede entrar directo a elegir sus asientos y pagar, sin turno. Si ya se vendieron asientos sueltos, no se puede volver limpio al modo de fila completa."
+    );
+    if (!confirmado) return;
+  } else if (!activando && yaEstaba) {
+    const confirmado = window.confirm(
+      "¿Apagar la venta individual? Ojo: si ya se vendieron asientos sueltos dentro de alguna fila, esa fila queda con una mezcla que el sistema de turnos (que vende por fila completa) no sabe manejar bien."
+    );
+    if (!confirmado) return;
+  }
+
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Guardando...";
+  try {
+    await llamarWorker({
+      accion: "entradasAdminActualizarConfig",
+      clave: claveAdmin,
+      campos: { ventaIndividualHabilitada: activando },
+    });
+    msg.textContent = "✅ Guardado.";
+    msg.className = "mensaje-form mensaje-form-ok";
+    await cargarPanel();
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = "mensaje-form mensaje-form-error";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
 async function guardarConfig() {
   const btn = el("btnGuardarConfig");
   const msg = el("mensajeConfig");
@@ -361,6 +459,7 @@ el("inputClaveAdmin").addEventListener("keydown", (e) => {
 el("btnActualizarPanel").addEventListener("click", cargarPanel);
 el("btnGuardarConfig").addEventListener("click", guardarConfig);
 el("btnSaltarTurno").addEventListener("click", saltarTurnoActivo);
+el("btnGuardarVentaIndividual").addEventListener("click", guardarVentaIndividual);
 el("inputBuscarTurno").addEventListener("input", () => {
   if (panelActual) pintarListaTurnos(panelActual.turnos || []);
 });

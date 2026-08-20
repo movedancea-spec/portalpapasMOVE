@@ -168,6 +168,58 @@ border-color:#e2e2e2;
 .fila-mapa:not(:disabled):active .asiento{ transform:scale(.85); }
 
 /*=====================================
+BUTACAS INDIVIDUALES (venta sin turnos) — cada asiento es su
+propio botón clicable, en vez de que toda la fila se elija junta.
+=====================================*/
+
+.fila-mapa-individual{
+display:flex;
+align-items:center;
+gap:6px;
+padding:2px 0;
+}
+
+.fila-mapa-individual .fila-mapa-etiqueta{
+width:26px;
+flex-shrink:0;
+font-size:10px;
+font-weight:800;
+color:#bbb;
+text-align:right;
+}
+
+.fila-mapa-individual .fila-mapa-asientos{
+display:flex;
+gap:3px;
+}
+
+.asiento-btn{
+width:15px;
+height:15px;
+border-radius:4px;
+background:white;
+border:2px solid #ffb3d3;
+transition:.15s;
+flex-shrink:0;
+padding:0;
+cursor:pointer;
+}
+
+.asiento-btn.seleccionado{
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+border-color:#ef4b9b;
+transform:scale(1.05);
+}
+
+.asiento-btn:disabled{
+background:#e2e2e2;
+border-color:#e2e2e2;
+cursor:not-allowed;
+}
+
+.asiento-btn:not(:disabled):active{ transform:scale(.85); }
+
+/*=====================================
 CRONÓMETRO (turno en curso)
 =====================================*/
 

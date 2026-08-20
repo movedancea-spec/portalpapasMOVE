@@ -14,63 +14,79 @@
 </head>
 <body>
 
-<div class="container">
-
+<!-- ============ PANTALLA: CLAVE (tarjeta chica, como el resto de la app) ============ -->
+<div class="container" id="pantallaLogin">
   <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
   <div class="title">🎟️ Entradas — Pantalla en Vivo</div>
-
-  <!-- ============ PANTALLA: CLAVE ============ -->
-  <section id="pantallaLogin" class="pantalla">
+  <section class="pantalla">
     <p class="subtitulo">🔒 Escribe la clave del panel</p>
     <input type="password" id="inputClavePantalla" class="input-clave" placeholder="••••" autocomplete="off" />
     <button class="btn-grande btn-siguiente" id="btnEntrarPantalla">Entrar →</button>
     <p class="mensaje-error" id="mensajeErrorLogin"></p>
   </section>
+</div>
 
-  <!-- ============ PANTALLA: TABLERO EN VIVO ============ -->
-  <section id="pantallaTablero" class="pantalla" hidden>
+<!-- ============ PANTALLA: TABLERO EN VIVO (ocupa toda la pantalla) ============ -->
+<section id="pantallaTablero" class="tablero-vivo" hidden>
 
+  <header class="tablero-header">
+    <div class="tablero-header-marca">
+      <img src="logo.png" alt="MOVE Dance Academy" class="tablero-logo" />
+      <span class="tablero-titulo">Entradas — Show Fin de Año</span>
+    </div>
     <p class="reloj-vivo" id="textoRelojVivo">—</p>
+  </header>
 
-    <div class="tarjeta-turno-vivo" id="tarjetaTurnoVivo">
-      <p class="etiqueta-turno-vivo">Turno en curso</p>
-      <p class="numero-turno-vivo" id="textoNumeroTurnoVivo">—</p>
-      <p class="nombre-turno-vivo" id="textoNombreTurnoVivo"></p>
-      <p class="cronometro-turno-vivo" id="textoCronometroVivo"></p>
-    </div>
+  <div class="tablero-cuerpo">
 
-    <div class="grid-stats-vivo">
-      <div class="stat-caja-vivo">
-        <span class="stat-numero-vivo" id="statDisponiblesVivo">—</span>
-        <span class="stat-etiqueta-vivo">Disponibles</span>
+    <aside class="tablero-lateral">
+      <div class="tarjeta-turno-vivo" id="tarjetaTurnoVivo">
+        <p class="etiqueta-turno-vivo">Turno en curso</p>
+        <p class="numero-turno-vivo" id="textoNumeroTurnoVivo">—</p>
+        <p class="nombre-turno-vivo" id="textoNombreTurnoVivo"></p>
+        <p class="cronometro-turno-vivo" id="textoCronometroVivo"></p>
       </div>
-      <div class="stat-caja-vivo">
-        <span class="stat-numero-vivo" id="statReservadasVivo">—</span>
-        <span class="stat-etiqueta-vivo">Reservadas</span>
-      </div>
-      <div class="stat-caja-vivo">
-        <span class="stat-numero-vivo" id="statVendidasVivo">—</span>
-        <span class="stat-etiqueta-vivo">Vendidas</span>
-      </div>
-    </div>
 
-    <div class="leyenda-mapa">
-      <span class="leyenda-item"><i class="punto punto-disponible"></i>Disponible</span>
-      <span class="leyenda-item"><i class="punto punto-vendida"></i>Ocupada (reservada o vendida)</span>
-    </div>
+      <div class="tarjeta-turno-vivo" id="tarjetaModoIndividualVivo" hidden>
+        <p class="etiqueta-turno-vivo">Venta individual</p>
+        <p class="texto-modo-individual-vivo">🟢 En curso — cualquiera puede comprar sus asientos, sin turno.</p>
+      </div>
 
-    <div class="mapa-scroll" id="mapaScroll">
-      <div class="mapa-teatro">
-        <div class="escenario">ESCENARIO</div>
-        <div class="mapa-secciones" id="mapaSecciones">
-          <p class="lista-vacia">Cargando mapa de butacas...</p>
+      <div class="grid-stats-vivo">
+        <div class="stat-caja-vivo">
+          <span class="stat-numero-vivo" id="statDisponiblesVivo">—</span>
+          <span class="stat-etiqueta-vivo">Disponibles</span>
+        </div>
+        <div class="stat-caja-vivo">
+          <span class="stat-numero-vivo" id="statReservadasVivo">—</span>
+          <span class="stat-etiqueta-vivo">Reservadas</span>
+        </div>
+        <div class="stat-caja-vivo">
+          <span class="stat-numero-vivo" id="statVendidasVivo">—</span>
+          <span class="stat-etiqueta-vivo">Vendidas</span>
+        </div>
+      </div>
+
+      <div class="leyenda-mapa leyenda-mapa-vivo">
+        <span class="leyenda-item"><i class="punto punto-disponible"></i>Disponible</span>
+        <span class="leyenda-item"><i class="punto punto-vendida"></i>Ocupada</span>
+      </div>
+    </aside>
+
+    <div class="tablero-mapa-col">
+      <div class="mapa-scroll" id="mapaScroll">
+        <div class="mapa-teatro">
+          <div class="escenario">ESCENARIO</div>
+          <div class="mapa-secciones" id="mapaSecciones">
+            <p class="lista-vacia">Cargando mapa de butacas...</p>
+          </div>
         </div>
       </div>
     </div>
 
-  </section>
+  </div>
 
-</div>
+</section>
 
 <script src="entradas-pantalla.js"></script>
 </body>

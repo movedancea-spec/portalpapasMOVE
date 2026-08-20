@@ -24,6 +24,14 @@ let horaExpiraActual = null; // objeto Date, o null
 let pollTimer = null;
 let cronTimer = null;
 
+// Venta individual (sin turnos) — cuando Ana la activa desde el
+// panel, esta página deja de usar registro/turno por completo y
+// entra directo aquí.
+let asientosSeleccionados = new Map(); // "filaId:numero" -> {filaId, numero, precio}
+let mapaIndividualCache = [];
+let cronIndividualTimer = null;
+let horaExpiraIndividual = null;
+
 function el(id) {
   return document.getElementById(id);
 }
@@ -35,15 +43,21 @@ const PANTALLAS = [
   "pantallaBuscarCodigo",
   "pantallaRegistrado",
   "pantallaMiTurno",
+  "pantallaAsientosIndividual",
+  "pantallaLinkIndividual",
 ];
 
 function mostrarPantalla(id) {
   PANTALLAS.forEach((p) => {
     el(p).hidden = p !== id;
   });
+  el("barraTotalIndividual").hidden = id !== "pantallaAsientosIndividual";
   if (id !== "pantallaMiTurno") {
     detenerPollTurno();
     detenerCronometro();
+  }
+  if (id !== "pantallaAsientosIndividual") {
+    detenerCronometroIndividual();
   }
 }
 
@@ -110,55 +124,81 @@ function leerCodigoGuardado() {
 // ==========================================
 
 async function iniciar() {
+  // Si la venta individual está habilitada, el sistema de turnos
+  // está apagado por completo — se ignora cualquier código de turno
+  // guardado de antes y se va directo a elegir asientos, sin
+  // registro ni espera.
+  let datos;
+  try {
+    datos = await llamarWorker({ accion: "entradasEstadoGeneral" });
+  } catch (e) {
+    datos = null;
+  }
+
+  if (datos && datos.configurado && datos.ventaIndividualHabilitada) {
+    await abrirPantallaAsientosIndividual(datos);
+    return;
+  }
+
   const guardado = leerCodigoGuardado();
   if (guardado) {
     codigoActual = guardado;
     await cargarYMostrarTurno();
     return;
   }
-  await cargarPantallaInicial();
+
+  mostrarPantallaInicialConDatos(datos);
 }
 
 async function cargarPantallaInicial() {
+  let datos;
   try {
-    const datos = await llamarWorker({ accion: "entradasEstadoGeneral" });
-
-    if (!datos.configurado) {
-      el("textoEventoCerrado").textContent = "Entradas";
-      el("textoMensajeCerrado").textContent =
-        "Todavía no está lista la venta de entradas. Vuelve a intentarlo más tarde.";
-      mostrarPantalla("pantallaCerrado");
-      return;
-    }
-
-    const encabezado = `${datos.evento}${datos.fechaShow ? " — " + formatearFechaHora(datos.fechaShow) : ""}`;
-
-    if (!datos.registroAbierto) {
-      el("textoEventoCerrado").textContent = encabezado;
-      if (!datos.ventaHabilitada) {
-        el("textoMensajeCerrado").textContent =
-          "El registro para escoger turno todavía no está habilitado. Vuelve a revisar más tarde.";
-      } else if (datos.horaApertura) {
-        el("textoMensajeCerrado").textContent =
-          `El registro abre el ${formatearFechaHora(datos.horaApertura)}. Vuelve en ese momento para registrarte y escoger tu turno.`;
-      } else {
-        el("textoMensajeCerrado").textContent = "El registro para escoger turno todavía no abre.";
-      }
-      mostrarPantalla("pantallaCerrado");
-      return;
-    }
-
-    el("textoEventoRegistro").textContent = encabezado;
-    el("avisoFilasDisponibles").textContent =
-      datos.filasDisponibles > 0
-        ? `Quedan ${datos.filasDisponibles} filas disponibles.`
-        : "Por el momento ya no quedan filas disponibles.";
-    mostrarPantalla("pantallaRegistro");
+    datos = await llamarWorker({ accion: "entradasEstadoGeneral" });
   } catch (e) {
     el("textoEventoCerrado").textContent = "Entradas";
     el("textoMensajeCerrado").textContent = e.message || "No se pudo cargar la información. Intenta de nuevo.";
     mostrarPantalla("pantallaCerrado");
+    return;
   }
+  if (datos && datos.configurado && datos.ventaIndividualHabilitada) {
+    await abrirPantallaAsientosIndividual(datos);
+    return;
+  }
+  mostrarPantallaInicialConDatos(datos);
+}
+
+function mostrarPantallaInicialConDatos(datos) {
+  if (!datos || !datos.configurado) {
+    el("textoEventoCerrado").textContent = "Entradas";
+    el("textoMensajeCerrado").textContent =
+      "Todavía no está lista la venta de entradas. Vuelve a intentarlo más tarde.";
+    mostrarPantalla("pantallaCerrado");
+    return;
+  }
+
+  const encabezado = `${datos.evento}${datos.fechaShow ? " — " + formatearFechaHora(datos.fechaShow) : ""}`;
+
+  if (!datos.registroAbierto) {
+    el("textoEventoCerrado").textContent = encabezado;
+    if (!datos.ventaHabilitada) {
+      el("textoMensajeCerrado").textContent =
+        "El registro para escoger turno todavía no está habilitado. Vuelve a revisar más tarde.";
+    } else if (datos.horaApertura) {
+      el("textoMensajeCerrado").textContent =
+        `El registro abre el ${formatearFechaHora(datos.horaApertura)}. Vuelve en ese momento para registrarte y escoger tu turno.`;
+    } else {
+      el("textoMensajeCerrado").textContent = "El registro para escoger turno todavía no abre.";
+    }
+    mostrarPantalla("pantallaCerrado");
+    return;
+  }
+
+  el("textoEventoRegistro").textContent = encabezado;
+  el("avisoFilasDisponibles").textContent =
+    datos.filasDisponibles > 0
+      ? `Quedan ${datos.filasDisponibles} filas disponibles.`
+      : "Por el momento ya no quedan filas disponibles.";
+  mostrarPantalla("pantallaRegistro");
 }
 
 // ==========================================
@@ -359,6 +399,197 @@ function actualizarCronometro() {
 }
 
 // ==========================================
+// VENTA INDIVIDUAL (sin turnos) — elegir asientos sueltos y pagar
+// ==========================================
+
+async function abrirPantallaAsientosIndividual(datosGenerales) {
+  mostrarPantalla("pantallaAsientosIndividual");
+  asientosSeleccionados.clear();
+  actualizarBarraTotalIndividual();
+  el("mensajeErrorIndividual").textContent = "";
+  await cargarMapaAsientosIndividual();
+}
+
+async function cargarMapaAsientosIndividual() {
+  const cont = el("mapaSeccionesIndividual");
+  cont.innerHTML = '<p class="lista-vacia">Cargando mapa de butacas...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "entradasObtenerMapaAsientos" });
+    mapaIndividualCache = datos.filas || [];
+    pintarMapaAsientosIndividual();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message || "No se pudo cargar el mapa de butacas."}</p>`;
+  }
+}
+
+function pintarMapaAsientosIndividual() {
+  const cont = el("mapaSeccionesIndividual");
+  cont.innerHTML = "";
+
+  if (!mapaIndividualCache.length) {
+    cont.innerHTML = '<p class="lista-vacia">No se pudo cargar el mapa de butacas.</p>';
+    return;
+  }
+
+  const porSeccion = {};
+  mapaIndividualCache.forEach((f) => {
+    const s = f.seccion || "Otra";
+    (porSeccion[s] = porSeccion[s] || []).push(f);
+  });
+
+  const bloqueIzquierda = crearBloqueSeccionIndividual("IZQUIERDA", porSeccion["Izquierda"]);
+
+  const columnaCentro = document.createElement("div");
+  columnaCentro.className = "mapa-columna-centro";
+  const tituloCentro = document.createElement("p");
+  tituloCentro.className = "mapa-bloque-titulo";
+  tituloCentro.textContent = "CENTRO";
+  const filaCentro = document.createElement("div");
+  filaCentro.className = "mapa-grupo-centro";
+  filaCentro.appendChild(crearBloqueSeccionIndividual("", porSeccion["Centro-Izquierda"]));
+  const pasillo = document.createElement("div");
+  pasillo.className = "pasillo-central";
+  filaCentro.appendChild(pasillo);
+  filaCentro.appendChild(crearBloqueSeccionIndividual("", porSeccion["Centro-Derecha"]));
+  columnaCentro.appendChild(tituloCentro);
+  columnaCentro.appendChild(filaCentro);
+
+  const bloqueDerecha = crearBloqueSeccionIndividual("DERECHA", porSeccion["Derecha"]);
+
+  cont.appendChild(bloqueIzquierda);
+  cont.appendChild(columnaCentro);
+  cont.appendChild(bloqueDerecha);
+}
+
+function crearBloqueSeccionIndividual(titulo, filas) {
+  const bloque = document.createElement("div");
+  bloque.className = "mapa-bloque";
+
+  if (titulo) {
+    const t = document.createElement("p");
+    t.className = "mapa-bloque-titulo";
+    t.textContent = titulo;
+    bloque.appendChild(t);
+  }
+
+  (filas || [])
+    .sort((a, b) => (a.letra || a.fila || "").localeCompare(b.letra || b.fila || ""))
+    .forEach((f) => bloque.appendChild(crearFilaIndividual(f)));
+
+  return bloque;
+}
+
+function crearFilaIndividual(f) {
+  const div = document.createElement("div");
+  div.className = "fila-mapa-individual";
+
+  const etiqueta = document.createElement("span");
+  etiqueta.className = "fila-mapa-etiqueta";
+  etiqueta.textContent = f.letra || f.fila || "";
+
+  const asientos = document.createElement("span");
+  asientos.className = "fila-mapa-asientos";
+
+  (f.butacas || []).forEach((b) => {
+    const clave = `${f.id}:${b.numero}`;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "asiento-btn";
+    btn.title = `Fila ${f.letra || f.fila} — asiento ${b.numero} — Q${Number(f.precioPorButaca || 0).toFixed(2)}`;
+
+    if (b.estado !== "Disponible") {
+      btn.disabled = true;
+    } else {
+      if (asientosSeleccionados.has(clave)) btn.classList.add("seleccionado");
+      btn.addEventListener("click", () => {
+        if (asientosSeleccionados.has(clave)) {
+          asientosSeleccionados.delete(clave);
+        } else {
+          asientosSeleccionados.set(clave, { filaId: f.id, numero: b.numero, precio: f.precioPorButaca || 0 });
+        }
+        btn.classList.toggle("seleccionado", asientosSeleccionados.has(clave));
+        actualizarBarraTotalIndividual();
+      });
+    }
+
+    asientos.appendChild(btn);
+  });
+
+  div.appendChild(etiqueta);
+  div.appendChild(asientos);
+  return div;
+}
+
+function actualizarBarraTotalIndividual() {
+  let total = 0;
+  asientosSeleccionados.forEach((a) => {
+    total += Number(a.precio || 0);
+  });
+  el("textoTotalSeleccionIndividual").textContent = `Q${total.toFixed(2)}`;
+  el("btnGenerarLinkIndividual").disabled = asientosSeleccionados.size === 0;
+}
+
+function armarSeleccionesPorFila() {
+  const porFila = new Map();
+  asientosSeleccionados.forEach((a) => {
+    if (!porFila.has(a.filaId)) porFila.set(a.filaId, []);
+    porFila.get(a.filaId).push(a.numero);
+  });
+  return Array.from(porFila.entries()).map(([filaId, butacas]) => ({ filaId, butacas }));
+}
+
+async function generarLinkIndividual() {
+  const btn = el("btnGenerarLinkIndividual");
+  const msg = el("mensajeErrorIndividual");
+  msg.textContent = "";
+
+  const nombre = el("inputNombreIndividual").value.trim();
+  const whatsapp = el("inputWhatsappIndividual").value.trim();
+  if (!nombre) {
+    msg.textContent = "Escribe tu nombre completo.";
+    return;
+  }
+  if (!whatsapp) {
+    msg.textContent = "Escribe tu número de WhatsApp.";
+    return;
+  }
+  if (!asientosSeleccionados.size) return;
+
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Generando link...";
+  try {
+    const selecciones = armarSeleccionesPorFila();
+    const datos = await llamarWorker({
+      accion: "entradasComprarAsientosIndividual",
+      nombre,
+      whatsapp,
+      selecciones,
+    });
+    el("textoTotalLinkIndividual").textContent = `Q${Number(datos.total || 0).toFixed(2)}`;
+    el("linkPagarIndividual").href = datos.link;
+    mostrarPantalla("pantallaLinkIndividual");
+  } catch (e) {
+    msg.textContent = e.message;
+    if (String(e.message || "").toLowerCase().includes("disponible")) {
+      asientosSeleccionados.clear();
+      actualizarBarraTotalIndividual();
+      cargarMapaAsientosIndividual();
+    }
+  } finally {
+    btn.disabled = asientosSeleccionados.size === 0;
+    btn.textContent = textoOriginal;
+  }
+}
+
+function detenerCronometroIndividual() {
+  if (cronIndividualTimer) {
+    clearInterval(cronIndividualTimer);
+    cronIndividualTimer = null;
+  }
+}
+
+// ==========================================
 // EVENTOS
 // ==========================================
 
@@ -383,6 +614,15 @@ el("btnOtroCodigo").addEventListener("click", () => {
   el("inputCodigoManual").value = "";
   el("mensajeErrorCodigo").textContent = "";
   mostrarPantalla("pantallaBuscarCodigo");
+});
+
+el("btnGenerarLinkIndividual").addEventListener("click", generarLinkIndividual);
+el("btnElegirOtrosAsientos").addEventListener("click", () => {
+  asientosSeleccionados.clear();
+  actualizarBarraTotalIndividual();
+  el("mensajeErrorIndividual").textContent = "";
+  mostrarPantalla("pantallaAsientosIndividual");
+  cargarMapaAsientosIndividual();
 });
 
 iniciar();

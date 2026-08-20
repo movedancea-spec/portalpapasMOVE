@@ -1,34 +1,125 @@
 /* ===================================================
    MOVE — PANTALLA EN VIVO DE ENTRADAS (recepción)
-   Pensada para quedar abierta en un monitor/tablet en
-   recepción: turno en curso, cronómetro, disponibilidad y
-   mapa de butacas, todo actualizándose solo.
-   Se apoya en recepcion.css y entradas-mapa.css.
+   Pensada para quedar abierta a pantalla completa en un
+   monitor/TV de recepción: turno en curso, cronómetro,
+   disponibilidad y mapa de butacas, todo actualizándose
+   solo. El tamaño de todo se ajusta según el tamaño real
+   de la pantalla donde se abra (celular, tablet o un
+   monitor grande) usando unidades relativas al viewport.
+   Se apoya en recepcion.css (para la pantalla de clave) y
+   entradas-mapa.css (piezas del mapa de butacas).
 =================================================== */
 
-.container{
-max-width:760px;
+html, body{
+height:100%;
+}
+
+/* Mientras se ve la pantalla de clave, se comporta igual que el
+   resto de la app (tarjeta chica centrada). En cuanto entra al
+   tablero, body.modo-tablero quita ese padding/centrado para que
+   el tablero pueda usar la pantalla completa. */
+body.modo-tablero{
+padding:0;
+align-items:stretch;
+overflow:hidden;
+}
+
+.tablero-vivo{
+width:100%;
+height:100dvh;
+display:flex;
+flex-direction:column;
+padding:clamp(10px,1.6vh,22px) clamp(12px,2vw,28px);
+gap:clamp(8px,1.4vh,18px);
+}
+
+/*=====================================
+ENCABEZADO
+=====================================*/
+
+.tablero-header{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:14px;
+flex-shrink:0;
+}
+
+.tablero-header-marca{
+display:flex;
+align-items:center;
+gap:12px;
+min-width:0;
+}
+
+.tablero-logo{
+height:clamp(28px,4.5vh,52px);
+width:auto;
+filter:drop-shadow(0 8px 14px rgba(239,75,155,.2));
+}
+
+.tablero-titulo{
+font-size:clamp(15px,2.4vh,26px);
+font-weight:800;
+color:#ef4b9b;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
 }
 
 .reloj-vivo{
-text-align:center;
-font-size:clamp(15px,4vw,18px);
+font-size:clamp(13px,1.9vh,20px);
 font-weight:700;
 color:#a15277;
-margin-bottom:14px;
+white-space:nowrap;
 }
+
+/*=====================================
+CUERPO: barra lateral + mapa
+=====================================*/
+
+.tablero-cuerpo{
+flex:1;
+min-height:0;
+display:flex;
+gap:clamp(10px,1.6vw,22px);
+}
+
+.tablero-lateral{
+flex:0 0 clamp(190px,20vw,320px);
+display:flex;
+flex-direction:column;
+gap:clamp(8px,1.4vh,16px);
+overflow-y:auto;
+}
+
+.tablero-mapa-col{
+flex:1;
+min-width:0;
+display:flex;
+flex-direction:column;
+border:2px solid #ffe3f0;
+border-radius:clamp(14px,1.8vh,24px);
+background:rgba(255,255,255,.6);
+padding:clamp(8px,1.4vh,18px);
+overflow:hidden;
+}
+
+/*=====================================
+TARJETA DE TURNO EN CURSO
+=====================================*/
 
 .tarjeta-turno-vivo{
 border:2px solid #ffe3f0;
-border-radius:20px;
-padding:20px 16px;
+border-radius:clamp(14px,1.8vh,22px);
+padding:clamp(10px,1.8vh,20px) clamp(10px,1.4vw,18px);
 background:white;
 text-align:center;
-margin-bottom:14px;
+flex-shrink:0;
 }
 
 .etiqueta-turno-vivo{
-font-size:12px;
+font-size:clamp(10px,1.3vh,13px);
 font-weight:800;
 letter-spacing:1px;
 color:#999;
@@ -36,25 +127,37 @@ text-transform:uppercase;
 }
 
 .numero-turno-vivo{
-font-size:clamp(40px,13vw,64px);
+font-size:clamp(36px,7.5vh,84px);
 font-weight:800;
 color:#ef4b9b;
 line-height:1;
-margin-top:4px;
+margin-top:2px;
 }
 
 .nombre-turno-vivo{
-font-size:clamp(15px,4.2vw,18px);
+font-size:clamp(13px,1.8vh,19px);
 font-weight:700;
 color:#555;
 margin-top:4px;
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+
+.texto-modo-individual-vivo{
+font-size:clamp(13px,1.8vh,19px);
+font-weight:700;
+color:#555;
+margin-top:6px;
+white-space:normal;
+line-height:1.35;
 }
 
 .cronometro-turno-vivo{
-font-size:clamp(20px,6vw,28px);
+font-size:clamp(18px,3.4vh,36px);
 font-weight:800;
 color:#ef4b9b;
-margin-top:10px;
+margin-top:8px;
 }
 
 .cronometro-turno-vivo.urgente{
@@ -67,11 +170,15 @@ from{ transform:scale(1); }
 to{ transform:scale(1.05); }
 }
 
+/*=====================================
+ESTADÍSTICAS
+=====================================*/
+
 .grid-stats-vivo{
 display:grid;
 grid-template-columns:repeat(3,1fr);
-gap:8px;
-margin-bottom:16px;
+gap:clamp(6px,.8vw,10px);
+flex-shrink:0;
 }
 
 .stat-caja-vivo{
@@ -81,25 +188,117 @@ align-items:center;
 justify-content:center;
 gap:2px;
 border:2px solid #ffe3f0;
-border-radius:14px;
-padding:12px 6px;
+border-radius:clamp(10px,1.4vh,16px);
+padding:clamp(8px,1.3vh,14px) 4px;
 background:#fffafc;
 }
 
 .stat-numero-vivo{
-font-size:clamp(20px,6vw,28px);
+font-size:clamp(17px,2.8vh,30px);
 font-weight:800;
 color:#ef4b9b;
 }
 
 .stat-etiqueta-vivo{
-font-size:11px;
+font-size:clamp(9px,1.1vh,12px);
 font-weight:700;
 color:#999;
 text-align:center;
 }
 
-/* El mapa aquí es de solo lectura — sin manita de "puedes hacer clic". */
+.leyenda-mapa-vivo{
+justify-content:flex-start;
+margin:0;
+flex-shrink:0;
+}
+
+/*=====================================
+MAPA — se agranda según el espacio real que haya
+=====================================*/
+
+#pantallaTablero .mapa-scroll{
+flex:1;
+min-height:0;
+margin-bottom:0;
+display:flex;
+align-items:center;
+}
+
+#pantallaTablero .mapa-teatro{
+width:100%;
+gap:clamp(10px,2vh,26px);
+}
+
+#pantallaTablero .escenario{
+font-size:clamp(10px,1.3vh,15px);
+padding:clamp(6px,1vh,12px) 10px;
+}
+
+#pantallaTablero .mapa-secciones{
+gap:clamp(10px,1.8vw,32px);
+}
+
+#pantallaTablero .mapa-bloque-titulo{
+font-size:clamp(9px,1.1vh,13px);
+margin-bottom:clamp(2px,.6vh,8px);
+}
+
 #pantallaTablero .fila-mapa{
+gap:clamp(4px,.6vw,10px);
+padding:clamp(1px,.3vh,3px) 0;
 cursor:default;
+}
+
+#pantallaTablero .fila-mapa-individual{
+gap:clamp(4px,.6vw,10px);
+padding:clamp(1px,.3vh,3px) 0;
+}
+
+#pantallaTablero .asiento-btn{
+cursor:default;
+width:clamp(10px,1.6vh,22px);
+height:clamp(10px,1.6vh,22px);
+border-radius:clamp(3px,.4vh,6px);
+}
+
+#pantallaTablero .fila-mapa-etiqueta{
+width:clamp(18px,2vw,32px);
+font-size:clamp(9px,1.1vh,13px);
+}
+
+#pantallaTablero .fila-mapa-asientos{
+gap:clamp(2px,.4vw,5px);
+}
+
+#pantallaTablero .asiento{
+width:clamp(10px,1.6vh,22px);
+height:clamp(10px,1.6vh,22px);
+border-radius:clamp(3px,.4vh,6px);
+}
+
+#pantallaTablero .pasillo-central{
+width:clamp(14px,2.2vw,34px);
+}
+
+/* En pantallas angostas (celular en vertical, por ejemplo si Ana
+   quiere revisarlo desde su teléfono) se apila todo en una sola
+   columna en vez de barra lateral + mapa lado a lado. */
+@media (max-width:760px){
+.tablero-cuerpo{
+flex-direction:column;
+overflow-y:auto;
+}
+.tablero-lateral{
+flex:0 0 auto;
+}
+.tablero-mapa-col{
+flex:1 1 auto;
+}
+.tablero-header{
+flex-wrap:wrap;
+row-gap:4px;
+}
+.tablero-titulo{
+white-space:normal;
+}
 }

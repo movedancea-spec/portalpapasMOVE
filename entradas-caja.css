@@ -15,7 +15,8 @@ letter-spacing:8px;
 
 /* Deja espacio abajo para que la barra fija de total/pago no
    tape el final del mapa de butacas. */
-#pantallaComprarCaja{
+#pantallaComprarCaja,
+#pantallaAsientosCaja{
 padding-bottom:90px;
 }
 
@@ -56,4 +57,28 @@ margin-top:6px;
 .detalle-estado-turno.urgente{
 color:#e0245e;
 font-weight:800;
+}
+
+/*=====================================
+BARRA DE COBRO (dos formas de pago)
+=====================================*/
+
+.barra-total-caja{
+flex-direction:column;
+align-items:stretch;
+gap:8px;
+}
+
+.barra-total-botones{
+display:flex;
+gap:10px;
+}
+
+.barra-total-botones .btn-pagar-total{
+max-width:none;
+}
+
+.btn-pagar-efectivo{
+background:linear-gradient(180deg,#3ec98b,#1f9d63);
+box-shadow:0 8px 20px rgba(31,157,99,.30);
 }

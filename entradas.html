@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="recepcion.css" />
+<link rel="stylesheet" href="entradas-mapa.css" />
 <link rel="stylesheet" href="entradas.css" />
 </head>
 <body>
@@ -93,6 +94,53 @@
     <button class="btn-enlace" id="btnOtroCodigo" type="button">Consultar con otro código</button>
   </section>
 
+  <!-- ============ PANTALLA: ELEGIR ASIENTOS (venta individual, sin turno) ============ -->
+  <section id="pantallaAsientosIndividual" class="pantalla" hidden>
+    <p class="subtitulo">Elige tus asientos</p>
+    <p class="aviso-familia">Toca los asientos que quieras — Q165 cada uno. Al generar el link de pago tienes 10 minutos para completarlo antes de que se suelten.</p>
+
+    <div class="leyenda-mapa">
+      <span class="leyenda-item"><i class="punto punto-disponible"></i>Disponible</span>
+      <span class="leyenda-item"><i class="punto punto-seleccionada"></i>Seleccionado</span>
+      <span class="leyenda-item"><i class="punto punto-vendida"></i>Ocupado</span>
+    </div>
+
+    <div class="mapa-scroll" id="mapaScrollIndividual">
+      <div class="mapa-teatro">
+        <div class="escenario">ESCENARIO</div>
+        <div class="mapa-secciones" id="mapaSeccionesIndividual">
+          <p class="lista-vacia">Cargando mapa de butacas...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">Nombre completo</p>
+      <input type="text" id="inputNombreIndividual" class="input-texto" placeholder="Nombre y apellido" autocomplete="name" />
+    </div>
+    <div class="campo-form">
+      <p class="etiqueta-campo">WhatsApp</p>
+      <input type="tel" id="inputWhatsappIndividual" class="input-texto" placeholder="Ej. 5555 5555" inputmode="numeric" autocomplete="tel" />
+    </div>
+
+    <p class="mensaje-error" id="mensajeErrorIndividual"></p>
+  </section>
+
+  <!-- ============ PANTALLA: LINK DE PAGO (venta individual) ============ -->
+  <section id="pantallaLinkIndividual" class="pantalla" hidden>
+    <p class="subtitulo">¡Ya casi! Completa tu pago</p>
+    <p class="aviso-familia">Total a pagar: <strong id="textoTotalLinkIndividual">Q0.00</strong></p>
+    <a class="btn-grande btn-siguiente btn-link-pago" id="linkPagarIndividual" href="#" target="_blank" rel="noopener">💳 Pagar ahora</a>
+    <p class="aviso-familia">También te mandamos este link por WhatsApp. Tienes 10 minutos para completar el pago antes de que se suelten esos asientos.</p>
+    <button class="btn-enlace" id="btnElegirOtrosAsientos" type="button">← Elegir otros asientos</button>
+  </section>
+
+</div>
+
+<!-- Barra fija con el total y el botón de generar link, mientras se eligen asientos -->
+<div class="barra-total" id="barraTotalIndividual" hidden>
+  <span class="barra-total-texto" id="textoTotalSeleccionIndividual">Q0.00</span>
+  <button class="btn-pagar-total" id="btnGenerarLinkIndividual" disabled type="button">Generar link de pago →</button>
 </div>
 
 <script src="entradas.js"></script>

@@ -14,6 +14,12 @@ text-transform:uppercase;
 letter-spacing:8px;
 }
 
+/* Deja espacio abajo para que la barra fija de total/pago (venta
+   individual) no tape el final del mapa de butacas. */
+#pantallaAsientosIndividual{
+padding-bottom:90px;
+}
+
 .codigo-grande{
 font-size:clamp(28px,9vw,40px);
 font-weight:800;

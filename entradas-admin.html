@@ -55,6 +55,20 @@
       <p class="estado-registro-actual" id="textoEstadoRegistroActual"></p>
     </div>
 
+    <!-- ---- Venta individual (apaga el sistema de turnos) ---- -->
+    <div class="tarjeta-panel">
+      <p class="tarjeta-panel-titulo">Venta individual (sin turnos)</p>
+      <p class="aviso-familia">Al activarla, el sistema de turnos se apaga por completo: cualquiera entra directo a elegir sus propios asientos y pagar, sin registrarse ni esperar turno. Recepción también puede vender así (tarjeta o efectivo) desde la Caja.</p>
+
+      <label class="opcion-checkbox">
+        <input type="checkbox" id="chkVentaIndividual" />
+        Venta individual habilitada
+      </label>
+
+      <button class="btn-grande btn-siguiente" id="btnGuardarVentaIndividual">Guardar</button>
+      <p class="mensaje-form" id="mensajeVentaIndividual"></p>
+    </div>
+
     <!-- ---- Turno activo ---- -->
     <div class="tarjeta-panel" id="tarjetaTurnoActivo" hidden>
       <p class="tarjeta-panel-titulo">Turno activo ahora</p>
@@ -116,6 +130,13 @@
     <div class="tarjeta-panel">
       <p class="tarjeta-panel-titulo">Ingresos confirmados</p>
       <p class="ingresos-total" id="textoIngresosConfirmados">Q0.00</p>
+      <p class="texto-ayuda" id="textoDesgloseIngresos"></p>
+    </div>
+
+    <!-- ---- Lista de compras individuales (solo aparece si ya hay alguna) ---- -->
+    <div class="tarjeta-panel" id="tarjetaComprasIndividuales" hidden>
+      <p class="tarjeta-panel-titulo">Compras individuales</p>
+      <div class="lista-turnos-admin" id="listaComprasIndividuales"></div>
     </div>
 
     <!-- ---- Lista de turnos ---- -->
