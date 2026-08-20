@@ -190,7 +190,6 @@ function actualizarCronometroVivo() {
 
 function pintarStats(conteoFilas) {
   el("statDisponiblesVivo").textContent = conteoFilas["Disponible"] || 0;
-  el("statReservadasVivo").textContent = conteoFilas["Reservada"] || 0;
   el("statVendidasVivo").textContent = conteoFilas["Vendida"] || 0;
 }
 
@@ -262,8 +261,10 @@ function crearBloqueSeccion(titulo, filas) {
 function crearFilaMapa(f, voltear) {
   const div = document.createElement("div");
   div.className = "fila-mapa" + (voltear ? " volteada" : "");
-  if (f.estado !== "Disponible") {
-    div.classList.add(f.estado === "Vendida" ? "vendida" : "reservada");
+  // Solo existen dos estados reales para una fila: Disponible o
+  // Vendida — no hay concepto de "reservada" en este sistema.
+  if (f.estado === "Vendida") {
+    div.classList.add("vendida");
   }
 
   const etiqueta = document.createElement("span");
@@ -302,7 +303,6 @@ function pintarStatsAsientos(filas) {
     });
   });
   el("statDisponiblesVivo").textContent = disponibles;
-  el("statReservadasVivo").textContent = "—";
   el("statVendidasVivo").textContent = vendidas;
 }
 
