@@ -98,10 +98,21 @@
     </div>
 
     <p class="cronometro-turno" id="textoCronometro"></p>
-    <p class="aviso-familia">Toca cada fila completa que quieras comprar. El precio es por fila completa, no por butaca suelta.</p>
+    <p class="aviso-familia">Toca una fila completa del mapa para elegirla. El precio es por fila completa (Q165 por butaca), no por butaca suelta.</p>
 
-    <div class="lista-filas" id="listaFilasDisponibles">
-      <p class="lista-vacia">Cargando filas disponibles...</p>
+    <div class="leyenda-mapa">
+      <span class="leyenda-item"><i class="punto punto-disponible"></i>Disponible</span>
+      <span class="leyenda-item"><i class="punto punto-seleccionada"></i>Seleccionada</span>
+      <span class="leyenda-item"><i class="punto punto-vendida"></i>Ocupada</span>
+    </div>
+
+    <div class="mapa-scroll" id="mapaScroll">
+      <div class="mapa-teatro">
+        <div class="escenario">ESCENARIO</div>
+        <div class="mapa-secciones" id="mapaSecciones">
+          <p class="lista-vacia">Cargando mapa de butacas...</p>
+        </div>
+      </div>
     </div>
 
     <p class="mensaje-error" id="mensajeErrorComprar"></p>
