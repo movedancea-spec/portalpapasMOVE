@@ -577,7 +577,7 @@ function renderMensajesAnuncios(anuncios) {
 
     const cuerpo = document.createElement("p");
     cuerpo.textContent = a.mensaje;
-    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;";
+    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;overflow-wrap:anywhere;";
     caja.appendChild(cuerpo);
 
     if (a.adjunto && a.adjunto.url) {
@@ -674,7 +674,7 @@ function renderMensajesMaestra(avisos) {
 
     const cuerpo = document.createElement("p");
     cuerpo.textContent = a.mensaje;
-    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;";
+    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;overflow-wrap:anywhere;";
     caja.appendChild(cuerpo);
 
     if (a.adjunto && a.adjunto.url) {
@@ -745,7 +745,7 @@ function renderAvisosEntradas(avisos) {
 
     const cuerpo = document.createElement("p");
     cuerpo.textContent = a.mensaje;
-    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;";
+    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;overflow-wrap:anywhere;";
     caja.appendChild(cuerpo);
 
     cont.appendChild(caja);
