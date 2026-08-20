@@ -22,7 +22,7 @@ let codigoActual = "";
 let turnoActualGlobal = 0;
 let horaExpiraActual = null; // objeto Date, o null
 let filasSeleccionadas = new Map(); // id de FILAS SHOW -> objeto fila
-let filasDisponiblesCache = [];
+let filasMapaCache = [];
 let pollTimer = null;
 let cronTimer = null;
 
@@ -362,10 +362,14 @@ function actualizarCronometro() {
 }
 
 // ==========================================
-// COMPRAR FILAS
+// COMPRAR FILAS — mapa de butacas (estilo teatro)
 // ==========================================
-
-const ORDEN_SECCIONES = ["Izquierda", "Centro-Izquierda", "Centro-Derecha", "Derecha"];
+// El mapa se arma con TODAS las filas del evento (no solo las
+// disponibles) para que se vea como un mapa real de venta de
+// entradas: las filas ya reservadas/vendidas aparecen en gris, en
+// vez de simplemente desaparecer. Igual que antes, la unidad de
+// compra sigue siendo la FILA completa — tocar cualquier butaca de
+// una fila selecciona la fila entera.
 
 async function abrirPantallaComprar() {
   mostrarPantalla("pantallaComprar");
@@ -373,100 +377,122 @@ async function abrirPantallaComprar() {
   actualizarBarraTotal();
   el("mensajeErrorComprar").textContent = "";
   if (horaExpiraActual) iniciarCronometro();
-  await cargarFilasDisponibles();
+  await cargarMapaFilas();
 }
 
-async function cargarFilasDisponibles() {
-  const cont = el("listaFilasDisponibles");
-  cont.innerHTML = '<p class="lista-vacia">Cargando filas disponibles...</p>';
+async function cargarMapaFilas() {
+  const cont = el("mapaSecciones");
+  cont.innerHTML = '<p class="lista-vacia">Cargando mapa de butacas...</p>';
   try {
-    const datos = await llamarWorker({ accion: "entradasObtenerFilasDisponibles" });
-    filasDisponiblesCache = datos.filas || [];
-    pintarFilasDisponibles();
+    const datos = await llamarWorker({ accion: "entradasObtenerMapaFilas" });
+    filasMapaCache = datos.filas || [];
+    pintarMapaTeatro();
   } catch (e) {
-    cont.innerHTML = `<p class="lista-vacia">${e.message || "No se pudieron cargar las filas."}</p>`;
+    cont.innerHTML = `<p class="lista-vacia">${e.message || "No se pudo cargar el mapa de butacas."}</p>`;
   }
 }
 
-function pintarFilasDisponibles() {
-  const cont = el("listaFilasDisponibles");
+function pintarMapaTeatro() {
+  const cont = el("mapaSecciones");
   cont.innerHTML = "";
 
-  if (!filasDisponiblesCache.length) {
-    cont.innerHTML = '<p class="lista-vacia">Ya no quedan filas disponibles.</p>';
+  if (!filasMapaCache.length) {
+    cont.innerHTML = '<p class="lista-vacia">No se pudo cargar el mapa de butacas.</p>';
     return;
   }
 
   const porSeccion = {};
-  filasDisponiblesCache.forEach((f) => {
+  filasMapaCache.forEach((f) => {
     const s = f.seccion || "Otra";
-    if (!porSeccion[s]) porSeccion[s] = [];
-    porSeccion[s].push(f);
+    (porSeccion[s] = porSeccion[s] || []).push(f);
   });
 
-  const secciones = Object.keys(porSeccion).sort(
-    (a, b) => ORDEN_SECCIONES.indexOf(a) - ORDEN_SECCIONES.indexOf(b)
-  );
+  const bloqueIzquierda = crearBloqueSeccion("IZQUIERDA", porSeccion["Izquierda"]);
 
-  secciones.forEach((seccion) => {
-    const grupo = document.createElement("div");
+  const columnaCentro = document.createElement("div");
+  columnaCentro.className = "mapa-columna-centro";
+  const tituloCentro = document.createElement("p");
+  tituloCentro.className = "mapa-bloque-titulo";
+  tituloCentro.textContent = "CENTRO";
+  const filaCentro = document.createElement("div");
+  filaCentro.className = "mapa-grupo-centro";
+  filaCentro.appendChild(crearBloqueSeccion("", porSeccion["Centro-Izquierda"]));
+  const pasillo = document.createElement("div");
+  pasillo.className = "pasillo-central";
+  filaCentro.appendChild(pasillo);
+  filaCentro.appendChild(crearBloqueSeccion("", porSeccion["Centro-Derecha"]));
+  columnaCentro.appendChild(tituloCentro);
+  columnaCentro.appendChild(filaCentro);
 
-    const titulo = document.createElement("p");
-    titulo.className = "grupo-seccion-titulo";
-    titulo.textContent = seccion;
-    grupo.appendChild(titulo);
+  const bloqueDerecha = crearBloqueSeccion("DERECHA", porSeccion["Derecha"]);
 
-    const listaFilas = document.createElement("div");
-    listaFilas.className = "grupo-seccion-filas";
-
-    porSeccion[seccion]
-      .sort((a, b) => (a.fila || "").localeCompare(b.fila || ""))
-      .forEach((f) => listaFilas.appendChild(crearTarjetaFila(f)));
-
-    grupo.appendChild(listaFilas);
-    cont.appendChild(grupo);
-  });
+  cont.appendChild(bloqueIzquierda);
+  cont.appendChild(columnaCentro);
+  cont.appendChild(bloqueDerecha);
 }
 
-function crearTarjetaFila(f) {
+function crearBloqueSeccion(titulo, filas) {
+  const bloque = document.createElement("div");
+  bloque.className = "mapa-bloque";
+
+  if (titulo) {
+    const t = document.createElement("p");
+    t.className = "mapa-bloque-titulo";
+    t.textContent = titulo;
+    bloque.appendChild(t);
+  }
+
+  (filas || [])
+    .sort((a, b) => (a.letra || a.fila || "").localeCompare(b.letra || b.fila || ""))
+    .forEach((f) => bloque.appendChild(crearFilaMapa(f)));
+
+  return bloque;
+}
+
+function crearFilaMapa(f) {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "tarjeta-fila";
+  btn.className = "fila-mapa";
   btn.dataset.id = f.id;
 
-  const marcada = filasSeleccionadas.has(f.id);
-  if (marcada) btn.classList.add("seleccionada");
+  const disponible = f.estado === "Disponible";
+  if (!disponible) {
+    btn.disabled = true;
+    btn.classList.add(f.estado === "Vendida" ? "vendida" : "reservada");
+  }
+  if (filasSeleccionadas.has(f.id)) btn.classList.add("seleccionada");
 
-  const info = document.createElement("div");
-  info.className = "tarjeta-fila-info";
-  info.innerHTML = `
-    <span class="tarjeta-fila-nombre">Fila ${f.letra || f.fila}</span>
-    <span class="tarjeta-fila-detalle">${f.cantidad} butacas — #${f.butacas}</span>
-  `;
+  const etiqueta = document.createElement("span");
+  etiqueta.className = "fila-mapa-etiqueta";
+  etiqueta.textContent = f.letra || f.fila || "";
 
-  const precio = document.createElement("span");
-  precio.className = "tarjeta-fila-precio";
-  precio.textContent = `Q${Number(f.precio || 0).toFixed(2)}`;
+  const asientos = document.createElement("span");
+  asientos.className = "fila-mapa-asientos";
+  const cantidad = Math.max(1, Number(f.cantidad) || 1);
+  for (let i = 0; i < cantidad; i++) {
+    const punto = document.createElement("span");
+    punto.className = "asiento";
+    asientos.appendChild(punto);
+  }
 
-  const marca = document.createElement("span");
-  marca.className = "tarjeta-fila-marca";
-  marca.textContent = marcada ? "✓" : "";
+  btn.title = `Fila ${f.letra || f.fila} — ${f.cantidad} butacas — Q${Number(f.precio || 0).toFixed(2)}${
+    disponible ? "" : " (ya no disponible)"
+  }`;
 
-  btn.appendChild(info);
-  btn.appendChild(precio);
-  btn.appendChild(marca);
+  btn.appendChild(etiqueta);
+  btn.appendChild(asientos);
 
-  btn.addEventListener("click", () => {
-    if (filasSeleccionadas.has(f.id)) {
-      filasSeleccionadas.delete(f.id);
-    } else {
-      filasSeleccionadas.set(f.id, f);
-    }
-    const ahoraMarcada = filasSeleccionadas.has(f.id);
-    btn.classList.toggle("seleccionada", ahoraMarcada);
-    marca.textContent = ahoraMarcada ? "✓" : "";
-    actualizarBarraTotal();
-  });
+  if (disponible) {
+    btn.addEventListener("click", () => {
+      if (filasSeleccionadas.has(f.id)) {
+        filasSeleccionadas.delete(f.id);
+      } else {
+        filasSeleccionadas.set(f.id, f);
+      }
+      btn.classList.toggle("seleccionada", filasSeleccionadas.has(f.id));
+      actualizarBarraTotal();
+    });
+  }
 
   return btn;
 }
@@ -499,9 +525,11 @@ async function pagarFilasSeleccionadas() {
   } catch (e) {
     msg.textContent = e.message;
     // Si el error fue porque alguna fila ya no estaba disponible,
-    // refrescamos la lista para que no vuelvan a intentar elegirla.
+    // refrescamos el mapa para que no vuelvan a intentar elegirla.
     if (String(e.message || "").toLowerCase().includes("disponible")) {
-      cargarFilasDisponibles();
+      filasSeleccionadas.clear();
+      actualizarBarraTotal();
+      cargarMapaFilas();
     }
   } finally {
     btn.disabled = false;
