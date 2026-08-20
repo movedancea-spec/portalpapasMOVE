@@ -10,6 +10,12 @@ text-transform:uppercase;
 letter-spacing:8px;
 }
 
+/* Deja espacio abajo para que la barra fija de total/pago (ver
+   .barra-total más abajo) no tape el final del mapa de butacas. */
+#pantallaComprar{
+padding-bottom:90px;
+}
+
 .codigo-grande{
 font-size:clamp(28px,9vw,40px);
 font-weight:800;
@@ -94,99 +100,166 @@ to{ transform:scale(1.05); }
 }
 
 /*=====================================
-LISTA DE FILAS (compra)
+LEYENDA DEL MAPA
 =====================================*/
 
-.lista-filas{
+.leyenda-mapa{
 display:flex;
-flex-direction:column;
-gap:16px;
-margin-bottom:90px;
-max-height:none;
+justify-content:center;
+flex-wrap:wrap;
+gap:14px;
+margin-bottom:12px;
 }
 
-.grupo-seccion-titulo{
-font-size:clamp(13px,3.8vw,15px);
+.leyenda-item{
+display:flex;
+align-items:center;
+gap:6px;
+font-size:11.5px;
+font-weight:700;
+color:#777;
+}
+
+.punto{
+display:inline-block;
+width:12px;
+height:12px;
+border-radius:4px;
+}
+
+.punto-disponible{ background:white; border:2px solid #ffb3d3; }
+.punto-seleccionada{ background:linear-gradient(180deg,#ff72b7,#ef4b9b); }
+.punto-vendida{ background:#e2e2e2; }
+
+/*=====================================
+MAPA DE BUTACAS (compra) — estilo "teatro", tipo Ticketmaster:
+filas agrupadas por sección, con un pasillo central entre las dos
+mitades del bloque de en medio. Cada fila se compra COMPLETA, así
+que al tocar cualquier butaca de la fila se selecciona la fila
+entera (no butacas sueltas).
+=====================================*/
+
+.mapa-scroll{
+width:100%;
+overflow-x:auto;
+margin-bottom:14px;
+padding-bottom:6px;
+-webkit-overflow-scrolling:touch;
+}
+
+.mapa-teatro{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:16px;
+min-width:min-content;
+padding:4px 6px;
+}
+
+.escenario{
+align-self:stretch;
+margin:0 4px;
+text-align:center;
+font-size:11px;
+font-weight:800;
+letter-spacing:2px;
+color:white;
+background:linear-gradient(180deg,#c98fb0,#a15277);
+border-radius:999px;
+padding:8px 10px;
+box-shadow:0 6px 14px rgba(161,82,119,.25);
+}
+
+.mapa-secciones{
+display:flex;
+align-items:flex-start;
+gap:18px;
+}
+
+.mapa-columna-centro{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:4px;
+}
+
+.mapa-grupo-centro{
+display:flex;
+align-items:flex-start;
+gap:0;
+}
+
+.pasillo-central{
+width:22px;
+flex-shrink:0;
+}
+
+.mapa-bloque{
+display:flex;
+flex-direction:column;
+gap:4px;
+}
+
+.mapa-bloque-titulo{
+font-size:10.5px;
 font-weight:800;
 color:#a15277;
-text-align:left;
-margin-bottom:2px;
-padding-left:2px;
-}
-
-.grupo-seccion-filas{
-display:flex;
-flex-direction:column;
-gap:8px;
-}
-
-.tarjeta-fila{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:10px;
-text-align:left;
-width:100%;
-border:2px solid #ffe3f0;
-background:white;
-border-radius:14px;
-padding:12px 14px;
-font-family:inherit;
-cursor:pointer;
-transition:.15s;
-}
-
-.tarjeta-fila:active{ transform:scale(.98); }
-
-.tarjeta-fila.seleccionada{
-border-color:#ef4b9b;
-background:#fff0f6;
-box-shadow:0 0 0 2px rgba(239,75,155,.15);
-}
-
-.tarjeta-fila-info{
-display:flex;
-flex-direction:column;
-gap:2px;
-}
-
-.tarjeta-fila-nombre{
-font-size:clamp(14px,3.8vw,15.5px);
-font-weight:800;
-color:#444;
-}
-
-.tarjeta-fila-detalle{
-font-size:12px;
-font-weight:600;
-color:#999;
-}
-
-.tarjeta-fila-precio{
-font-size:clamp(14px,3.8vw,16px);
-font-weight:800;
-color:#ef4b9b;
+text-align:center;
+margin-bottom:4px;
 white-space:nowrap;
 }
 
-.tarjeta-fila-marca{
-width:22px;
-height:22px;
-border-radius:50%;
-border:2px solid #ffd8ea;
-background:white;
-flex-shrink:0;
+.fila-mapa{
 display:flex;
 align-items:center;
-justify-content:center;
-font-size:13px;
-color:white;
+gap:6px;
+border:none;
+background:none;
+padding:2px 0;
+font-family:inherit;
+cursor:pointer;
 }
 
-.tarjeta-fila.seleccionada .tarjeta-fila-marca{
+.fila-mapa:disabled{ cursor:not-allowed; }
+
+.fila-mapa-etiqueta{
+width:26px;
+flex-shrink:0;
+font-size:10px;
+font-weight:800;
+color:#bbb;
+text-align:right;
+}
+
+.fila-mapa.seleccionada .fila-mapa-etiqueta{ color:#ef4b9b; }
+
+.fila-mapa-asientos{
+display:flex;
+gap:3px;
+}
+
+.asiento{
+width:13px;
+height:13px;
+border-radius:4px;
+background:white;
+border:2px solid #ffb3d3;
+transition:.15s;
+flex-shrink:0;
+}
+
+.fila-mapa.seleccionada .asiento{
 background:linear-gradient(180deg,#ff72b7,#ef4b9b);
 border-color:#ef4b9b;
 }
+
+.fila-mapa.vendida .asiento,
+.fila-mapa.reservada .asiento{
+background:#e2e2e2;
+border-color:#e2e2e2;
+}
+
+.fila-mapa:not(:disabled):active .asiento{ transform:scale(.85); }
 
 /*=====================================
 BARRA FIJA DE TOTAL (compra)
