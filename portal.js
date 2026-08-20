@@ -939,6 +939,21 @@ async function actualizarBloqueNotificacionesPush() {
     btnDesactivar.textContent = "Desactivar notificaciones en este dispositivo";
     btnDesactivar.addEventListener("click", () => desactivarNotificacionesPush(btnDesactivar, suscripcionActual));
     bloque.appendChild(btnDesactivar);
+
+    // Manda una notificación de PRUEBA real y muestra AQUÍ MISMO lo
+    // que contestó el servicio de push — sirve para diagnosticar
+    // cuando algo no está avisando (ej. falta configurar el Secret
+    // VAPID_PRIVATE_KEY en Cloudflare, o la suscripción ya venció) sin
+    // tener que revisar los logs del Worker.
+    const btnProbar = document.createElement("button");
+    btnProbar.type = "button";
+    btnProbar.className = "btn-enlace";
+    btnProbar.textContent = "🔔 Probar notificación";
+    const resultadoProbar = document.createElement("p");
+    resultadoProbar.style.cssText = "font-size:12.5px;color:#666;white-space:pre-line;margin:6px 0 0;";
+    btnProbar.addEventListener("click", () => probarNotificacionesPush(btnProbar, resultadoProbar));
+    bloque.appendChild(btnProbar);
+    bloque.appendChild(resultadoProbar);
     return;
   }
 
@@ -1023,6 +1038,30 @@ async function desactivarNotificacionesPush(btn, suscripcion) {
     await actualizarBloqueNotificacionesPush();
   } catch (e) {
     mostrarError("No se pudieron desactivar las notificaciones: " + e.message);
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+async function probarNotificacionesPush(btn, resultadoEl) {
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Enviando...";
+  resultadoEl.textContent = "";
+
+  try {
+    const alumnaIds = idsAlumnasActuales();
+    const datos = await llamarWorker({ accion: "probarPushAlumna", alumnaId: alumnaIds[0] });
+    if (!datos.resultados || !datos.resultados.length) {
+      resultadoEl.textContent = datos.resumen || "No hay ninguna suscripción guardada.";
+    } else {
+      resultadoEl.textContent = datos.resultados
+        .map((r) => `Dispositivo ${r.dispositivo}: ${r.enviado ? "✅" : "❌"} ${r.detalle}`)
+        .join("\n");
+    }
+  } catch (e) {
+    resultadoEl.textContent = "❌ " + e.message;
+  } finally {
     btn.disabled = false;
     btn.textContent = textoOriginal;
   }
