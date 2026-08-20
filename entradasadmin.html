@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Panel de Entradas</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="recepcion.css" />
+<link rel="stylesheet" href="entradas-admin.css" />
+</head>
+<body>
+
+<div class="container container-ancho">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">🎛️ Panel de Entradas</div>
+
+  <!-- ============ PANTALLA: CLAVE ============ -->
+  <section id="pantallaLogin" class="pantalla">
+    <p class="subtitulo">🔒 Escribe la clave del panel</p>
+    <input type="password" id="inputClaveAdmin" class="input-clave" placeholder="••••" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnEntrarAdmin">Entrar →</button>
+    <p class="mensaje-error" id="mensajeErrorLogin"></p>
+  </section>
+
+  <!-- ============ PANTALLA: PANEL ============ -->
+  <section id="pantallaPanel" class="pantalla" hidden>
+
+    <div class="barra-superior">
+      <span class="barra-titulo" id="tituloEventoPanel">Entradas</span>
+      <button class="btn-volver" id="btnActualizarPanel" type="button">🔄 Actualizar</button>
+    </div>
+
+    <!-- ---- Control del registro ---- -->
+    <div class="tarjeta-panel">
+      <p class="tarjeta-panel-titulo">Control del registro</p>
+
+      <label class="opcion-checkbox">
+        <input type="checkbox" id="chkVentaHabilitada" />
+        Venta habilitada
+      </label>
+
+      <div class="campo-form">
+        <p class="etiqueta-campo">Hora de apertura del registro (opcional)</p>
+        <input type="datetime-local" id="inputHoraApertura" class="input-texto" />
+        <p class="texto-ayuda">Hora de Guatemala. Si la dejas vacía y activas "Venta habilitada", el registro abre de inmediato.</p>
+      </div>
+
+      <button class="btn-grande btn-siguiente" id="btnGuardarConfig">Guardar cambios</button>
+      <p class="mensaje-form" id="mensajeConfig"></p>
+
+      <p class="estado-registro-actual" id="textoEstadoRegistroActual"></p>
+    </div>
+
+    <!-- ---- Turno activo ---- -->
+    <div class="tarjeta-panel" id="tarjetaTurnoActivo" hidden>
+      <p class="tarjeta-panel-titulo">Turno activo ahora</p>
+      <p class="turno-activo-numero" id="textoTurnoActivoNumero">—</p>
+      <p class="turno-activo-detalle" id="textoTurnoActivoDetalle"></p>
+    </div>
+
+    <!-- ---- Estadísticas ---- -->
+    <div class="tarjeta-panel">
+      <p class="tarjeta-panel-titulo">Filas</p>
+      <div class="grid-stats">
+        <div class="stat-caja">
+          <span class="stat-numero" id="statFilasDisponibles">—</span>
+          <span class="stat-etiqueta">Disponibles</span>
+        </div>
+        <div class="stat-caja">
+          <span class="stat-numero" id="statFilasReservadas">—</span>
+          <span class="stat-etiqueta">Reservadas</span>
+        </div>
+        <div class="stat-caja">
+          <span class="stat-numero" id="statFilasVendidas">—</span>
+          <span class="stat-etiqueta">Vendidas</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta-panel">
+      <p class="tarjeta-panel-titulo">Turnos</p>
+      <div class="grid-stats grid-stats-6">
+        <div class="stat-caja">
+          <span class="stat-numero" id="statTurnosPendiente">—</span>
+          <span class="stat-etiqueta">Pendiente</span>
+        </div>
+        <div class="stat-caja">
+          <span class="stat-numero" id="statTurnosEnEspera">—</span>
+          <span class="stat-etiqueta">En espera</span>
+        </div>
+        <div class="stat-caja">
+          <span class="stat-numero" id="statTurnosActivo">—</span>
+          <span class="stat-etiqueta">Activo</span>
+        </div>
+        <div class="stat-caja">
+          <span class="stat-numero" id="statTurnosVencido">—</span>
+          <span class="stat-etiqueta">Vencido</span>
+        </div>
+        <div class="stat-caja">
+          <span class="stat-numero" id="statTurnosCompletado">—</span>
+          <span class="stat-etiqueta">Completado</span>
+        </div>
+        <div class="stat-caja">
+          <span class="stat-numero" id="statTurnosCancelado">—</span>
+          <span class="stat-etiqueta">Cancelado</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta-panel">
+      <p class="tarjeta-panel-titulo">Ingresos confirmados</p>
+      <p class="ingresos-total" id="textoIngresosConfirmados">Q0.00</p>
+    </div>
+
+    <!-- ---- Lista de turnos ---- -->
+    <div class="tarjeta-panel">
+      <p class="tarjeta-panel-titulo">Lista de turnos</p>
+      <input type="text" id="inputBuscarTurno" class="input-texto" placeholder="🔎 Busca por nombre o WhatsApp..." autocomplete="off" />
+      <div class="lista-turnos-admin" id="listaTurnosAdmin">
+        <p class="lista-vacia">Cargando...</p>
+      </div>
+    </div>
+
+    <button class="btn-enlace" id="btnSalirAdmin" type="button">Salir</button>
+  </section>
+
+</div>
+
+<script src="entradas-admin.js"></script>
+</body>
+</html>

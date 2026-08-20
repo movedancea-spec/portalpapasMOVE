@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Entradas Show Fin de Año</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="recepcion.css" />
+<link rel="stylesheet" href="entradas.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">🎟️ Entradas del Show</div>
+
+  <!-- ============ PANTALLA: CARGANDO INICIAL ============ -->
+  <section id="pantallaCargandoInicial" class="pantalla">
+    <p class="lista-vacia">Cargando...</p>
+  </section>
+
+  <!-- ============ PANTALLA: REGISTRO TODAVÍA CERRADO ============ -->
+  <section id="pantallaCerrado" class="pantalla" hidden>
+    <p class="subtitulo" id="textoEventoCerrado"></p>
+    <p class="aviso-familia" id="textoMensajeCerrado"></p>
+    <button class="btn-enlace" id="btnYaTengoCodigoCerrado" type="button">Ya tengo mi código de turno →</button>
+  </section>
+
+  <!-- ============ PANTALLA: REGISTRO ============ -->
+  <section id="pantallaRegistro" class="pantalla" hidden>
+    <p class="subtitulo" id="textoEventoRegistro"></p>
+    <p class="aviso-familia" id="avisoFilasDisponibles"></p>
+    <p class="aviso-familia">Regístrate con tu nombre y WhatsApp para que te asignemos un turno — por orden de llegada. Cuando sea tu turno, tendrás 15 minutos para elegir y pagar tus filas.</p>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">Nombre completo</p>
+      <input type="text" id="inputNombreTurno" class="input-texto" placeholder="Nombre y apellido" autocomplete="name" />
+    </div>
+    <div class="campo-form">
+      <p class="etiqueta-campo">WhatsApp</p>
+      <input type="tel" id="inputWhatsappTurno" class="input-texto" placeholder="Ej. 5555 5555" inputmode="numeric" autocomplete="tel" />
+    </div>
+
+    <button class="btn-grande btn-siguiente" id="btnRegistrarTurno">Registrarme →</button>
+    <p class="mensaje-error" id="mensajeErrorRegistro"></p>
+
+    <button class="btn-enlace" id="btnYaTengoCodigo" type="button">Ya tengo mi código de turno →</button>
+  </section>
+
+  <!-- ============ PANTALLA: BUSCAR CON CÓDIGO ============ -->
+  <section id="pantallaBuscarCodigo" class="pantalla" hidden>
+    <p class="subtitulo">Escribe tu código de turno</p>
+    <input type="text" id="inputCodigoManual" class="input-clave codigo-input" placeholder="ABC123" maxlength="6" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnConsultarCodigo">Ver mi turno →</button>
+    <p class="mensaje-error" id="mensajeErrorCodigo"></p>
+    <button class="btn-enlace" id="btnVolverDesdeCodigo" type="button">← Volver</button>
+  </section>
+
+  <!-- ============ PANTALLA: RECIÉN REGISTRADO ============ -->
+  <section id="pantallaRegistrado" class="pantalla" hidden>
+    <p class="subtitulo" id="tituloRegistrado">¡Ya quedaste en la fila! 🎉</p>
+    <p class="aviso-familia">Tu código de turno es:</p>
+    <p class="codigo-grande" id="textoCodigoNuevo">—</p>
+    <p class="aviso-familia">Guárdalo — con este código puedes volver a esta página cuando quieras para ver en qué vas. También te vamos a avisar por WhatsApp en cuanto sea tu turno.</p>
+    <button class="btn-grande btn-siguiente" id="btnVerMiTurnoDesdeRegistro">Ver mi turno →</button>
+  </section>
+
+  <!-- ============ PANTALLA: MI TURNO ============ -->
+  <section id="pantallaMiTurno" class="pantalla" hidden>
+    <p class="subtitulo" id="saludoTurno">Tu turno</p>
+
+    <div class="tarjeta-turno" id="tarjetaEstadoTurno">
+      <p class="numero-turno-grande" id="textoNumeroTurno">—</p>
+      <p class="texto-estado-turno" id="textoEstadoTurno">Cargando...</p>
+      <p class="detalle-estado-turno" id="detalleEstadoTurno"></p>
+    </div>
+
+    <button class="btn-grande btn-siguiente" id="btnIrAComprar" hidden type="button">Comprar mis entradas →</button>
+
+    <div id="bloqueResumenCompra" hidden>
+      <p class="aviso-familia">Filas compradas:</p>
+      <p class="resumen-compra" id="textoResumenCompra"></p>
+    </div>
+
+    <button class="btn-enlace" id="btnActualizarTurno" type="button">🔄 Actualizar</button>
+    <button class="btn-enlace" id="btnOtroCodigo" type="button">Consultar con otro código</button>
+  </section>
+
+  <!-- ============ PANTALLA: COMPRAR FILAS ============ -->
+  <section id="pantallaComprar" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverComprar" type="button">← Mi turno</button>
+      <span class="barra-titulo">Elige tus filas</span>
+    </div>
+
+    <p class="cronometro-turno" id="textoCronometro"></p>
+    <p class="aviso-familia">Toca cada fila completa que quieras comprar. El precio es por fila completa, no por butaca suelta.</p>
+
+    <div class="lista-filas" id="listaFilasDisponibles">
+      <p class="lista-vacia">Cargando filas disponibles...</p>
+    </div>
+
+    <p class="mensaje-error" id="mensajeErrorComprar"></p>
+  </section>
+
+  <!-- ============ PANTALLA: LINK DE PAGO ============ -->
+  <section id="pantallaLinkPago" class="pantalla" hidden>
+    <p class="subtitulo">¡Ya casi! Completa tu pago</p>
+    <p class="aviso-familia">Total a pagar: <strong id="textoTotalLinkPago">Q0.00</strong></p>
+    <a class="btn-grande btn-siguiente btn-link-pago" id="linkPagarEntradas" href="#" target="_blank" rel="noopener">💳 Pagar ahora</a>
+    <p class="aviso-familia">Cuando termines de pagar, te avisamos por este mismo WhatsApp que tus entradas quedaron confirmadas.</p>
+    <button class="btn-enlace" id="btnVolverMiTurnoDesdeLink" type="button">← Ver mi turno</button>
+  </section>
+
+</div>
+
+<!-- Barra fija con el total y el botón de pago, mientras se eligen filas -->
+<div class="barra-total" id="barraTotalSeleccion" hidden>
+  <span class="barra-total-texto" id="textoTotalSeleccion">Q0.00</span>
+  <button class="btn-pagar-total" id="btnPagarFilas" disabled type="button">Generar link de pago →</button>
+</div>
+
+<script src="entradas.js"></script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+/* ===================================================
+   MOVE — PANEL DE ADMINISTRACIÓN DE ENTRADAS SHOW
+   Se apoya en recepcion.css para el look base — aquí
+   solo lo específico de este panel.
+=================================================== */
+
+.container-ancho{
+max-width:640px;
+}
+
+.tarjeta-panel{
+border:2px solid #ffe3f0;
+border-radius:18px;
+padding:16px;
+background:white;
+text-align:left;
+margin-bottom:14px;
+}
+
+.tarjeta-panel-titulo{
+font-size:clamp(14px,3.8vw,16px);
+font-weight:800;
+color:#a15277;
+margin-bottom:10px;
+}
+
+.texto-ayuda{
+font-size:12px;
+font-weight:600;
+color:#999;
+margin-top:-8px;
+margin-bottom:10px;
+}
+
+.estado-registro-actual{
+font-size:13px;
+font-weight:700;
+color:#555;
+background:#fff0f6;
+border-radius:12px;
+padding:8px 10px;
+margin-top:10px;
+text-align:center;
+}
+
+/*=====================================
+TURNO ACTIVO
+=====================================*/
+
+.turno-activo-numero{
+font-size:clamp(30px,9vw,42px);
+font-weight:800;
+color:#ef4b9b;
+text-align:center;
+line-height:1;
+}
+
+.turno-activo-detalle{
+font-size:13.5px;
+font-weight:600;
+color:#666;
+text-align:center;
+margin-top:6px;
+}
+
+/*=====================================
+ESTADÍSTICAS
+=====================================*/
+
+.grid-stats{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+}
+
+.grid-stats-6{
+grid-template-columns:repeat(3,1fr);
+}
+
+.stat-caja{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:2px;
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:10px 6px;
+background:#fffafc;
+}
+
+.stat-numero{
+font-size:clamp(18px,5vw,24px);
+font-weight:800;
+color:#ef4b9b;
+}
+
+.stat-etiqueta{
+font-size:11px;
+font-weight:700;
+color:#999;
+text-align:center;
+}
+
+.ingresos-total{
+font-size:clamp(26px,7vw,34px);
+font-weight:800;
+color:#1f9d63;
+text-align:center;
+}
+
+/*=====================================
+LISTA DE TURNOS
+=====================================*/
+
+.lista-turnos-admin{
+display:flex;
+flex-direction:column;
+gap:6px;
+margin-top:10px;
+max-height:50vh;
+overflow-y:auto;
+}
+
+.fila-turno-admin{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:10px;
+border:2px solid #ffe3f0;
+border-radius:12px;
+padding:9px 12px;
+}
+
+.fila-turno-admin-info{
+display:flex;
+flex-direction:column;
+gap:1px;
+min-width:0;
+}
+
+.fila-turno-admin-nombre{
+font-size:13.5px;
+font-weight:700;
+color:#444;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+.fila-turno-admin-detalle{
+font-size:11.5px;
+font-weight:600;
+color:#999;
+}
+
+.fila-turno-admin-numero{
+font-size:14px;
+font-weight:800;
+color:#a15277;
+white-space:nowrap;
+}
+
+.badge-turno{
+display:inline-block;
+font-size:10.5px;
+font-weight:800;
+border-radius:999px;
+padding:3px 9px;
+white-space:nowrap;
+}
+
+.badge-turno.badge-pendiente{ background:rgba(255,159,28,.15); color:#c97800; }
+.badge-turno.badge-en-espera{ background:rgba(120,120,120,.12); color:#666; }
+.badge-turno.badge-activo{ background:rgba(239,75,155,.15); color:#ef4b9b; }
+.badge-turno.badge-vencido{ background:rgba(224,36,94,.12); color:#e0245e; }
+.badge-turno.badge-completado{ background:rgba(46,182,125,.15); color:#1f9d63; }
+.badge-turno.badge-cancelado{ background:rgba(120,120,120,.12); color:#999; }
