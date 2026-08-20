@@ -35,18 +35,16 @@
   <section id="pantallaRegistro" class="pantalla" hidden>
     <p class="subtitulo" id="textoEventoRegistro"></p>
     <p class="aviso-familia" id="avisoFilasDisponibles"></p>
-    <p class="aviso-familia">Regístrate con tu nombre y WhatsApp para que te asignemos un turno — por orden de llegada. Cuando sea tu turno, te avisamos por WhatsApp y tienes 10 minutos para presentarte en recepción con tu código y completar la compra.</p>
+    <p class="aviso-familia">Busca y elige el nombre de tu alumna para que le asignemos un turno — por orden de llegada. Cuando sea su turno, le avisamos dentro del Portal de Alumnas y tienen 10 minutos para presentarse en recepción con el código y completar la compra.</p>
 
     <div class="campo-form">
-      <p class="etiqueta-campo">Nombre completo</p>
-      <input type="text" id="inputNombreTurno" class="input-texto" placeholder="Nombre y apellido" autocomplete="name" />
-    </div>
-    <div class="campo-form">
-      <p class="etiqueta-campo">WhatsApp</p>
-      <input type="tel" id="inputWhatsappTurno" class="input-texto" placeholder="Ej. 5555 5555" inputmode="numeric" autocomplete="tel" />
+      <p class="etiqueta-campo">Nombre de la alumna</p>
+      <input type="text" id="inputBuscarAlumnaTurno" class="input-texto" placeholder="🔎 Escribe el nombre de tu alumna..." autocomplete="off" />
+      <div id="listaAlumnasTurno" class="lista-resultados"></div>
+      <p class="aviso-familia" id="textoAlumnaElegidaTurno" hidden>✅ Elegiste a <strong id="nombreAlumnaElegidaTurno"></strong>. <button class="btn-enlace" id="btnCambiarAlumnaTurno" type="button">Cambiar</button></p>
     </div>
 
-    <button class="btn-grande btn-siguiente" id="btnRegistrarTurno">Registrarme →</button>
+    <button class="btn-grande btn-siguiente" id="btnRegistrarTurno" disabled>Registrarme →</button>
     <p class="mensaje-error" id="mensajeErrorRegistro"></p>
 
     <button class="btn-enlace" id="btnYaTengoCodigo" type="button">Ya tengo mi código de turno →</button>
@@ -66,7 +64,7 @@
     <p class="subtitulo" id="tituloRegistrado">¡Ya quedaste en la fila! 🎉</p>
     <p class="aviso-familia">Tu código de turno es:</p>
     <p class="codigo-grande" id="textoCodigoNuevo">—</p>
-    <p class="aviso-familia">Guárdalo — con este código puedes volver a esta página cuando quieras para ver en qué vas. También te vamos a avisar por WhatsApp en cuanto sea tu turno.</p>
+    <p class="aviso-familia">Guárdalo — con este código puedes volver a esta página cuando quieras para ver en qué vas. También te vamos a avisar dentro del Portal de Alumnas en cuanto sea tu turno.</p>
     <button class="btn-grande btn-siguiente" id="btnVerMiTurnoDesdeRegistro">Ver mi turno →</button>
   </section>
 

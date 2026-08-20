@@ -175,8 +175,9 @@ function pintarPanel(datos) {
       ? Math.max(0, Math.round((new Date(datos.turnoActivo.horaExpira).getTime() - Date.now()) / 60000))
       : null;
     el("textoTurnoActivoDetalle").textContent =
-      `${datos.turnoActivo.nombre} — ${datos.turnoActivo.whatsapp}` +
-      (restante != null ? ` (le quedan ~${restante} min)` : "");
+      (datos.turnoActivo.whatsapp
+        ? `${datos.turnoActivo.nombre} — ${datos.turnoActivo.whatsapp}`
+        : datos.turnoActivo.nombre) + (restante != null ? ` (le quedan ~${restante} min)` : "");
   } else {
     el("tarjetaTurnoActivo").hidden = true;
   }
@@ -279,9 +280,12 @@ function pintarListaTurnos(turnos) {
 
     const info = document.createElement("div");
     info.className = "fila-turno-admin-info";
+    const detalle = [t.whatsapp || "", t.totalPagado ? "Q" + Number(t.totalPagado).toFixed(2) : ""]
+      .filter(Boolean)
+      .join(" · ");
     info.innerHTML = `
       <span class="fila-turno-admin-nombre">${t.nombre || "(sin nombre)"}</span>
-      <span class="fila-turno-admin-detalle">${t.whatsapp || ""}${t.totalPagado ? " · Q" + Number(t.totalPagado).toFixed(2) : ""}</span>
+      <span class="fila-turno-admin-detalle">${detalle}</span>
     `;
 
     const der = document.createElement("div");

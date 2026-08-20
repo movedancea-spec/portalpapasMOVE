@@ -3,7 +3,10 @@
 // MOVE Dance Academy
 // ==========================================
 // Página pública (sin clave de familia) para que cualquier persona:
-//   1) se registre con su nombre y WhatsApp y reciba un código,
+//   1) busque y elija a su alumna (ligando el turno a ella) y reciba
+//      un código — para la venta por turnos, los avisos de registro,
+//      turno y compra ya no van por WhatsApp: se ven en el Portal de
+//      Alumnas de esa alumna,
 //   2) consulte con ese código en qué va su turno,
 //   3) cuando le toque, elija filas completas y pague con un link
 //      de Paggo.
@@ -202,22 +205,83 @@ function mostrarPantallaInicialConDatos(datos) {
 }
 
 // ==========================================
-// REGISTRO
+// REGISTRO — se busca y se elige a la alumna (no se escribe nombre ni
+// WhatsApp a mano); el turno queda ligado a esa alumna y los avisos
+// le llegan dentro de su Portal, nunca por WhatsApp.
 // ==========================================
 
+let alumnaElegidaTurno = null; // { id, nombre }
+
+el("inputBuscarAlumnaTurno").addEventListener("input", () => {
+  alumnaElegidaTurno = null;
+  el("btnRegistrarTurno").disabled = true;
+  el("textoAlumnaElegidaTurno").hidden = true;
+  clearTimeout(el("inputBuscarAlumnaTurno")._temporizador);
+  el("inputBuscarAlumnaTurno")._temporizador = setTimeout(buscarAlumnaTurno, 350);
+});
+
+el("btnCambiarAlumnaTurno").addEventListener("click", () => {
+  alumnaElegidaTurno = null;
+  el("btnRegistrarTurno").disabled = true;
+  el("textoAlumnaElegidaTurno").hidden = true;
+  el("inputBuscarAlumnaTurno").value = "";
+  el("inputBuscarAlumnaTurno").hidden = false;
+  el("inputBuscarAlumnaTurno").focus();
+  el("listaAlumnasTurno").innerHTML = "";
+});
+
+async function buscarAlumnaTurno() {
+  const texto = el("inputBuscarAlumnaTurno").value.trim();
+  const cont = el("listaAlumnasTurno");
+  if (texto.length < 2) {
+    cont.innerHTML = "";
+    return;
+  }
+  cont.innerHTML = '<p class="lista-vacia">Buscando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "entradasBuscarAlumna", query: texto });
+    renderListaAlumnasTurno(datos.alumnas || []);
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderListaAlumnasTurno(alumnas) {
+  const cont = el("listaAlumnasTurno");
+  cont.innerHTML = "";
+  if (!alumnas.length) {
+    cont.innerHTML = '<p class="lista-vacia">No encontramos ninguna alumna con ese nombre.</p>';
+    return;
+  }
+  alumnas.forEach((a) => {
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado";
+    tarjeta.innerHTML = `
+      <span class="tarjeta-resultado-nombre">${a.nombre}</span>
+      <span class="tarjeta-resultado-detalle">${a.grupos || "—"}</span>
+    `;
+    tarjeta.addEventListener("click", () => elegirAlumnaTurno(a));
+    cont.appendChild(tarjeta);
+  });
+}
+
+function elegirAlumnaTurno(a) {
+  alumnaElegidaTurno = a;
+  el("listaAlumnasTurno").innerHTML = "";
+  el("inputBuscarAlumnaTurno").hidden = true;
+  el("nombreAlumnaElegidaTurno").textContent = a.nombre;
+  el("textoAlumnaElegidaTurno").hidden = false;
+  el("btnRegistrarTurno").disabled = false;
+}
+
 async function registrarTurno() {
-  const nombre = el("inputNombreTurno").value.trim();
-  const whatsapp = el("inputWhatsappTurno").value.trim();
   const btn = el("btnRegistrarTurno");
   const msg = el("mensajeErrorRegistro");
   msg.textContent = "";
 
-  if (!nombre) {
-    msg.textContent = "Escribe tu nombre completo.";
-    return;
-  }
-  if (!whatsapp) {
-    msg.textContent = "Escribe tu número de WhatsApp.";
+  if (!alumnaElegidaTurno || !alumnaElegidaTurno.id) {
+    msg.textContent = "Busca el nombre de tu alumna y elígela de la lista.";
     return;
   }
 
@@ -225,7 +289,10 @@ async function registrarTurno() {
   const textoOriginal = btn.textContent;
   btn.textContent = "Registrando...";
   try {
-    const datos = await llamarWorker({ accion: "entradasRegistrarTurno", nombre, whatsapp });
+    const datos = await llamarWorker({
+      accion: "entradasRegistrarTurno",
+      alumnaId: alumnaElegidaTurno.id,
+    });
     guardarCodigo(datos.codigo);
     el("textoCodigoNuevo").textContent = datos.codigo;
     el("tituloRegistrado").textContent = datos.yaRegistrado
@@ -234,8 +301,8 @@ async function registrarTurno() {
     mostrarPantalla("pantallaRegistrado");
   } catch (e) {
     msg.textContent = e.message;
-  } finally {
     btn.disabled = false;
+  } finally {
     btn.textContent = textoOriginal;
   }
 }
@@ -307,8 +374,8 @@ function pintarEstadoTurno(datos) {
   } else if (t.estado === "En Espera") {
     el("textoEstadoTurno").textContent = "Esperando tu turno";
     detalle.textContent = turnoActualGlobal
-      ? `En este momento va el turno #${turnoActualGlobal}. Te avisamos por WhatsApp en cuanto te toque.`
-      : "Te avisamos por WhatsApp en cuanto te toque.";
+      ? `En este momento va el turno #${turnoActualGlobal}. Te avisamos dentro del Portal de Alumnas en cuanto te toque.`
+      : "Te avisamos dentro del Portal de Alumnas en cuanto te toque.";
   } else if (t.estado === "Activo") {
     el("textoEstadoTurno").textContent = "¡Es tu turno! 🎉";
     el("bloqueTurnoActivo").hidden = false;
@@ -594,9 +661,6 @@ function detenerCronometroIndividual() {
 // ==========================================
 
 el("btnRegistrarTurno").addEventListener("click", registrarTurno);
-el("inputWhatsappTurno").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") registrarTurno();
-});
 
 el("btnYaTengoCodigo").addEventListener("click", () => mostrarPantalla("pantallaBuscarCodigo"));
 el("btnYaTengoCodigoCerrado").addEventListener("click", () => mostrarPantalla("pantallaBuscarCodigo"));

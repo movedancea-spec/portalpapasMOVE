@@ -161,7 +161,9 @@ function pintarTurnoActivo(turnoActivo) {
     return;
   }
   el("textoNumeroTurnoVivo").textContent = `#${turnoActivo.numero}`;
-  el("textoNombreTurnoVivo").textContent = `${turnoActivo.nombre || ""} — ${turnoActivo.whatsapp || ""}`;
+  el("textoNombreTurnoVivo").textContent = turnoActivo.whatsapp
+    ? `${turnoActivo.nombre || ""} — ${turnoActivo.whatsapp}`
+    : turnoActivo.nombre || "";
   horaExpiraActual = turnoActivo.horaExpira ? new Date(turnoActivo.horaExpira) : null;
   actualizarCronometroVivo();
 }

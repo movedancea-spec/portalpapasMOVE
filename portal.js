@@ -276,6 +276,7 @@ function mostrarPantalla(id) {
     "pantallaHistorialPagos",
     "pantallaMensajesAnuncios",
     "pantallaMensajesMaestra",
+    "pantallaAvisosEntradas",
     "pantallaSelectorMaestra",
     "pantallaChat",
   ];
@@ -679,6 +680,73 @@ function renderMensajesMaestra(avisos) {
     if (a.adjunto && a.adjunto.url) {
       caja.appendChild(crearAdjuntoAnuncio(a.adjunto));
     }
+
+    cont.appendChild(caja);
+  });
+}
+
+// ==========================================
+// AVISOS DE ENTRADAS (registro, turno y compra de la venta de
+// entradas del show por turnos) — viven detrás del botón "🎟️ Avisos
+// de entradas" en el perfil. A diferencia de los Mensajes de
+// Recepción/Maestra, estos NUNCA se mandan por WhatsApp: reemplazan
+// esos 3 WhatsApp de siempre (registro exitoso, "ya es tu turno" y
+// confirmación de compra) — se ven únicamente aquí, y se quedan
+// guardados para siempre (no se filtran por mes).
+// ==========================================
+
+el("btnAvisosEntradas").addEventListener("click", abrirAvisosEntradas);
+el("btnAtrasAvisosEntradas").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
+
+async function abrirAvisosEntradas() {
+  mostrarPantalla("pantallaAvisosEntradas");
+  const cont = el("listaAvisosEntradas");
+  cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
+
+  if (!alumnaSeleccionada || !alumnaSeleccionada.id) {
+    cont.innerHTML = "";
+    return;
+  }
+
+  try {
+    const datos = await llamarWorker({ accion: "avisosEntradasDeAlumna", alumnaId: alumnaSeleccionada.id });
+    renderAvisosEntradas(datos.avisos || []);
+  } catch (e) {
+    cont.innerHTML = "";
+    mostrarError(e.message);
+  }
+}
+
+const ETIQUETA_POR_TIPO_AVISO_ENTRADAS = {
+  Registro: "📝 Registro",
+  Turno: "⏰ Tu turno",
+  Compra: "🎉 Compra confirmada",
+};
+
+function renderAvisosEntradas(avisos) {
+  const cont = el("listaAvisosEntradas");
+  cont.innerHTML = "";
+
+  if (!avisos.length) {
+    cont.innerHTML = '<p class="lista-alumnas-aviso">Todavía no tienes avisos de entradas.</p>';
+    return;
+  }
+
+  avisos.forEach((a) => {
+    const caja = document.createElement("div");
+    caja.style.cssText =
+      "background:#fff7e6;border:1px solid #ffe1a8;border-radius:14px;padding:12px 14px;margin:0 0 10px;";
+
+    const firma = document.createElement("p");
+    firma.textContent =
+      (ETIQUETA_POR_TIPO_AVISO_ENTRADAS[a.tipo] || "🎟️ Aviso") + " · 🕐 " + formatearFechaHoraMensajePortal(a.fecha);
+    firma.style.cssText = "font-weight:700;font-size:11.5px;color:#a15a00;margin:0 0 4px;";
+    caja.appendChild(firma);
+
+    const cuerpo = document.createElement("p");
+    cuerpo.textContent = a.mensaje;
+    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;";
+    caja.appendChild(cuerpo);
 
     cont.appendChild(caja);
   });
