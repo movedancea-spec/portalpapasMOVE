@@ -149,6 +149,9 @@ function pintarPanel(datos) {
   if (document.activeElement !== el("chkVentaIndividual")) {
     el("chkVentaIndividual").checked = !!c.ventaIndividualHabilitada;
   }
+  if (document.activeElement !== el("chkTurnosIniciados")) {
+    el("chkTurnosIniciados").checked = !!c.turnosIniciados;
+  }
 
   const registroAbierto =
     c.ventaHabilitada && (!c.horaApertura || new Date() >= new Date(c.horaApertura));
@@ -157,8 +160,10 @@ function pintarPanel(datos) {
     textoEstado = "🔴 Venta pausada — nadie puede registrarse ni comprar ahora mismo.";
   } else if (!registroAbierto) {
     textoEstado = `🟡 Programado — el registro abre el ${formatearFechaHora(c.horaApertura)}.`;
+  } else if (!c.turnosIniciados) {
+    textoEstado = `🟢 Registro abierto — anotándose, todavía sin llamar turnos. Último turno numerado: #${c.ultimoTurnoAsignado}.`;
   } else {
-    textoEstado = `🟢 Registro abierto. Último turno numerado: #${c.ultimoTurnoAsignado}.`;
+    textoEstado = `🟢 Registro abierto y turnos en marcha. Último turno numerado: #${c.ultimoTurnoAsignado}.`;
   }
   el("textoEstadoRegistroActual").textContent = textoEstado;
 
@@ -405,6 +410,47 @@ async function guardarVentaIndividual() {
   }
 }
 
+// ==========================================
+// TURNOS INICIADOS (empezar a llamar turnos, separado del registro)
+// ==========================================
+
+async function guardarTurnosIniciados() {
+  const btn = el("btnGuardarTurnosIniciados");
+  const msg = el("mensajeTurnosIniciados");
+  msg.textContent = "";
+  msg.className = "mensaje-form";
+
+  const activando = el("chkTurnosIniciados").checked;
+  const yaEstaba = panelActual && panelActual.config && !!panelActual.config.turnosIniciados;
+
+  if (activando && !yaEstaba) {
+    const confirmado = window.confirm(
+      "¿Empezar a llamar turnos ahora? En cuanto guardes, se le avisa por WhatsApp al primer turno en la fila que ya le toca comprar."
+    );
+    if (!confirmado) return;
+  }
+
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "Guardando...";
+  try {
+    await llamarWorker({
+      accion: "entradasAdminActualizarConfig",
+      clave: claveAdmin,
+      campos: { turnosIniciados: activando },
+    });
+    msg.textContent = "✅ Guardado.";
+    msg.className = "mensaje-form mensaje-form-ok";
+    await cargarPanel();
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = "mensaje-form mensaje-form-error";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
 async function guardarConfig() {
   const btn = el("btnGuardarConfig");
   const msg = el("mensajeConfig");
@@ -460,6 +506,7 @@ el("btnActualizarPanel").addEventListener("click", cargarPanel);
 el("btnGuardarConfig").addEventListener("click", guardarConfig);
 el("btnSaltarTurno").addEventListener("click", saltarTurnoActivo);
 el("btnGuardarVentaIndividual").addEventListener("click", guardarVentaIndividual);
+el("btnGuardarTurnosIniciados").addEventListener("click", guardarTurnosIniciados);
 el("inputBuscarTurno").addEventListener("input", () => {
   if (panelActual) pintarListaTurnos(panelActual.turnos || []);
 });

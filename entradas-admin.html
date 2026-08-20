@@ -55,6 +55,20 @@
       <p class="estado-registro-actual" id="textoEstadoRegistroActual"></p>
     </div>
 
+    <!-- ---- Llamado de turnos (separado del registro) ---- -->
+    <div class="tarjeta-panel">
+      <p class="tarjeta-panel-titulo">Llamado de turnos</p>
+      <p class="aviso-familia">La gente se puede ir registrando (y numerando) desde días antes sin que nadie reciba aviso todavía. Cuando llegue el día de la venta, activa esto para empezar a llamar: se le avisa al primer turno por WhatsApp y de ahí en adelante sigue solo, avisando al siguiente cada 10 minutos.</p>
+
+      <label class="opcion-checkbox">
+        <input type="checkbox" id="chkTurnosIniciados" />
+        Turnos iniciados — ya se está llamando a la fila
+      </label>
+
+      <button class="btn-grande btn-siguiente" id="btnGuardarTurnosIniciados">Guardar</button>
+      <p class="mensaje-form" id="mensajeTurnosIniciados"></p>
+    </div>
+
     <!-- ---- Venta individual (apaga el sistema de turnos) ---- -->
     <div class="tarjeta-panel">
       <p class="tarjeta-panel-titulo">Venta individual (sin turnos)</p>
