@@ -224,7 +224,12 @@ body{position:fixed;inset:0;}
 
 <script>
 const NUMERO_WHATSAPP = "50237529984";
-const LINK_RESERVA = "https://prueba.academiamovedance.com/recepcion.html";
+// Antes esto llevaba directo a recepcion.html (el panel interno con
+// clave de Recepción) — un papá que le daba clic se topaba con una
+// pantalla pidiendo una contraseña que no tiene. Ahora lleva al
+// formulario público (prueba.html), pensado para que lo llene
+// cualquier familia sin necesitar ninguna clave.
+const LINK_RESERVA = "prueba.html";
 
 const GRUPOS = [
   { id: "2-4", chip: "2 a 4 años", emoji: "🍼", titulo: "Little Movers", subtitulo: "Pre Danza",

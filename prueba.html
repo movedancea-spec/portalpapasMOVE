@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Reserva tu Clase de Prueba</title>
+<meta name="theme-color" content="#ef4b9b" />
+<meta name="description" content="Reserva tu clase de prueba gratis en MOVE Dance Academy." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="prueba.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">⭐ Reserva tu Clase de Prueba</div>
+
+  <!-- ============ PANTALLA: FORMULARIO ============ -->
+  <section id="pantallaFormulario" class="pantalla">
+    <p class="subtitulo">
+      Llena tus datos para agendar tu clase de prueba. Nos vamos a comunicar
+      contigo lo antes posible para confirmarte la fecha y el horario. 💌
+    </p>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">Nombre completo *</p>
+      <input type="text" id="inputNombre" class="input-texto" placeholder="Ej. María López" autocomplete="name" />
+    </div>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">Edad *</p>
+      <input type="text" id="inputEdad" class="input-texto" placeholder="Ej. 7 años" inputmode="numeric" />
+    </div>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">WhatsApp *</p>
+      <input type="tel" id="inputWhatsapp" class="input-texto" placeholder="Ej. 5555 5555" autocomplete="tel" inputmode="tel" />
+    </div>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">¿Qué clase te interesa? *</p>
+      <select id="selectClase" class="input-select">
+        <option value="">Cargando clases...</option>
+      </select>
+    </div>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">Horario *</p>
+      <select id="selectHorario" class="input-select" disabled>
+        <option value="">Elige primero una clase</option>
+      </select>
+    </div>
+
+    <div class="campo-form">
+      <p class="etiqueta-campo">¿Qué día te gustaría venir? *</p>
+      <input type="date" id="inputFecha" class="input-texto" />
+      <p class="pista-campo" id="pistaFecha"></p>
+    </div>
+
+    <button class="btn-grande btn-siguiente" id="btnReservar" type="button">Reservar mi clase de prueba →</button>
+    <p class="mensaje-form" id="mensajeFormulario"></p>
+  </section>
+
+  <!-- ============ PANTALLA: LISTO ============ -->
+  <section id="pantallaListo" class="pantalla" hidden>
+    <p class="listo-emoji">🎉</p>
+    <p class="listo-titulo">¡Ya casi, <span id="listoNombre">amiga</span>!</p>
+    <p class="listo-texto">
+      Te acabamos de escribir por WhatsApp con los detalles de tu clase de
+      prueba. Nos vamos a comunicar contigo nuevamente muy pronto para
+      confirmarte la fecha y el horario. ¡Te esperamos para que vivas la
+      experiencia MOVE! 🩰
+    </p>
+  </section>
+
+</div>
+
+<script src="prueba.js"></script>
+</body>
+</html>
