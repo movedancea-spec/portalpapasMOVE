@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>Biométrico — Marcar Entrada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="biometrico-style.css?v=6e91d6ca" />
+</head>
+<body>
+
+<!-- ============ LOGIN (una sola vez, se queda guardado en esta tablet) ============ -->
+<div class="tarjeta-login" id="pantallaLogin">
+  <h1>📟 Pantalla de Entrada</h1>
+  <p class="subtitulo">Entra una sola vez con el nombre y la contraseña de tu academia — esta tablet se queda conectada.</p>
+  <input type="text" id="inputNombreAcademia" placeholder="Nombre de tu academia" autocomplete="off" />
+  <input type="password" id="inputClaveAcademia" placeholder="Contraseña" autocomplete="off" />
+  <button class="btn" id="btnEntrarAcademia">Entrar →</button>
+  <p class="mensaje-error" id="mensajeErrorLogin"></p>
+</div>
+
+<!-- ============ KIOSKO: teclado para meter el código ============ -->
+<div class="kiosko" id="pantallaTeclado" hidden>
+  <img class="kiosko-logo" id="logoKiosko" src="" alt="" hidden />
+  <div class="kiosko-marca" id="marcaAcademiaKiosko"></div>
+  <div class="kiosko-titulo">Ingresa tu código</div>
+
+  <div class="kiosko-visor vacio" id="visorCodigo">Escribe tu número</div>
+
+  <div class="kiosko-numpad">
+    <button class="tecla-numpad" data-tecla="1">1</button>
+    <button class="tecla-numpad" data-tecla="2">2</button>
+    <button class="tecla-numpad" data-tecla="3">3</button>
+    <button class="tecla-numpad" data-tecla="4">4</button>
+    <button class="tecla-numpad" data-tecla="5">5</button>
+    <button class="tecla-numpad" data-tecla="6">6</button>
+    <button class="tecla-numpad" data-tecla="7">7</button>
+    <button class="tecla-numpad" data-tecla="8">8</button>
+    <button class="tecla-numpad" data-tecla="9">9</button>
+    <button class="tecla-numpad tecla-borrar" id="btnBorrarDigito">⌫ Borrar</button>
+    <button class="tecla-numpad" data-tecla="0">0</button>
+    <button class="tecla-numpad tecla-confirmar" id="btnConfirmarCodigo">✓ Entrar</button>
+  </div>
+
+  <p class="kiosko-error" id="mensajeErrorKiosko"></p>
+
+  <button class="kiosko-salir" id="btnSalirKiosko">Salir de esta tablet</button>
+</div>
+
+<!-- ============ KIOSKO: confirmar que es el alumno correcto, antes de marcar ============ -->
+<div class="kiosko" id="pantallaConfirmacion" hidden>
+  <div id="contenidoConfirmacion"></div>
+  <div class="kiosko-botones-confirmacion">
+    <button class="tecla-numpad" id="btnNoSoyYo">✗ No, corregir</button>
+    <button class="tecla-numpad tecla-confirmar" id="btnSiSoyYo">✓ Sí, entrar</button>
+  </div>
+</div>
+
+<!-- ============ KIOSKO: resultado (foto + bienvenida) ============ -->
+<div class="kiosko" id="pantallaResultado" hidden>
+  <div id="contenidoResultado"></div>
+</div>
+
+<script src="biometrico.js?v=28b6dadf"></script>
+</body>
+</html>

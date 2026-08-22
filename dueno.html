@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>Biométrico — Panel del Dueño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="biometrico-style.css?v=6e91d6ca" />
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="tarjeta-login" id="pantallaLogin">
+  <h1>🔐 Panel del Dueño</h1>
+  <p class="subtitulo">Administración general del sistema — solo tú tienes esta clave.</p>
+  <input type="password" id="inputClaveDueno" placeholder="Tu clave de dueño" autocomplete="off" />
+  <button class="btn" id="btnEntrarDueno">Entrar →</button>
+  <p class="mensaje-error" id="mensajeErrorLogin"></p>
+</div>
+
+<!-- ============ PANEL ============ -->
+<div class="contenedor" id="pantallaPanel" hidden>
+
+  <div class="barra-superior">
+    <h1>🔐 Panel del Dueño</h1>
+    <button class="btn secundario chico" id="btnSalirDueno">Salir</button>
+  </div>
+
+  <div class="grid-stats">
+    <div class="stat-caja">
+      <div class="stat-numero" id="statCantidadAcademias">—</div>
+      <div class="stat-etiqueta">Academias</div>
+    </div>
+    <div class="stat-caja">
+      <div class="stat-numero" id="statAcademiasActivas">—</div>
+      <div class="stat-etiqueta">Activas</div>
+    </div>
+    <div class="stat-caja">
+      <div class="stat-numero" id="statTotalAlumnas">—</div>
+      <div class="stat-etiqueta">Alumnos en total</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>➕ Nueva academia cliente</h2>
+    <p class="ayuda">Crea el acceso para una academia nueva. El nombre es con lo que ellos inician sesión — avísales también la contraseña que pongas aquí.</p>
+    <div class="fila-formulario">
+      <div>
+        <label>Nombre de la academia</label>
+        <input type="text" id="inputNuevaAcademiaNombre" placeholder="Ej: Academia Ritmo" />
+      </div>
+      <div>
+        <label>Contraseña de acceso</label>
+        <input type="text" id="inputNuevaAcademiaClave" placeholder="Mínimo 4 caracteres" />
+      </div>
+      <div>
+        <label>Límite de alumnos</label>
+        <input type="number" id="inputNuevaAcademiaLimite" placeholder="150" value="150" min="1" />
+      </div>
+      <div>
+        <label>Correo de recuperación (opcional)</label>
+        <input type="email" id="inputNuevaAcademiaEmail" placeholder="correo-de-la-academia@ejemplo.com" />
+      </div>
+      <div>
+        <label>Mensualidad (Q)</label>
+        <input type="number" id="inputNuevaAcademiaMensualidad" placeholder="0.00" min="0" step="0.01" />
+      </div>
+    </div>
+    <button class="btn" id="btnCrearAcademia" style="margin-top:6px;">Crear academia</button>
+    <p class="mensaje-error" id="mensajeErrorCrear"></p>
+    <p class="mensaje-exito" id="mensajeExitoCrear"></p>
+  </div>
+
+  <div class="panel">
+    <h2>🏫 Academias clientes</h2>
+    <p class="ayuda">Activa/desactiva el acceso (por ejemplo, si no pagó el fee del mes), edita su nombre, contraseña o límite de alumnos, o bórrala por completo.</p>
+    <div class="lista-tarjetas" id="listaAcademias">
+      <p class="lista-vacia">Cargando academias...</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ MODAL: editar academia ============ -->
+<div class="fondo-modal" id="modalEditarAcademia" hidden>
+  <div class="caja-modal">
+    <h3>Editar academia</h3>
+    <div class="campo">
+      <label>Nombre</label>
+      <input type="text" id="inputEditarNombreAcademia" />
+    </div>
+    <div class="campo">
+      <label>Nueva contraseña (opcional)</label>
+      <input type="text" id="inputEditarClaveAcademia" placeholder="Déjalo en blanco para no cambiarla" />
+    </div>
+    <div class="campo">
+      <label>Límite de alumnos</label>
+      <input type="number" id="inputEditarLimite" min="1" />
+    </div>
+    <div class="campo">
+      <label>Correo de recuperación (opcional)</label>
+      <input type="email" id="inputEditarEmailAcademia" placeholder="correo-de-la-academia@ejemplo.com" />
+    </div>
+    <div class="campo">
+      <label>Mensualidad (Q, lo que le toca pagar cada mes)</label>
+      <input type="number" id="inputEditarMensualidad" min="0" step="0.01" placeholder="0.00" />
+    </div>
+    <div class="campo">
+      <label>Mensualidad de este mes</label>
+      <p class="ayuda" id="textoEstadoPagoAcademia" style="margin:4px 0 8px;"></p>
+      <button class="btn secundario chico" id="btnMarcarPagadoManual" type="button">Marcar como pagada manualmente</button>
+    </div>
+    <div class="campo">
+      <label>Historial de pagos (todos los meses)</label>
+      <div id="listaHistorialPagos" class="lista-tarjetas" style="margin-top:6px;">
+        <p class="lista-vacia">Cargando historial...</p>
+      </div>
+    </div>
+    <p class="mensaje-error" id="mensajeErrorEditarAcademia"></p>
+    <div class="acciones-modal">
+      <button class="btn secundario" id="btnCancelarEditarAcademia">Cancelar</button>
+      <button class="btn" id="btnGuardarEditarAcademia">Guardar</button>
+    </div>
+    <button class="btn peligro" id="btnBorrarAcademia" style="margin-top:10px;">🗑️ Borrar academia</button>
+  </div>
+</div>
+
+<script src="dueno.js?v=79567d5f"></script>
+</body>
+</html>

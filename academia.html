@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>Biométrico — Administración de la Academia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="biometrico-style.css?v=6e91d6ca" />
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="tarjeta-login" id="pantallaLogin">
+  <h1>📋 Administración de la Academia</h1>
+  <p class="subtitulo">Entra con el nombre y la contraseña que te dieron.</p>
+  <input type="text" id="inputNombreAcademia" placeholder="Nombre de tu academia" autocomplete="off" />
+  <input type="password" id="inputClaveAcademia" placeholder="Contraseña" autocomplete="off" />
+  <button class="btn" id="btnEntrarAcademia">Entrar →</button>
+  <p class="mensaje-error" id="mensajeErrorLogin"></p>
+  <button class="enlace-texto" id="btnMostrarOlvide" type="button">¿Olvidaste tu contraseña?</button>
+</div>
+
+<!-- ============ OLVIDÉ MI CONTRASEÑA (paso 1: pedir el enlace) ============ -->
+<div class="tarjeta-login" id="pantallaOlvide" hidden>
+  <h1>🔑 Recuperar contraseña</h1>
+  <p class="subtitulo">Escribe el nombre de tu academia y el correo que tienes registrado. Si coinciden con una cuenta, te mandamos un enlace para poner una contraseña nueva.</p>
+  <input type="text" id="inputOlvideNombre" placeholder="Nombre de tu academia" autocomplete="off" />
+  <input type="email" id="inputOlvideEmail" placeholder="Tu correo registrado" autocomplete="off" />
+  <button class="btn" id="btnEnviarOlvide">Mandar enlace de recuperación</button>
+  <p class="mensaje-error" id="mensajeErrorOlvide"></p>
+  <p class="mensaje-exito" id="mensajeExitoOlvide"></p>
+  <button class="enlace-texto" id="btnCancelarOlvide" type="button">← Volver a iniciar sesión</button>
+</div>
+
+<!-- ============ OLVIDÉ MI CONTRASEÑA (paso 2: llega desde el enlace del correo) ============ -->
+<div class="tarjeta-login" id="pantallaRestablecer" hidden>
+  <h1>🔑 Pon tu contraseña nueva</h1>
+  <p class="subtitulo">Este enlace es de un solo uso y dura 30 minutos.</p>
+  <input type="password" id="inputRestablecerClave" placeholder="Contraseña nueva" autocomplete="off" />
+  <input type="password" id="inputRestablecerClaveConfirmar" placeholder="Confirmar contraseña nueva" autocomplete="off" />
+  <button class="btn" id="btnRestablecerClave">Guardar contraseña nueva</button>
+  <p class="mensaje-error" id="mensajeErrorRestablecer"></p>
+  <p class="mensaje-exito" id="mensajeExitoRestablecer"></p>
+</div>
+
+<!-- ============ PANEL ============ -->
+<div class="contenedor" id="pantallaPanel" hidden>
+
+  <div class="barra-superior">
+    <div class="titulo-con-logo">
+      <img class="logo-marca" id="logoAcademia" src="" alt="" hidden />
+      <h1 id="tituloAcademia">📋 Administración de la Academia</h1>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="info-cuenta" id="infoLimiteAlumnas"></span>
+      <button class="btn secundario chico" id="btnSalirAcademia">Salir</button>
+    </div>
+  </div>
+
+  <div class="panel aviso-kiosko">
+    <h2>📟 ¿Buscas la pantalla para marcar entradas?</h2>
+    <p class="ayuda" style="margin-bottom:12px;">Esta página es solo para administrar alumnos (agregar, editar, borrar). Para la pantalla de la tablet donde los alumnos ingresan su código, se muestra su foto y un mensaje de bienvenida, usa <strong>biometrico.html</strong> — esa la dejas abierta en la entrada, aparte de esta.</p>
+    <a class="btn secundario chico" href="biometrico.html" target="_blank" rel="noopener">Abrir pantalla de código (biométrico) →</a>
+  </div>
+
+  <div class="panel aviso-kiosko">
+    <h2>👨‍👩‍👧‍👦 Portal de Alumnos (para los papás)</h2>
+    <p class="ayuda" style="margin-bottom:12px;">Compárteles este enlace a los papás — ahí pueden ver el historial de asistencia de su hijo y activar avisos de cuándo llega a su clase. Cada alumno tiene su propia contraseña del portal (la generas desde "Editar" en su tarjeta, más abajo) — esa es la que le compartes a la familia.</p>
+    <a class="btn secundario chico" href="portal.html" target="_blank" rel="noopener">Abrir el Portal de Alumnos →</a>
+  </div>
+
+  <!-- -------- Mensualidad (cobro por usar el biométrico) -------- -->
+  <div class="panel">
+    <h2>💳 Mensualidad</h2>
+    <p class="ayuda" id="mensualidadTextoAyuda">Cargando el estado de tu mensualidad…</p>
+    <p style="margin:10px 0;"><strong id="mensualidadEstadoTexto"></strong></p>
+    <button class="btn" id="btnGenerarLinkPago" hidden>Generar link de pago</button>
+    <a class="btn" id="enlaceLinkPago" href="#" target="_blank" rel="noopener" hidden>Pagar ahora →</a>
+    <p class="ayuda" id="mensualidadTextoLinkVence" hidden></p>
+    <p class="mensaje-error" id="mensajeErrorMensualidad"></p>
+    <p class="mensaje-exito" id="mensajeExitoMensualidad"></p>
+
+    <hr style="border:none; border-top:1px solid var(--color-marca-suave2); margin:18px 0;" />
+
+    <p class="ayuda" style="margin-top:0;">¿Pagaste por transferencia o depósito en vez de tarjeta? Sube aquí tu comprobante para que el administrador lo revise y active tu cuenta.</p>
+    <p class="ayuda" id="comprobanteEstadoTexto" style="margin:6px 0;"></p>
+    <div class="fila-formulario" style="align-items:flex-end;">
+      <div>
+        <label>Comprobante (foto o PDF)</label>
+        <input type="file" id="inputComprobantePago" accept="image/*,application/pdf" />
+      </div>
+      <div>
+        <button class="btn secundario" id="btnSubirComprobante">Subir comprobante</button>
+      </div>
+    </div>
+    <p class="mensaje-error" id="mensajeErrorComprobante"></p>
+    <p class="mensaje-exito" id="mensajeExitoComprobante"></p>
+  </div>
+
+  <!-- -------- Personalizar (logo y color) -------- -->
+  <div class="panel">
+    <h2>🎨 Personalizar tu panel</h2>
+    <p class="ayuda">El color y el logo que elijas aquí se aplican tanto a esta página como a la pantalla de código (biometrico.html).</p>
+    <div class="fila-formulario" style="align-items:center;">
+      <div style="flex:0 0 auto;">
+        <label>Color principal</label>
+        <input type="color" id="inputColorMarca" value="#ef4b9b" style="width:64px; height:44px; padding:4px; cursor:pointer;" />
+      </div>
+      <div>
+        <label>Tu logo (opcional)</label>
+        <input type="file" id="inputLogoMarca" accept="image/*" />
+      </div>
+    </div>
+    <img class="foto-preview" id="logoPreviewPersonalizar" src="" alt="" hidden style="border-radius:8px; background:#f2f2f2;" />
+    <button class="btn" id="btnGuardarMarca" style="margin-top:6px;">Guardar personalización</button>
+    <p class="mensaje-error" id="mensajeErrorMarca"></p>
+    <p class="mensaje-exito" id="mensajeExitoMarca"></p>
+  </div>
+
+  <!-- -------- Mi cuenta (correo de recuperación + cambiar contraseña) -------- -->
+  <div class="panel">
+    <h2>🔐 Mi cuenta</h2>
+    <p class="ayuda">Este correo NO se usa para iniciar sesión — solo sirve para poder recuperar tu contraseña si algún día se te olvida.</p>
+    <div class="fila-formulario">
+      <div>
+        <label>Correo de recuperación</label>
+        <input type="email" id="inputEmailCuenta" placeholder="tu-correo@ejemplo.com" autocomplete="off" />
+      </div>
+    </div>
+    <button class="btn secundario" id="btnGuardarEmail" style="margin-top:6px;">Guardar correo</button>
+    <p class="mensaje-error" id="mensajeErrorEmail"></p>
+    <p class="mensaje-exito" id="mensajeExitoEmail"></p>
+
+    <hr style="border:none; border-top:1px solid var(--color-marca-suave2); margin:20px 0;" />
+
+    <p class="ayuda" style="margin-top:0;">Cambia tu contraseña de acceso (la que usas para entrar aquí y en la tablet).</p>
+    <div class="fila-formulario">
+      <div>
+        <label>Contraseña nueva</label>
+        <input type="password" id="inputClaveNueva" placeholder="Contraseña nueva" autocomplete="off" />
+      </div>
+      <div>
+        <label>Confirmar contraseña nueva</label>
+        <input type="password" id="inputClaveNuevaConfirmar" placeholder="Confirmar contraseña nueva" autocomplete="off" />
+      </div>
+    </div>
+    <button class="btn secundario" id="btnCambiarClave" style="margin-top:6px;">Cambiar contraseña</button>
+    <p class="mensaje-error" id="mensajeErrorClave"></p>
+    <p class="mensaje-exito" id="mensajeExitoClave"></p>
+  </div>
+
+  <!-- -------- Agregar alumno -------- -->
+  <div class="panel">
+    <h2>➕ Agregar alumno</h2>
+    <p class="ayuda">El código se asigna solo, al azar (4 dígitos) — no se puede escoger, no sigue un orden, y no se repite entre alumnos de tu academia.</p>
+    <div class="fila-formulario">
+      <div>
+        <label>Nombre completo</label>
+        <input type="text" id="inputNuevaAlumnaNombre" placeholder="Nombre del alumno" />
+      </div>
+      <div>
+        <label>Clases al mes</label>
+        <input type="number" id="inputNuevaAlumnaClases" placeholder="8" value="8" min="1" />
+      </div>
+      <div>
+        <label>Foto (opcional)</label>
+        <input type="file" id="inputNuevaAlumnaFoto" accept="image/*" />
+      </div>
+    </div>
+    <button class="btn" id="btnCrearAlumna" style="margin-top:6px;">Agregar alumno</button>
+    <p class="mensaje-error" id="mensajeErrorCrear"></p>
+    <p class="mensaje-exito" id="mensajeExitoCrear"></p>
+  </div>
+
+  <!-- -------- Lista de alumnos -------- -->
+  <div class="panel">
+    <h2>🧑‍🎓 Alumnos</h2>
+    <p class="ayuda" id="ayudaCantidadAlumnas"></p>
+    <div class="lista-tarjetas" id="listaAlumnas">
+      <p class="lista-vacia">Cargando alumnos...</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ MODAL: editar alumno ============ -->
+<div class="fondo-modal" id="modalAlumna" hidden>
+  <div class="caja-modal">
+    <h3>Editar alumno</h3>
+    <img class="foto-preview" id="fotoPreviewModal" src="" alt="" hidden />
+    <div class="campo">
+      <label>Nombre</label>
+      <input type="text" id="inputEditarNombre" />
+    </div>
+    <div class="campo">
+      <label>Clases al mes</label>
+      <input type="number" id="inputEditarClases" min="1" />
+    </div>
+    <div class="campo">
+      <label>Estado</label>
+      <select id="selectEditarEstado">
+        <option value="Activa">Activa</option>
+        <option value="Inactiva">Inactiva</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>Cambiar foto (opcional)</label>
+      <input type="file" id="inputEditarFoto" accept="image/*" />
+    </div>
+
+    <hr style="border:none; border-top:1px solid var(--color-marca-suave2); margin:16px 0;" />
+
+    <div class="campo">
+      <label>👨‍👩‍👧‍👦 Contraseña del Portal de Alumnos</label>
+      <p class="ayuda" id="textoEstadoClavePortal" style="margin:2px 0 8px;"></p>
+      <button class="btn secundario chico" id="btnGenerarClavePortal" type="button">Generar contraseña nueva</button>
+      <p class="mensaje-exito" id="mensajeClavePortalGenerada" style="margin-top:8px;"></p>
+    </div>
+
+    <p class="mensaje-error" id="mensajeErrorEditar"></p>
+    <div class="acciones-modal">
+      <button class="btn secundario" id="btnCancelarEditar">Cancelar</button>
+      <button class="btn" id="btnGuardarEditar">Guardar</button>
+    </div>
+    <button class="btn peligro" id="btnBorrarAlumna" style="margin-top:10px;">🗑️ Borrar alumno</button>
+  </div>
+</div>
+
+<script src="academia.js?v=db850de2"></script>
+</body>
+</html>

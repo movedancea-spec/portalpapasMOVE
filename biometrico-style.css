@@ -1,0 +1,695 @@
+/* ===================================================
+   BIOMÉTRICO — estilo compartido (páginas de admin)
+   Mismo look ligero/rosa de los paneles de MOVE, pero sin
+   ninguna marca de MOVE — este producto se vende a OTRAS
+   academias, así que cada quien ve el nombre de la suya.
+=================================================== */
+
+*{ box-sizing:border-box; }
+
+/* Blindaje: cualquier elemento con el atributo "hidden" se oculta
+   SIEMPRE, sin importar qué otras reglas de esta hoja le pongan
+   display (ej. ".btn{display:inline-block}"). Sin esta regla, un
+   botón con clase .btn y el atributo "hidden" se seguía viendo, porque
+   la regla de la clase ".btn" le ganaba a la regla por defecto del
+   navegador para "hidden" — esto causaba que apareciera "Pagar ahora"
+   junto con "Generar link de pago" aunque el código dijera que uno de
+   los dos debía estar oculto. */
+[hidden]{ display:none !important; }
+
+/* Colores de marca — por defecto el rosa de siempre. Cada academia
+   puede reemplazar --color-marca (y de ahí se derivan automáticamente
+   los demás tonos, ver aplicarMarca() en academia.js/biometrico.js).
+   --color-peligro es FIJO a propósito (errores/borrar siempre en rojo,
+   sin importar el color de marca que elija la academia). */
+:root{
+--color-marca:#ef4b9b;
+--color-marca-oscuro:#e0245e;
+--color-marca-suave:#ffe3f0;
+--color-marca-suave2:#ffdcee;
+--color-marca-suave3:#ffc7e2;
+--color-marca-fondo:#fff5fa;
+--color-marca-fondo2:#fdf1f8;
+--color-marca-fondo3:#f6eefc;
+--color-marca-texto-suave:#a15277;
+--color-marca-texto-suave2:#c76b9c;
+--color-peligro:#e0245e;
+}
+
+body{
+margin:0;
+min-height:100vh;
+font-family:'Poppins', system-ui, sans-serif;
+background:linear-gradient(160deg,var(--color-marca-fondo) 0%,var(--color-marca-fondo2) 40%,var(--color-marca-fondo3) 100%);
+color:#3a2e3a;
+padding:24px 16px 60px;
+}
+
+.contenedor{
+max-width:920px;
+margin:0 auto;
+}
+
+.tarjeta-login{
+max-width:380px;
+margin:8vh auto 0;
+background:white;
+border-radius:20px;
+padding:32px 28px;
+box-shadow:0 12px 30px rgba(0,0,0,.10);
+text-align:center;
+}
+
+.tarjeta-login h1{
+font-size:20px;
+color:var(--color-marca);
+margin:4px 0 4px;
+}
+
+.tarjeta-login p.subtitulo{
+font-size:13px;
+color:#9a7d90;
+margin:0 0 20px;
+}
+
+input, select{
+width:100%;
+padding:12px 14px;
+border-radius:12px;
+border:2px solid var(--color-marca-suave2);
+font-size:14px;
+font-family:inherit;
+margin-bottom:12px;
+background:#fffafc;
+color:#3a2e3a;
+}
+
+input:focus, select:focus{
+outline:none;
+border-color:var(--color-marca);
+}
+
+.btn{
+display:inline-block;
+width:100%;
+padding:13px 16px;
+border:none;
+border-radius:12px;
+background:var(--color-marca);
+color:white;
+font-weight:700;
+font-size:14px;
+font-family:inherit;
+cursor:pointer;
+transition:background .15s ease, transform .1s ease;
+}
+
+.btn:hover{ background:var(--color-marca-oscuro); }
+.btn:active{ transform:scale(.98); }
+
+.btn.secundario{
+background:white;
+color:var(--color-marca);
+border:2px solid var(--color-marca-suave2);
+}
+
+.btn.secundario:hover{ background:var(--color-marca-fondo); }
+
+.btn.chico{
+width:auto;
+padding:8px 14px;
+font-size:12.5px;
+}
+
+.btn.peligro{ background:var(--color-peligro); }
+.btn.peligro:hover{ background:#c01c4e; }
+
+.btn:disabled{
+opacity:.55;
+cursor:not-allowed;
+}
+
+.mensaje-error{
+color:var(--color-peligro);
+font-size:13px;
+font-weight:600;
+min-height:18px;
+margin-top:4px;
+}
+
+.mensaje-exito{
+color:#1a9b6c;
+font-size:13px;
+font-weight:600;
+min-height:18px;
+margin-top:4px;
+}
+
+.enlace-texto{
+display:block;
+width:100%;
+margin-top:16px;
+font-size:13px;
+color:var(--color-marca-texto-suave2);
+text-decoration:underline;
+background:none;
+border:none;
+cursor:pointer;
+font-family:inherit;
+text-align:center;
+}
+
+.enlace-texto:hover{ color:var(--color-marca); }
+
+/* -------- barra superior tras iniciar sesión -------- */
+
+.barra-superior{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+flex-wrap:wrap;
+margin-bottom:22px;
+}
+
+.barra-superior .titulo-con-logo{
+display:flex;
+align-items:center;
+gap:10px;
+flex:1;
+min-width:0;
+}
+
+.barra-superior .logo-marca{
+max-height:34px;
+max-width:100px;
+object-fit:contain;
+flex-shrink:0;
+}
+
+.barra-superior h1{
+font-size:19px;
+color:var(--color-marca);
+margin:0;
+}
+
+.barra-superior .info-cuenta{
+font-size:12.5px;
+color:#9a7d90;
+font-weight:600;
+}
+
+/* -------- tarjetas / secciones -------- */
+
+.panel{
+background:white;
+border-radius:18px;
+padding:20px 20px 22px;
+box-shadow:0 8px 22px rgba(0,0,0,.06);
+margin-bottom:20px;
+}
+
+.panel h2{
+font-size:15px;
+color:var(--color-marca);
+margin:0 0 4px;
+}
+
+.panel p.ayuda{
+font-size:12.5px;
+color:#9a7d90;
+margin:0 0 16px;
+}
+
+.grid-stats{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+gap:10px;
+margin-bottom:18px;
+}
+
+.stat-caja{
+background:var(--color-marca-fondo);
+border:2px solid var(--color-marca-suave);
+border-radius:14px;
+padding:14px 10px;
+text-align:center;
+}
+
+.stat-numero{
+font-size:24px;
+font-weight:800;
+color:var(--color-marca);
+line-height:1;
+}
+
+.stat-etiqueta{
+font-size:11px;
+font-weight:700;
+color:#9a7d90;
+text-transform:uppercase;
+letter-spacing:.4px;
+margin-top:4px;
+}
+
+/* -------- formularios en línea -------- */
+
+.fila-formulario{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+align-items:flex-end;
+}
+
+.fila-formulario > div{
+flex:1;
+min-width:140px;
+}
+
+.fila-formulario label, .campo label{
+display:block;
+font-size:12px;
+font-weight:700;
+color:var(--color-marca-texto-suave);
+margin-bottom:4px;
+}
+
+.fila-formulario input, .campo input{ margin-bottom:0; }
+
+/* -------- lista de tarjetas (academias / alumnos) -------- */
+
+.lista-tarjetas{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.tarjeta-item{
+display:flex;
+align-items:center;
+gap:14px;
+border:2px solid var(--color-marca-suave);
+border-radius:14px;
+padding:12px 14px;
+background:#fffafc;
+flex-wrap:wrap;
+}
+
+.tarjeta-item .foto-miniatura{
+width:46px;
+height:46px;
+border-radius:50%;
+object-fit:cover;
+background:var(--color-marca-suave);
+flex-shrink:0;
+}
+
+.tarjeta-item .foto-miniatura.vacia{
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:18px;
+color:var(--color-marca);
+}
+
+.tarjeta-item .info-principal{
+flex:1;
+min-width:150px;
+}
+
+.tarjeta-item .nombre-item{
+font-weight:700;
+font-size:14.5px;
+color:#3a2e3a;
+}
+
+.tarjeta-item .detalle-item{
+font-size:12px;
+color:#9a7d90;
+margin-top:2px;
+}
+
+.tarjeta-item .acciones-item{
+display:flex;
+gap:8px;
+align-items:center;
+flex-wrap:wrap;
+}
+
+.etiqueta-estado{
+display:inline-block;
+padding:3px 10px;
+border-radius:999px;
+font-size:11px;
+font-weight:700;
+}
+
+.etiqueta-estado.activa{
+background:#e6f8f1;
+color:#1a9b6c;
+}
+
+.etiqueta-estado.inactiva{
+background:#fdeaea;
+color:#c0392b;
+}
+
+.lista-vacia{
+text-align:center;
+color:#b899ac;
+font-size:13px;
+padding:22px 10px;
+}
+
+/* -------- modal simple para editar -------- */
+
+.fondo-modal{
+position:fixed;
+inset:0;
+background:rgba(60,20,45,.35);
+display:flex;
+align-items:center;
+justify-content:center;
+padding:16px;
+z-index:50;
+}
+
+.fondo-modal[hidden]{
+display:none;
+}
+
+.caja-modal{
+background:white;
+border-radius:18px;
+padding:22px 20px;
+max-width:380px;
+width:100%;
+max-height:88vh;
+overflow-y:auto;
+}
+
+.caja-modal h3{
+font-size:16px;
+color:var(--color-marca);
+margin:0 0 14px;
+}
+
+.foto-preview{
+width:84px;
+height:84px;
+border-radius:50%;
+object-fit:cover;
+background:var(--color-marca-suave);
+margin:0 auto 12px;
+display:block;
+}
+
+.foto-preview[hidden]{
+display:none;
+}
+
+.acciones-modal{
+display:flex;
+gap:8px;
+margin-top:10px;
+}
+
+.acciones-modal .btn{ flex:1; }
+
+.aviso-kiosko{
+border:2px dashed var(--color-marca-suave3);
+background:var(--color-marca-fondo);
+}
+
+.aviso-kiosko a.btn{
+display:inline-block;
+width:auto;
+}
+
+/* ===================================================
+   PANTALLA DE CÓDIGO (biometrico.html) — pensada para
+   quedarse abierta en una tablet en la entrada.
+=================================================== */
+
+body.modo-kiosko{
+padding:0;
+min-height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+background:linear-gradient(160deg,var(--color-marca-fondo) 0%,var(--color-marca-fondo2) 45%,var(--color-marca-fondo3) 100%);
+}
+
+.kiosko{
+width:100%;
+max-width:480px;
+min-height:100vh;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+padding:32px 24px;
+text-align:center;
+}
+
+.kiosko[hidden]{
+display:none;
+}
+
+.kiosko-logo{
+max-width:150px;
+max-height:76px;
+object-fit:contain;
+margin-bottom:12px;
+}
+
+.kiosko-marca{
+font-size:15px;
+font-weight:700;
+color:var(--color-marca-texto-suave2);
+letter-spacing:.5px;
+margin-bottom:6px;
+}
+
+.kiosko-titulo{
+font-size:22px;
+font-weight:800;
+color:var(--color-marca);
+margin-bottom:28px;
+}
+
+.kiosko-visor{
+width:100%;
+max-width:320px;
+background:white;
+border:3px solid var(--color-marca-suave2);
+border-radius:18px;
+padding:18px 16px;
+font-size:34px;
+font-weight:800;
+letter-spacing:6px;
+color:#3a2e3a;
+text-align:center;
+min-height:56px;
+margin-bottom:22px;
+box-shadow:0 8px 20px rgba(0,0,0,.08);
+}
+
+.kiosko-visor.vacio{
+color:#d9b8ca;
+letter-spacing:normal;
+font-size:16px;
+font-weight:600;
+}
+
+.kiosko-numpad{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:12px;
+width:100%;
+max-width:320px;
+}
+
+.tecla-numpad{
+padding:20px 0;
+font-size:26px;
+font-weight:700;
+color:#3a2e3a;
+background:white;
+border:2px solid var(--color-marca-suave);
+border-radius:16px;
+cursor:pointer;
+transition:background .1s ease, transform .08s ease;
+font-family:inherit;
+}
+
+.tecla-numpad:active{
+background:var(--color-marca-suave);
+transform:scale(.96);
+}
+
+.tecla-numpad.tecla-confirmar{
+background:var(--color-marca);
+color:white;
+border-color:var(--color-marca);
+}
+
+.tecla-numpad.tecla-confirmar:active{ background:var(--color-marca-oscuro); }
+
+.tecla-numpad.tecla-borrar{
+font-size:18px;
+color:var(--color-marca-texto-suave);
+}
+
+.kiosko-error{
+color:var(--color-peligro);
+font-weight:700;
+font-size:14px;
+min-height:20px;
+margin-top:16px;
+}
+
+.kiosko-salir{
+margin-top:30px;
+font-size:11.5px;
+color:#d9b8ca;
+text-decoration:none;
+background:none;
+border:none;
+cursor:pointer;
+font-family:inherit;
+}
+
+/* -------- tarjeta de bienvenida (tras marcar) -------- */
+
+.kiosko-bienvenida{
+width:100%;
+max-width:340px;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+.kiosko-bienvenida .foto-bienvenida{
+width:150px;
+height:150px;
+border-radius:50%;
+object-fit:cover;
+background:var(--color-marca-suave);
+border:5px solid white;
+box-shadow:0 10px 26px rgba(0,0,0,.15);
+margin-bottom:20px;
+}
+
+.kiosko-bienvenida .foto-bienvenida.vacia{
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:56px;
+}
+
+.kiosko-bienvenida .mensaje-bienvenida{
+font-size:26px;
+font-weight:800;
+color:var(--color-marca);
+line-height:1.25;
+}
+
+.kiosko-bienvenida .detalle-bienvenida{
+font-size:14px;
+font-weight:600;
+color:#8a6b81;
+margin-top:8px;
+}
+
+.kiosko-bienvenida.error .mensaje-bienvenida{
+color:var(--color-peligro);
+font-size:22px;
+}
+
+@keyframes apareceBienvenida{
+from{ opacity:0; transform:scale(.9); }
+to{ opacity:1; transform:scale(1); }
+}
+
+.kiosko-bienvenida{
+animation:apareceBienvenida .25s ease;
+}
+
+/* -------- botones "¿eres tú?" antes de marcar entrada -------- */
+
+.kiosko-botones-confirmacion{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:14px;
+width:100%;
+max-width:340px;
+margin-top:8px;
+}
+
+.kiosko-botones-confirmacion .tecla-numpad{
+padding:22px 8px;
+font-size:16px;
+}
+
+/* -------- Portal de Alumnos: selector de hijos + cabecera de alumno -------- */
+
+.selector-alumnas{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+margin-bottom:18px;
+}
+
+.chip-alumna{
+border:2px solid var(--color-marca-suave);
+background:white;
+color:var(--color-marca-texto-suave);
+border-radius:999px;
+padding:8px 16px;
+font-family:inherit;
+font-size:13px;
+font-weight:700;
+cursor:pointer;
+transition:background .15s, color .15s, border-color .15s;
+}
+
+.chip-alumna:hover{ border-color:var(--color-marca); }
+
+.chip-alumna.activo{
+background:var(--color-marca);
+border-color:var(--color-marca);
+color:white;
+}
+
+.cabecera-alumna{
+display:flex;
+align-items:center;
+gap:14px;
+}
+
+.cabecera-alumna .foto-preview{
+width:64px;
+height:64px;
+margin:0;
+flex-shrink:0;
+}
+
+.cabecera-alumna .foto-miniatura.vacia{
+width:64px;
+height:64px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:26px;
+color:var(--color-marca);
+background:var(--color-marca-suave);
+flex-shrink:0;
+}
+
+@media (max-width:520px){
+.barra-superior{ flex-direction:column; align-items:flex-start; }
+.tarjeta-item{ flex-direction:column; align-items:flex-start; }
+.tarjeta-item .acciones-item{ width:100%; }
+}
