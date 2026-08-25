@@ -96,6 +96,7 @@ const ETIQUETAS_COMANDO = {
   "cronometro:pausar": "⏸ Cronómetro en pausa",
   "cronometro:reiniciar": "🔁 Cronómetro reiniciado",
   "ruleta:girar": "🎉 Ruleta girando",
+  "ruleta:reiniciar": "🔄 Ruleta reiniciada",
   "calificacion:Excelente": "🌟 Calificada como Excelente",
   "calificacion:Buena": "👍 Calificada como Buena",
   "calificacion:Regular": "🙂 Calificada como Regular",

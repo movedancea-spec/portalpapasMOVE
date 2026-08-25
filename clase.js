@@ -40,6 +40,10 @@ let alarmaFinApagada = false; // una vez apagada, no vuelve a sonar en esta clas
 // ---------- ruleta ----------
 let ruletaIntervalo = null;
 let ruletaGirando = false;
+// IDs de alumnas que ya salieron en esta ronda — no se vuelven a
+// escoger hasta que se reinicie la ruleta (botón "🔄 Reiniciar ruleta"
+// o al iniciar una clase nueva / cerrar sesión).
+let ruletaYaSalieron = new Set();
 
 // ---------- control remoto desde el celular ----------
 // La laptop (donde está abierto este Panel de Clase, conectado a la
@@ -767,6 +771,10 @@ function ejecutarComandoRemoto(comando) {
     el("btnRuleta").click();
     return;
   }
+  if (comando === "ruleta:reiniciar") {
+    el("btnReiniciarRuleta").click();
+    return;
+  }
   if (comando.indexOf("calificacion:") === 0) {
     const categoria = comando.slice("calificacion:".length);
     const btn = document.querySelector('.btn-calificacion[data-categoria="' + categoria + '"]');
@@ -1080,6 +1088,7 @@ function reiniciarRuletaVisual() {
     clearInterval(ruletaIntervalo);
     ruletaIntervalo = null;
   }
+  ruletaYaSalieron.clear();
   const resultado = el("ruletaResultado");
   resultado.textContent = "Toca girar";
   resultado.classList.remove("ruleta-final");
@@ -1089,33 +1098,52 @@ el("btnRuleta").addEventListener("click", () => {
   asegurarAudioCtx();
   if (ruletaGirando) return;
 
-  if (!alumnasPanel.length) {
-    el("ruletaResultado").textContent = "No hay alumnas en este grupo";
+  const resultado = el("ruletaResultado");
+
+  // Solo entran a la ruleta las alumnas marcadas como presentes hoy
+  // (se recalcula en cada giro, por si alguna llegó tarde y la
+  // acaban de marcar). Las que ya salieron en esta ronda quedan
+  // afuera hasta que se reinicie con el botón "🔄 Reiniciar ruleta".
+  const presentes = alumnasPanel.filter((a) => a.presente);
+  if (!presentes.length) {
+    resultado.textContent = "No hay alumnas marcadas como presentes";
+    return;
+  }
+
+  const candidatas = presentes.filter((a) => !ruletaYaSalieron.has(a.id));
+  if (!candidatas.length) {
+    resultado.textContent = "🎉 Ya salieron todas — toca 🔄 Reiniciar";
     return;
   }
 
   ruletaGirando = true;
-  const resultado = el("ruletaResultado");
   resultado.classList.remove("ruleta-final");
 
   let vueltas = 0;
   const vueltasTotales = 14 + Math.floor(Math.random() * 6); // 14–19 "saltos"
 
   ruletaIntervalo = setInterval(() => {
-    const azar = alumnasPanel[Math.floor(Math.random() * alumnasPanel.length)];
+    const azar = candidatas[Math.floor(Math.random() * candidatas.length)];
     resultado.textContent = azar.nombre;
     vueltas++;
 
     if (vueltas >= vueltasTotales) {
       clearInterval(ruletaIntervalo);
       ruletaIntervalo = null;
-      const elegida = alumnasPanel[Math.floor(Math.random() * alumnasPanel.length)];
+      const elegida = candidatas[Math.floor(Math.random() * candidatas.length)];
+      ruletaYaSalieron.add(elegida.id);
       resultado.textContent = "🎉 " + elegida.nombre;
       resultado.classList.add("ruleta-final");
       ruletaGirando = false;
       if (navigator.vibrate) navigator.vibrate(150);
     }
   }, 90);
+});
+
+el("btnReiniciarRuleta").addEventListener("click", () => {
+  if (ruletaGirando) return; // no interrumpir un giro en curso
+  reiniciarRuletaVisual();
+  if (navigator.vibrate) navigator.vibrate(60);
 });
 
 // ---------- modo clase: calificación interna de la clase ----------
