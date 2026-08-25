@@ -1353,3 +1353,24 @@ RESPONSIVE
 @media(min-width:900px){
 .container{ max-width:600px; }
 }
+
+/* Autorización temporal de retiro, visible solo dentro del perfil ya autenticado. */
+.bloque-codigo-recogida{
+margin-top:20px;
+padding:16px;
+border:2px solid #ffd3e7;
+border-radius:16px;
+background:#fff7fb;
+}
+.bloque-codigo-recogida h3{ margin:0 0 8px; color:#c92d76; font-size:16px; }
+.bloque-codigo-recogida p{ margin:0 0 12px; color:#644b58; line-height:1.45; }
+.btn-codigo-recogida{
+width:100%; border:0; border-radius:12px; padding:12px; color:#fff;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b); font:700 15px inherit; cursor:pointer;
+}
+.btn-codigo-recogida:disabled{ opacity:.65; cursor:wait; }
+.resultado-codigo-recogida{
+margin-top:12px !important; padding:10px; text-align:center; border-radius:10px;
+background:#fff; color:#a51d5d !important; font-weight:800;
+}
+.resultado-codigo-recogida.error{ color:#b42318 !important; }

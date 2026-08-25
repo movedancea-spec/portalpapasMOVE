@@ -1325,6 +1325,64 @@ function renderPerfil(datos) {
 
   renderBotonObjetivosMensuales(datos.objetivosMensuales || []);
   renderBotonVideosClase(datos.videos || []);
+  cont.appendChild(construirBloqueCodigoRecogida(datos));
+}
+
+// Código temporal para autorizar que una persona distinta a mamá/papá
+// retire a esta alumna. La autorización se verifica de nuevo en el
+// Worker: esta interfaz jamás tiene acceso directo a Airtable.
+function construirBloqueCodigoRecogida(datos) {
+  const bloque = document.createElement("section");
+  bloque.className = "bloque-codigo-recogida";
+
+  const titulo = document.createElement("h3");
+  titulo.textContent = "🔐 Código para recoger a " + (datos.nombre || alumnaSeleccionada.nombre);
+  bloque.appendChild(titulo);
+
+  const ayuda = document.createElement("p");
+  ayuda.textContent = "Úsalo solo si una persona autorizada y distinta a mamá/papá la recogerá. Vence en 4 horas y se desactiva al validarse una vez en el biométrico.";
+  bloque.appendChild(ayuda);
+
+  const boton = document.createElement("button");
+  boton.type = "button";
+  boton.className = "btn-codigo-recogida";
+  boton.textContent = "Generar código de recogida";
+
+  const resultado = document.createElement("p");
+  resultado.className = "resultado-codigo-recogida";
+  resultado.hidden = true;
+
+  boton.addEventListener("click", async () => {
+    const original = boton.textContent;
+    boton.disabled = true;
+    boton.textContent = "Generando...";
+    resultado.classList.remove("error");
+    resultado.hidden = true;
+    try {
+      const payload = {
+        accion: "generarCodigoRecogida",
+        alumnaId: alumnaSeleccionada.id,
+      };
+      if (modoFamilia) payload.claveFamiliar = claveFamiliarActual;
+      else payload.clave = claveActual;
+
+      const respuesta = await llamarWorker(payload);
+      resultado.textContent = `Código: ${respuesta.codigo} — vence ${respuesta.venceTexto}.`;
+      resultado.hidden = false;
+      boton.textContent = "Generar otro código";
+    } catch (e) {
+      resultado.textContent = e.message;
+      resultado.classList.add("error");
+      resultado.hidden = false;
+      boton.textContent = original;
+    } finally {
+      boton.disabled = false;
+    }
+  });
+
+  bloque.appendChild(boton);
+  bloque.appendChild(resultado);
+  return bloque;
 }
 
 // Debajo de las clases de la alumna va un botón "🎯 Objetivo mensual de
