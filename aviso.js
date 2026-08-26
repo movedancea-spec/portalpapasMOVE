@@ -2,7 +2,7 @@
 // MOVE — AVISO DE MAESTRA A SUS ALUMNAS
 // MOVE Dance Academy
 // ==========================================
-// Cada maestra puede mandar un aviso (con foto o PDF opcional) SOLO a
+// Cada maestra puede mandar un aviso (con foto, PDF o audio opcional) SOLO a
 // las alumnas del grupo que ella elija, entre los grupos donde es
 // maestra principal. Siempre va por el Portal (push + se ve al abrir
 // el Portal de Alumnas) — nunca por WhatsApp. Reusa la misma sesión
@@ -266,7 +266,7 @@ el("inputAdjuntoAviso").addEventListener("change", () => {
   const archivo = el("inputAdjuntoAviso").files[0];
   if (!archivo) return;
   if (archivo.size > TAMANO_MAX_ARCHIVO) {
-    alert("El archivo es muy grande (máximo 8 MB). Intenta con uno más liviano.");
+    alert("El archivo es muy grande (máximo 8 MB). Intenta con uno más liviano o un audio más corto.");
     el("inputAdjuntoAviso").value = "";
     return;
   }

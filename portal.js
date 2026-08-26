@@ -588,12 +588,15 @@ function renderMensajesAnuncios(anuncios) {
   });
 }
 
-// La imagen/PDF que Recepción haya adjuntado al anuncio (opcional):
-// si es imagen, se ve directo como miniatura clickeable; si es
-// cualquier otra cosa (normalmente un PDF), se muestra como un enlace
-// "Ver archivo" que lo abre en una pestaña nueva.
+// La imagen/PDF/audio que Recepción o la maestra hayan adjuntado
+// (opcional): si es imagen, se ve directo como miniatura clickeable;
+// si es audio, se muestra un reproductor con controles más un link para
+// descargarlo; si es cualquier otra cosa (normalmente un PDF), se
+// muestra como un enlace "Ver archivo" que lo abre en una pestaña nueva.
 function crearAdjuntoAnuncio(adjunto) {
-  const esImagen = (adjunto.tipo || "").startsWith("image/");
+  const tipo = adjunto.tipo || "";
+  const esImagen = tipo.startsWith("image/");
+  const esAudio = tipo.startsWith("audio/");
 
   if (esImagen) {
     const img = document.createElement("img");
@@ -602,6 +605,27 @@ function crearAdjuntoAnuncio(adjunto) {
     img.style.cssText = "display:block;max-width:100%;border-radius:10px;margin-top:10px;cursor:pointer;";
     img.addEventListener("click", () => window.open(adjunto.url, "_blank", "noopener"));
     return img;
+  }
+
+  if (esAudio) {
+    const cont = document.createElement("div");
+    cont.style.cssText = "margin-top:10px;";
+
+    const audio = document.createElement("audio");
+    audio.src = adjunto.url;
+    audio.controls = true;
+    audio.style.cssText = "display:block;width:100%;max-width:320px;";
+    cont.appendChild(audio);
+
+    const enlace = document.createElement("a");
+    enlace.href = adjunto.url;
+    enlace.target = "_blank";
+    enlace.rel = "noopener";
+    enlace.textContent = "🎵 Descargar " + (adjunto.filename || "audio");
+    enlace.style.cssText = "display:inline-block;margin-top:6px;font-size:13px;color:#c2185b;font-weight:600;text-decoration:underline;";
+    cont.appendChild(enlace);
+
+    return cont;
   }
 
   const enlace = document.createElement("a");
