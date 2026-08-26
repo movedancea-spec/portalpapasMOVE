@@ -395,13 +395,16 @@ body{
   // tenga el Portal abierto.
   // ==========================================
 
-  // Esta es la llave PROPIA del chat de maestras — NO es la misma que
-  // usa portal.js para el aviso de asistencia (esa la manda otro
-  // Worker aparte). Debe ser EXACTAMENTE igual a la VAPID_PUBLIC_KEY de
-  // worker.js. Si algún día se regenera, hay que actualizar los dos
-  // lugares Y el Secret VAPID_PRIVATE_KEY del Worker al mismo tiempo.
+  // Esta es la MISMA llave VAPID que usa portal.js — una sola suscripción
+  // sirve tanto para el aviso de asistencia del biométrico como para los
+  // mensajes del Chat de Maestras (los manda el Worker portalalumnas,
+  // worker.js). Debe ser EXACTAMENTE igual a la VAPID_PUBLIC_KEY de
+  // portal.js y de worker.js. Si algún día se regenera, hay que
+  // actualizar LOS DOS archivos Y el Secret VAPID_PRIVATE_KEY del
+  // Worker al mismo tiempo (si se te olvida uno, las suscripciones
+  // nuevas de ese archivo dejan de funcionar en silencio, como pasó aquí).
   const VAPID_PUBLIC_KEY =
-    "BCDloougzpanTx9ZqIX5pEUVkCfwJqSZzxZUFmvm41gUQRzuyecawgi4WZhSePFEoY0DpAm-CvmPrWOJYx8Mvlk";
+    "BMozI3yiN82kvY6ZUA3iEgrc7fAL1bB7x0wL_RcW2R7a3fvRg2zsW0BNU7Q0qK4_wA_TzbcZ6Gb1G_0n7jt4BEA";
 
   function urlBase64ToUint8Array(base64String) {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
