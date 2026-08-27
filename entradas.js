@@ -257,10 +257,17 @@ function renderListaAlumnasTurno(alumnas) {
     const tarjeta = document.createElement("button");
     tarjeta.type = "button";
     tarjeta.className = "tarjeta-resultado";
-    tarjeta.innerHTML = `
-      <span class="tarjeta-resultado-nombre">${a.nombre}</span>
-      <span class="tarjeta-resultado-detalle">${a.grupos || "—"}</span>
-    `;
+
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = a.nombre;
+
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent = a.grupos || "—";
+
+    tarjeta.appendChild(nombre);
+    tarjeta.appendChild(detalle);
     tarjeta.addEventListener("click", () => elegirAlumnaTurno(a));
     cont.appendChild(tarjeta);
   });
@@ -391,7 +398,7 @@ function pintarEstadoTurno(datos) {
     iniciarCronometro();
   } else if (t.estado === "Vencido") {
     el("textoEstadoTurno").textContent = "Tu turno venció";
-    detalle.textContent = "Se pasó el tiempo de 15 minutos sin completar la compra.";
+    detalle.textContent = "Se pasó el tiempo de 10 minutos sin completar la compra.";
   } else if (t.estado === "Completado") {
     el("textoEstadoTurno").textContent = "¡Compra confirmada! 🎊";
     detalle.textContent = "Nos vemos en el show.";
@@ -423,7 +430,7 @@ function detenerPollTurno() {
 }
 
 // ==========================================
-// CRONÓMETRO (turno activo — cuenta regresiva de los 15 minutos)
+// CRONÓMETRO (turno activo — cuenta regresiva de los 10 minutos)
 // ==========================================
 
 function iniciarCronometro() {

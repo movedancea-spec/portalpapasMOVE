@@ -224,10 +224,17 @@ function pintarListaComprasIndividuales(compras) {
 
     const info = document.createElement("div");
     info.className = "fila-turno-admin-info";
-    info.innerHTML = `
-      <span class="fila-turno-admin-nombre">${c.nombre || "(sin nombre)"}</span>
-      <span class="fila-turno-admin-detalle">${c.resumen || ""}${c.formaPago ? " · " + c.formaPago : ""}</span>
-    `;
+
+    const nombreEl = document.createElement("span");
+    nombreEl.className = "fila-turno-admin-nombre";
+    nombreEl.textContent = c.nombre || "(sin nombre)";
+
+    const detalleEl = document.createElement("span");
+    detalleEl.className = "fila-turno-admin-detalle";
+    detalleEl.textContent = (c.resumen || "") + (c.formaPago ? " · " + c.formaPago : "");
+
+    info.appendChild(nombreEl);
+    info.appendChild(detalleEl);
 
     const der = document.createElement("div");
     der.className = "fila-turno-admin-derecha";
@@ -283,10 +290,17 @@ function pintarListaTurnos(turnos) {
     const detalle = [t.whatsapp || "", t.totalPagado ? "Q" + Number(t.totalPagado).toFixed(2) : ""]
       .filter(Boolean)
       .join(" · ");
-    info.innerHTML = `
-      <span class="fila-turno-admin-nombre">${t.nombre || "(sin nombre)"}</span>
-      <span class="fila-turno-admin-detalle">${detalle}</span>
-    `;
+
+    const nombreEl = document.createElement("span");
+    nombreEl.className = "fila-turno-admin-nombre";
+    nombreEl.textContent = t.nombre || "(sin nombre)";
+
+    const detalleEl = document.createElement("span");
+    detalleEl.className = "fila-turno-admin-detalle";
+    detalleEl.textContent = detalle;
+
+    info.appendChild(nombreEl);
+    info.appendChild(detalleEl);
 
     const der = document.createElement("div");
     der.className = "fila-turno-admin-derecha";

@@ -261,10 +261,11 @@ function crearBloqueSeccion(titulo, filas) {
 function crearFilaMapa(f, voltear) {
   const div = document.createElement("div");
   div.className = "fila-mapa" + (voltear ? " volteada" : "");
-  // Solo existen dos estados reales para una fila: Disponible o
-  // Vendida — no hay concepto de "reservada" en este sistema.
-  if (f.estado === "Vendida") {
-    div.classList.add("vendida");
+  // Además de Disponible/Vendida existe "Reservada" (fila que
+  // alguien está comprando en este momento, en la Caja) — se pinta
+  // igual que Vendida para que el personal no la vea como libre.
+  if (f.estado !== "Disponible") {
+    div.classList.add(f.estado === "Vendida" ? "vendida" : "reservada");
   }
 
   const etiqueta = document.createElement("span");
