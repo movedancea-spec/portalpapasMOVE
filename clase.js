@@ -323,6 +323,7 @@ async function abrirPanel(grupo) {
   detenerAlarmaFin(false);
   el("bloqueHorarioClase").hidden = true;
   detenerCamaraVideo();
+  resetearFormularioAudioClase();
   mensajesRecepcionActual = [];
   detenerAlarmaRecepcion();
   el("inputMensajeRecepcion").value = "";
@@ -363,6 +364,7 @@ async function cargarPanelClase() {
     renderObjetivoYNota();
     actualizarBarraTiempoClase();
     renderVideosClase(datos.videos || []);
+    renderAudiosClase(datos.audios || []);
     renderCalificacion();
   } catch (e) {
     el("contadorLlegadas").textContent = "No se pudo cargar: " + e.message;
@@ -514,6 +516,7 @@ el("tabClase").addEventListener("click", () => cambiarTab("Clase"));
 el("tabCierre").addEventListener("click", () => cambiarTab("Cierre"));
 el("tabBitacora").addEventListener("click", () => cambiarTab("Bitacora"));
 el("tabVideo").addEventListener("click", () => cambiarTab("Video"));
+el("tabAudio").addEventListener("click", () => cambiarTab("Audio"));
 el("tabRecepcion").addEventListener("click", () => cambiarTab("Recepcion"));
 
 // No es una pestaña del panel — abre el biométrico en una pestaña
@@ -580,7 +583,7 @@ el("btnMarcarAsistencia").addEventListener("click", () => {
 });
 
 function cambiarTab(nombre) {
-  ["Bienvenida", "Clase", "Cierre", "Bitacora", "Video", "Recepcion"].forEach((t) => {
+  ["Bienvenida", "Clase", "Cierre", "Bitacora", "Video", "Audio", "Recepcion"].forEach((t) => {
     el("tab" + t).classList.toggle("activo", t === nombre);
     el("modo" + t).hidden = t !== nombre;
   });
@@ -1531,6 +1534,154 @@ el("btnIniciarGrabacionVideo").addEventListener("click", iniciarGrabacionVideo);
 el("btnDetenerGrabacionVideo").addEventListener("click", detenerGrabacionVideo);
 el("btnRegrabarVideo").addEventListener("click", regrabarVideo);
 el("btnSubirVideo").addEventListener("click", subirVideoAlPortal);
+
+// ---------- modo audio: adjuntar un audio ya grabado para el portal ----------
+// A diferencia del Video (que graba con la cámara), aquí la maestra elige un
+// archivo de audio que ya tiene guardado. Sube el blob crudo por XHR al mismo
+// endpoint dedicado que usa el video (subirVideoXHR es genérico, no depende
+// de que sea video), pero a una ruta propia del Worker — /subirAudioClase —
+// para que quede guardado y servido aparte de los videos (necesita que el
+// Worker tenga ese endpoint nuevo, más una acción "eliminarAudioClase" y que
+// "panelClase" también regrese "audios" con la misma forma que "videos").
+const TAMANO_MAX_AUDIO_CLASE = 20 * 1024 * 1024; // 20 MB — no depende del límite de adjuntos de Airtable porque esto no se guarda ahí.
+
+let archivoAudioClaseElegido = null;
+let audiosClaseActual = [];
+
+function resetearFormularioAudioClase() {
+  archivoAudioClaseElegido = null;
+  el("inputArchivoAudioClase").value = "";
+  el("nombreArchivoAudioClase").hidden = true;
+  el("btnSubirAudioClase").hidden = true;
+  el("audioClaseProgreso").hidden = true;
+  mostrarMensajeAudio("");
+}
+
+function mostrarMensajeAudio(texto, esError) {
+  const msg = el("audioClaseMensaje");
+  msg.textContent = texto;
+  msg.style.color = esError ? "#e0245e" : "#1f9d63";
+  msg.hidden = !texto;
+}
+
+el("inputArchivoAudioClase").addEventListener("change", () => {
+  const archivo = el("inputArchivoAudioClase").files[0];
+  mostrarMensajeAudio("");
+  if (!archivo) return;
+  if (archivo.size > TAMANO_MAX_AUDIO_CLASE) {
+    mostrarMensajeAudio("El archivo es muy grande (máximo 20 MB). Intenta con uno más liviano.", true);
+    el("inputArchivoAudioClase").value = "";
+    return;
+  }
+  archivoAudioClaseElegido = archivo;
+  const nombreEl = el("nombreArchivoAudioClase");
+  nombreEl.textContent = "🎵 " + archivo.name;
+  nombreEl.hidden = false;
+  el("btnSubirAudioClase").hidden = false;
+});
+
+async function subirAudioAlPortal() {
+  if (!archivoAudioClaseElegido || !grupoActual) return;
+  const btn = el("btnSubirAudioClase");
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Subiendo...";
+  el("audioClaseProgreso").hidden = false;
+  el("audioClaseProgresoRelleno").style.width = "0%";
+  mostrarMensajeAudio("");
+
+  try {
+    const urlSubida = `${WORKER_URL}/subirAudioClase?grupoId=${encodeURIComponent(grupoActual.id)}`;
+    await subirVideoXHR(urlSubida, archivoAudioClaseElegido, archivoAudioClaseElegido.type, (pct) => {
+      el("audioClaseProgresoRelleno").style.width = pct + "%";
+    });
+    mostrarMensajeAudio("✅ Audio subido — ya está en el portal de las alumnas de esta clase.", false);
+    archivoAudioClaseElegido = null;
+    el("inputArchivoAudioClase").value = "";
+    el("nombreArchivoAudioClase").hidden = true;
+    el("btnSubirAudioClase").hidden = true;
+    el("audioClaseProgreso").hidden = true;
+    await cargarPanelClase();
+  } catch (e) {
+    mostrarMensajeAudio(e.message, true);
+    el("audioClaseProgreso").hidden = true;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+function renderAudiosClase(audios) {
+  audiosClaseActual = audios || [];
+  const cont = el("listaAudiosClase");
+  const titulo = el("tituloAudiosSubidos");
+  cont.innerHTML = "";
+
+  if (!audiosClaseActual.length) {
+    titulo.hidden = true;
+    return;
+  }
+  titulo.hidden = false;
+
+  audiosClaseActual.forEach((a) => {
+    const fila = document.createElement("div");
+    fila.className = "video-clase-fila";
+
+    const info = document.createElement("span");
+    info.className = "video-clase-fila-info";
+    info.textContent = `🎵 ${formatearFechaHoraVideo(a.fecha)} · ${a.tamanoMB} MB`;
+    fila.appendChild(info);
+
+    const botones = document.createElement("div");
+    botones.className = "video-clase-fila-botones";
+
+    const escucharLink = document.createElement("a");
+    escucharLink.className = "video-clase-fila-boton-ver";
+    escucharLink.href = a.url;
+    escucharLink.target = "_blank";
+    escucharLink.rel = "noopener";
+    escucharLink.textContent = "▶ Escuchar";
+    botones.appendChild(escucharLink);
+
+    const descargarLink = document.createElement("a");
+    descargarLink.className = "video-clase-fila-boton-descargar";
+    descargarLink.href = a.urlDescarga;
+    descargarLink.textContent = "⬇ Descargar";
+    botones.appendChild(descargarLink);
+
+    const eliminarBtn = document.createElement("button");
+    eliminarBtn.className = "video-clase-fila-boton-eliminar";
+    eliminarBtn.type = "button";
+    eliminarBtn.textContent = "🗑 Borrar";
+    eliminarBtn.addEventListener("click", () => {
+      if (eliminarBtn.dataset.confirmar === "1") {
+        eliminarAudioClase(a.clave);
+      } else {
+        eliminarBtn.dataset.confirmar = "1";
+        eliminarBtn.textContent = "¿Seguro? Toca de nuevo";
+        setTimeout(() => {
+          eliminarBtn.dataset.confirmar = "";
+          eliminarBtn.textContent = "🗑 Borrar";
+        }, 3000);
+      }
+    });
+    botones.appendChild(eliminarBtn);
+
+    fila.appendChild(botones);
+    cont.appendChild(fila);
+  });
+}
+
+async function eliminarAudioClase(clave) {
+  try {
+    await llamarWorker({ accion: "eliminarAudioClase", clave });
+    await cargarPanelClase();
+  } catch (e) {
+    mostrarMensajeAudio(e.message, true);
+  }
+}
+
+el("btnSubirAudioClase").addEventListener("click", subirAudioAlPortal);
 
 // ---------- modo recepción: chat rápido con recepción ----------
 // Para pedidos del momento (ej. "que suba un papá a llevar a una

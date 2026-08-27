@@ -58,6 +58,7 @@
       <button class="tab-btn" id="tabCierre" type="button">🏆 Cierre</button>
       <button class="tab-btn" id="tabBitacora" type="button">📋 Bitácora</button>
       <button class="tab-btn" id="tabVideo" type="button">🎥 Video</button>
+      <button class="tab-btn" id="tabAudio" type="button">🎵 Audio</button>
       <button class="tab-btn" id="tabRecepcion" type="button">📞 Recepción <span class="tab-btn-alerta" id="alertaTabRecepcion" hidden>🔴</span></button>
       <button class="tab-btn tab-btn-externo" id="btnMarcarAsistencia" type="button">👆 Marcar asistencia</button>
     </div>
@@ -168,6 +169,31 @@
 
       <p class="pago-titulo" id="tituloVideosSubidos" hidden>📼 Videos ya subidos de esta clase</p>
       <div id="listaVideosClase" class="lista-videos-clase"></div>
+    </div>
+
+    <!-- ---- Modo Audio (adjuntar un audio ya grabado y subir al portal de alumnas) ---- -->
+    <div id="modoAudio" class="modo" hidden>
+      <p class="pago-titulo">🎵 Audio para el portal de alumnas</p>
+      <p class="aviso-familia">
+        Aquí no se graba con el micrófono — elige un archivo de audio que ya tengas guardado en tu
+        teléfono (mp3, m4a, etc.) y súbelo. Las alumnas de este grupo lo van a poder escuchar y
+        descargar desde su Portal, en "🎵 Audios de mis clases".
+      </p>
+      <div class="bloque-video-clase">
+        <label class="btn-secundario btn-ancho" for="inputArchivoAudioClase">🎵 Elegir archivo de audio</label>
+        <input type="file" id="inputArchivoAudioClase" accept="audio/*" hidden />
+        <p class="alumna-elegida" id="nombreArchivoAudioClase" hidden></p>
+
+        <button class="btn-grande btn-siguiente" id="btnSubirAudioClase" type="button" hidden>⬆️ Subir al portal</button>
+
+        <div class="video-clase-progreso" id="audioClaseProgreso" hidden>
+          <div class="video-clase-progreso-relleno" id="audioClaseProgresoRelleno"></div>
+        </div>
+        <p class="video-clase-mensaje" id="audioClaseMensaje" hidden></p>
+      </div>
+
+      <p class="pago-titulo" id="tituloAudiosSubidos" hidden>🎵 Audios ya subidos de esta clase</p>
+      <div id="listaAudiosClase" class="lista-videos-clase"></div>
     </div>
 
     <!-- ---- Modo Recepción (chat rápido con recepción) ---- -->

@@ -588,15 +588,12 @@ function renderMensajesAnuncios(anuncios) {
   });
 }
 
-// La imagen/PDF/audio que Recepción o la maestra hayan adjuntado
-// (opcional): si es imagen, se ve directo como miniatura clickeable;
-// si es audio, se muestra un reproductor con controles más un link para
-// descargarlo; si es cualquier otra cosa (normalmente un PDF), se
-// muestra como un enlace "Ver archivo" que lo abre en una pestaña nueva.
+// La imagen/PDF que Recepción haya adjuntado al anuncio (opcional):
+// si es imagen, se ve directo como miniatura clickeable; si es
+// cualquier otra cosa (normalmente un PDF), se muestra como un enlace
+// "Ver archivo" que lo abre en una pestaña nueva.
 function crearAdjuntoAnuncio(adjunto) {
-  const tipo = adjunto.tipo || "";
-  const esImagen = tipo.startsWith("image/");
-  const esAudio = tipo.startsWith("audio/");
+  const esImagen = (adjunto.tipo || "").startsWith("image/");
 
   if (esImagen) {
     const img = document.createElement("img");
@@ -605,27 +602,6 @@ function crearAdjuntoAnuncio(adjunto) {
     img.style.cssText = "display:block;max-width:100%;border-radius:10px;margin-top:10px;cursor:pointer;";
     img.addEventListener("click", () => window.open(adjunto.url, "_blank", "noopener"));
     return img;
-  }
-
-  if (esAudio) {
-    const cont = document.createElement("div");
-    cont.style.cssText = "margin-top:10px;";
-
-    const audio = document.createElement("audio");
-    audio.src = adjunto.url;
-    audio.controls = true;
-    audio.style.cssText = "display:block;width:100%;max-width:320px;";
-    cont.appendChild(audio);
-
-    const enlace = document.createElement("a");
-    enlace.href = adjunto.url;
-    enlace.target = "_blank";
-    enlace.rel = "noopener";
-    enlace.textContent = "🎵 Descargar " + (adjunto.filename || "audio");
-    enlace.style.cssText = "display:inline-block;margin-top:6px;font-size:13px;color:#c2185b;font-weight:600;text-decoration:underline;";
-    cont.appendChild(enlace);
-
-    return cont;
   }
 
   const enlace = document.createElement("a");
@@ -1349,6 +1325,7 @@ function renderPerfil(datos) {
 
   renderBotonObjetivosMensuales(datos.objetivosMensuales || []);
   renderBotonVideosClase(datos.videos || []);
+  renderBotonAudiosClase(datos.audios || []);
   cont.appendChild(construirBloqueCodigoRecogida(datos));
 }
 
@@ -1518,6 +1495,76 @@ function renderBotonVideosClase(videosPorClase) {
       const descargarLink = document.createElement("a");
       descargarLink.className = "video-portal-boton-descargar";
       descargarLink.href = v.urlDescarga;
+      descargarLink.textContent = "⬇ Descargar";
+      botones.appendChild(descargarLink);
+
+      fila.appendChild(botones);
+      lista.appendChild(fila);
+    });
+
+    bloqueGrupo.appendChild(lista);
+    panel.appendChild(bloqueGrupo);
+  });
+}
+
+// Igual que "🎥 Videos de mis clases" pero para audios que la maestra suba
+// desde la pestaña "🎵 Audio" del Panel de Clase — es una sección aparte
+// (no comparte lista con los videos) para no arriesgar el código de video
+// que ya funciona. Reusa las mismas clases CSS de video-portal-* para que
+// se vea igual. Espera que "datos.audios" venga agrupado por clase con la
+// misma forma que "datos.videos": [{ clase, audios: [{ fecha, tamanoMB,
+// url, urlDescarga }] }].
+function renderBotonAudiosClase(audiosPorClase) {
+  const btn = el("btnAudiosClase");
+  const panel = el("panelAudiosClase");
+
+  const conAudios = (audiosPorClase || []).filter((g) => g && g.audios && g.audios.length);
+
+  panel.innerHTML = "";
+  panel.hidden = true;
+  btn.textContent = "🎵 Audios de mis clases";
+
+  if (!conAudios.length) {
+    btn.hidden = true;
+    return;
+  }
+
+  btn.hidden = false;
+
+  conAudios.forEach((grupo) => {
+    const bloqueGrupo = document.createElement("div");
+
+    const titulo = document.createElement("p");
+    titulo.className = "videos-clase-grupo-titulo";
+    titulo.textContent = grupo.clase ? `🎵 ${grupo.clase}` : "🎵 Audios";
+    bloqueGrupo.appendChild(titulo);
+
+    const lista = document.createElement("div");
+    lista.className = "videos-clase-grupo-lista";
+
+    grupo.audios.forEach((a) => {
+      const fila = document.createElement("div");
+      fila.className = "video-portal-fila";
+
+      const info = document.createElement("span");
+      info.className = "video-portal-fila-info";
+      info.textContent = `🎵 ${formatearFechaHoraVideoPortal(a.fecha)} · ${a.tamanoMB} MB`;
+      fila.appendChild(info);
+
+      const botones = document.createElement("div");
+      botones.className = "video-portal-fila-botones";
+
+      const escucharLink = document.createElement("a");
+      escucharLink.className = "video-portal-boton-ver";
+      escucharLink.href = a.url;
+      escucharLink.target = "_blank";
+      escucharLink.rel = "noopener";
+      escucharLink.textContent = "▶ Escuchar";
+      botones.appendChild(escucharLink);
+
+      const descargarLink = document.createElement("a");
+      descargarLink.className = "video-portal-boton-descargar";
+      descargarLink.href = a.urlDescarga;
       descargarLink.textContent = "⬇ Descargar";
       botones.appendChild(descargarLink);
 
@@ -3287,6 +3334,16 @@ el("btnVideosClase").addEventListener("click", () => {
   el("btnVideosClase").textContent = panel.hidden
     ? "🎥 Videos de mis clases"
     : "🎥 Ocultar videos de mis clases";
+});
+
+// ---------- audios de clase (botón que abre/cierra el panel) ----------
+
+el("btnAudiosClase").addEventListener("click", () => {
+  const panel = el("panelAudiosClase");
+  panel.hidden = !panel.hidden;
+  el("btnAudiosClase").textContent = panel.hidden
+    ? "🎵 Audios de mis clases"
+    : "🎵 Ocultar audios de mis clases";
 });
 
 // ---------- perfil familiar: unir / cambiar / olvidar ----------
