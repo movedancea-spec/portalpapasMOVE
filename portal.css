@@ -1380,6 +1380,9 @@ border-radius:16px;
 background:#fff7fb;
 }
 .bloque-codigo-recogida p{ margin:0 0 12px; color:#644b58; line-height:1.45; }
+/* Separación entre el botón de la foto y "Generar código de recogida" —
+   sin esto quedaban pegados, ninguno de los dos tenía margen inferior. */
+.foto-recogida-fila{ margin-bottom:18px; }
 .btn-codigo-recogida{
 width:100%; border:0; border-radius:12px; padding:12px; color:#fff;
 background:linear-gradient(180deg,#ff72b7,#ef4b9b); font:700 15px inherit; cursor:pointer;
