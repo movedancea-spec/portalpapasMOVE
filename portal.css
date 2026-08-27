@@ -1362,7 +1362,6 @@ border:2px solid #ffd3e7;
 border-radius:16px;
 background:#fff7fb;
 }
-.bloque-codigo-recogida h3{ margin:0 0 8px; color:#c92d76; font-size:16px; }
 .bloque-codigo-recogida p{ margin:0 0 12px; color:#644b58; line-height:1.45; }
 .btn-codigo-recogida{
 width:100%; border:0; border-radius:12px; padding:12px; color:#fff;
@@ -1374,3 +1373,4 @@ margin-top:12px !important; padding:10px; text-align:center; border-radius:10px;
 background:#fff; color:#a51d5d !important; font-weight:800;
 }
 .resultado-codigo-recogida.error{ color:#b42318 !important; }
+.foto-recogida-nombre-archivo{ display:block; margin-top:6px; font-size:13px; color:#644b58; }

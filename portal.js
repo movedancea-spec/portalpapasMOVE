@@ -1326,23 +1326,65 @@ function renderPerfil(datos) {
   renderBotonObjetivosMensuales(datos.objetivosMensuales || []);
   renderBotonVideosClase(datos.videos || []);
   renderBotonAudiosClase(datos.audios || []);
-  cont.appendChild(construirBloqueCodigoRecogida(datos));
+  renderBotonCodigoRecogida(datos);
 }
 
 // Código temporal para autorizar que una persona distinta a mamá/papá
 // retire a esta alumna. La autorización se verifica de nuevo en el
 // Worker: esta interfaz jamás tiene acceso directo a Airtable.
-function construirBloqueCodigoRecogida(datos) {
-  const bloque = document.createElement("section");
-  bloque.className = "bloque-codigo-recogida";
+// El botón principal ("🔐 Código de recogida") es siempre visible en el
+// perfil, y solo abre/cierra este panel — mismo patrón que "Objetivo
+// mensual" / "Videos" / "Audios" — para que la pantalla principal no se
+// llene de botones sueltos.
+let fotoRecogidaSeleccionada = null;
 
-  const titulo = document.createElement("h3");
-  titulo.textContent = "🔐 Código para recoger a " + (datos.nombre || alumnaSeleccionada.nombre);
-  bloque.appendChild(titulo);
+function renderBotonCodigoRecogida(datos) {
+  const panel = el("panelCodigoRecogida");
+  fotoRecogidaSeleccionada = null;
+  panel.innerHTML = "";
+  panel.hidden = true;
+  el("btnCodigoRecogida").textContent = "🔐 Código de recogida";
 
   const ayuda = document.createElement("p");
-  ayuda.textContent = "Úsalo solo si una persona autorizada y distinta a mamá/papá la recogerá. Vence en 4 horas y se desactiva al validarse una vez en el biométrico.";
-  bloque.appendChild(ayuda);
+  ayuda.textContent = "Úsalo solo si una persona autorizada y distinta a mamá/papá recogerá a " + (datos.nombre || alumnaSeleccionada.nombre) + ". Vence en 4 horas y se desactiva al validarse una vez en el biométrico.";
+  panel.appendChild(ayuda);
+
+  const filaFoto = document.createElement("div");
+  filaFoto.className = "foto-recogida-fila";
+
+  const labelFoto = document.createElement("label");
+  labelFoto.className = "btn-secundario btn-subir-archivo";
+  labelFoto.style.display = "block";
+  labelFoto.textContent = "📷 Foto de quien recogerá (opcional)";
+
+  const inputFoto = document.createElement("input");
+  inputFoto.type = "file";
+  inputFoto.accept = "image/*";
+  inputFoto.hidden = true;
+
+  const nombreFoto = document.createElement("span");
+  nombreFoto.className = "foto-recogida-nombre-archivo";
+  nombreFoto.hidden = true;
+
+  inputFoto.addEventListener("change", (e) => {
+    const archivo = e.target.files && e.target.files[0];
+    if (!archivo) return;
+    if (archivo.size > TAMANO_MAX_FOTO) {
+      nombreFoto.textContent = "La foto es muy grande (máximo 5 MB). Elige otra.";
+      nombreFoto.hidden = false;
+      inputFoto.value = "";
+      fotoRecogidaSeleccionada = null;
+      return;
+    }
+    fotoRecogidaSeleccionada = archivo;
+    nombreFoto.textContent = "Foto elegida: " + archivo.name;
+    nombreFoto.hidden = false;
+  });
+
+  labelFoto.appendChild(inputFoto);
+  filaFoto.appendChild(labelFoto);
+  filaFoto.appendChild(nombreFoto);
+  panel.appendChild(filaFoto);
 
   const boton = document.createElement("button");
   boton.type = "button";
@@ -1367,10 +1409,19 @@ function construirBloqueCodigoRecogida(datos) {
       if (modoFamilia) payload.claveFamiliar = claveFamiliarActual;
       else payload.clave = claveActual;
 
+      if (fotoRecogidaSeleccionada) {
+        payload.fotoBase64 = await leerArchivoBase64(fotoRecogidaSeleccionada);
+        payload.fotoNombreArchivo = fotoRecogidaSeleccionada.name;
+        payload.fotoTipoArchivo = fotoRecogidaSeleccionada.type;
+      }
+
       const respuesta = await llamarWorker(payload);
       resultado.textContent = `Código: ${respuesta.codigo} — vence ${respuesta.venceTexto}.`;
       resultado.hidden = false;
       boton.textContent = "Generar otro código";
+      fotoRecogidaSeleccionada = null;
+      inputFoto.value = "";
+      nombreFoto.hidden = true;
     } catch (e) {
       resultado.textContent = e.message;
       resultado.classList.add("error");
@@ -1381,9 +1432,8 @@ function construirBloqueCodigoRecogida(datos) {
     }
   });
 
-  bloque.appendChild(boton);
-  bloque.appendChild(resultado);
-  return bloque;
+  panel.appendChild(boton);
+  panel.appendChild(resultado);
 }
 
 // Debajo de las clases de la alumna va un botón "🎯 Objetivo mensual de
@@ -3344,6 +3394,16 @@ el("btnAudiosClase").addEventListener("click", () => {
   el("btnAudiosClase").textContent = panel.hidden
     ? "🎵 Audios de mis clases"
     : "🎵 Ocultar audios de mis clases";
+});
+
+// ---------- código de recogida (botón que abre/cierra el panel) ----------
+
+el("btnCodigoRecogida").addEventListener("click", () => {
+  const panel = el("panelCodigoRecogida");
+  panel.hidden = !panel.hidden;
+  el("btnCodigoRecogida").textContent = panel.hidden
+    ? "🔐 Código de recogida"
+    : "🔐 Ocultar código de recogida";
 });
 
 // ---------- perfil familiar: unir / cambiar / olvidar ----------
