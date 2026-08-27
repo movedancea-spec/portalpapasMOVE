@@ -1434,6 +1434,33 @@ function renderBotonCodigoRecogida(datos) {
 
   panel.appendChild(boton);
   panel.appendChild(resultado);
+
+  // Historial de recogidas YA VALIDADAS (USADO=1), solo del mes en
+  // curso — el Worker borra de verdad los meses anteriores cada día
+  // (limpiarCodigosRecogidaMesAnterior), así que este historial siempre
+  // arranca vacío al empezar un mes nuevo.
+  const tituloHistorial = document.createElement("p");
+  tituloHistorial.className = "historial-recogida-titulo";
+  tituloHistorial.textContent = "Historial de este mes";
+  panel.appendChild(tituloHistorial);
+
+  const historial = datos.historialRecogidas || [];
+  if (!historial.length) {
+    const vacio = document.createElement("p");
+    vacio.className = "historial-recogida-vacio";
+    vacio.textContent = "Todavía no hay recogidas registradas este mes.";
+    panel.appendChild(vacio);
+  } else {
+    const lista = document.createElement("div");
+    lista.className = "historial-recogida-lista";
+    historial.forEach((h) => {
+      const fila = document.createElement("div");
+      fila.className = "historial-recogida-fila";
+      fila.textContent = "✅ Recogida el " + formatearFechaHoraVideoPortal(h.fecha);
+      lista.appendChild(fila);
+    });
+    panel.appendChild(lista);
+  }
 }
 
 // Debajo de las clases de la alumna va un botón "🎯 Objetivo mensual de

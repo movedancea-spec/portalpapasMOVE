@@ -1374,3 +1374,11 @@ background:#fff; color:#a51d5d !important; font-weight:800;
 }
 .resultado-codigo-recogida.error{ color:#b42318 !important; }
 .foto-recogida-nombre-archivo{ display:block; margin-top:6px; font-size:13px; color:#644b58; }
+.historial-recogida-titulo{
+margin:16px 0 8px !important; font-weight:800; color:#a51d5d; font-size:14px;
+}
+.historial-recogida-vacio{ margin:0 !important; font-size:13px; color:#8a7482; }
+.historial-recogida-lista{ display:flex; flex-direction:column; gap:6px; }
+.historial-recogida-fila{
+padding:8px 10px; border-radius:10px; background:#fff; font-size:13px; color:#644b58;
+}
