@@ -646,6 +646,14 @@ margin-top:10px;
 margin-bottom:0;
 }
 
+/* Más espacio antes de "Audios de mis clases" — sin esto, cuando el
+   panel de Videos está cerrado (su estado normal), los dos botones
+   quedaban pegados uno contra el otro. */
+#btnAudiosClase{
+margin-top:18px;
+margin-bottom:0;
+}
+
 .panel-videos-clase{
 display:flex;
 flex-direction:column;
@@ -1352,6 +1360,15 @@ RESPONSIVE
 
 @media(min-width:900px){
 .container{ max-width:600px; }
+}
+
+/* Más espacio antes de "Código de recogida" — sin esto, cuando el
+   objetivo mensual está oculto (su estado normal si no hay uno cargado
+   ese mes), este botón quedaba pegado contra la última fila del
+   perfil (ej. "Participación show"). */
+#btnCodigoRecogida{
+margin-top:18px;
+margin-bottom:0;
 }
 
 /* Autorización temporal de retiro, visible solo dentro del perfil ya autenticado. */
