@@ -69,6 +69,10 @@
         <span class="btn-menu-icono">📢</span>
         <span class="btn-menu-texto">Anuncios</span>
       </button>
+      <button class="btn-menu" id="btnMenuAvisoImportante" type="button">
+        <span class="btn-menu-icono">📋</span>
+        <span class="btn-menu-texto">Información importante</span>
+      </button>
     </div>
 
     <button class="btn-enlace" id="btnSalirMenu" type="button">Salir</button>
@@ -304,6 +308,30 @@
 
     <button class="btn-grande btn-siguiente" id="btnMandarAnuncio" type="button">📢 Mandar anuncio</button>
     <p class="mensaje-form" id="mensajeAnuncio"></p>
+  </section>
+
+  <!-- ============ PANTALLA: INFORMACIÓN IMPORTANTE ============ -->
+  <section id="pantallaAvisoImportante" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverAvisoImportante" type="button">← Menú</button>
+      <span class="barra-titulo">📋 Información importante</span>
+    </div>
+
+    <p class="subtitulo">Publicar un aviso para todas las familias</p>
+    <p class="pista-campo">
+      Se ve en el Portal de Alumnas todo el año (botón "📋 Información importante"), para todas las familias — no es por alumna. Se manda también por notificación Push.
+    </p>
+
+    <p class="etiqueta-campo">Mensaje</p>
+    <textarea id="inputAvisoImportanteMensaje" class="input-textarea" rows="5" placeholder="Escribe el aviso completo..."></textarea>
+
+    <p class="etiqueta-campo">Adjuntos — imágenes o PDF (opcional, puede ser más de uno)</p>
+    <label class="btn-secundario btn-ancho btn-subir-foto" for="inputAdjuntosAvisoImportante">📎 Elegir archivos</label>
+    <input type="file" id="inputAdjuntosAvisoImportante" accept="image/*,.pdf" multiple hidden />
+    <div id="listaAdjuntosAvisoImportante" class="lista-resultados"></div>
+
+    <button class="btn-grande btn-siguiente" id="btnPublicarAvisoImportante" type="button">📋 Publicar aviso</button>
+    <p class="mensaje-form" id="mensajeAvisoImportante"></p>
   </section>
 
 </div>

@@ -50,6 +50,7 @@ const PANTALLAS = [
   "pantallaCanalAsistencia",
   "pantallaCanalChat",
   "pantallaAnuncios",
+  "pantallaAvisoImportante",
 ];
 
 function mostrarPantalla(id) {
@@ -289,6 +290,11 @@ el("btnMenuAnuncios").addEventListener("click", () => {
   prepararFormularioAnuncio();
 });
 
+el("btnMenuAvisoImportante").addEventListener("click", () => {
+  mostrarPantalla("pantallaAvisoImportante");
+  prepararFormularioAvisoImportante();
+});
+
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverElegirGrupoChat").addEventListener("click", () => mostrarPantalla("pantallaRecepcion"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -297,6 +303,7 @@ el("btnVolverPagos").addEventListener("click", () => mostrarPantalla("pantallaMe
 el("btnVolverCanalAsistencia").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverCanalChat").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAnuncios").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverAvisoImportante").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
   detenerAutoRefresco();
@@ -954,6 +961,101 @@ el("btnMandarAnuncio").addEventListener("click", async () => {
   } finally {
     btn.disabled = false;
     btn.textContent = "📢 Mandar anuncio";
+  }
+});
+
+let archivosAvisoImportante = [];
+
+function prepararFormularioAvisoImportante() {
+  el("inputAvisoImportanteMensaje").value = "";
+  el("inputAdjuntosAvisoImportante").value = "";
+  archivosAvisoImportante = [];
+  renderAdjuntosAvisoImportante();
+  const mensajeEl = el("mensajeAvisoImportante");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+}
+
+function renderAdjuntosAvisoImportante() {
+  const cont = el("listaAdjuntosAvisoImportante");
+  cont.innerHTML = "";
+  archivosAvisoImportante.forEach((archivo, indice) => {
+    const fila = document.createElement("div");
+    fila.className = "tarjeta-resultado";
+    fila.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;cursor:default;";
+    fila.innerHTML = `<span class="tarjeta-resultado-nombre">📎 ${archivo.name}</span>`;
+    const btnQuitar = document.createElement("button");
+    btnQuitar.type = "button";
+    btnQuitar.className = "btn-enlace";
+    btnQuitar.textContent = "Quitar";
+    btnQuitar.addEventListener("click", () => {
+      archivosAvisoImportante.splice(indice, 1);
+      renderAdjuntosAvisoImportante();
+    });
+    fila.appendChild(btnQuitar);
+    cont.appendChild(fila);
+  });
+}
+
+el("inputAdjuntosAvisoImportante").addEventListener("change", () => {
+  const nuevos = Array.from(el("inputAdjuntosAvisoImportante").files || []);
+  el("inputAdjuntosAvisoImportante").value = "";
+  for (const archivo of nuevos) {
+    if (archivo.size > TAMANO_MAX_ARCHIVO) {
+      alert(`"${archivo.name}" es muy grande (máximo 8 MB). Intenta con uno más liviano.`);
+      continue;
+    }
+    archivosAvisoImportante.push(archivo);
+  }
+  renderAdjuntosAvisoImportante();
+});
+
+el("btnPublicarAvisoImportante").addEventListener("click", async () => {
+  const mensaje = el("inputAvisoImportanteMensaje").value.trim();
+  const mensajeEl = el("mensajeAvisoImportante");
+
+  if (!mensaje) {
+    mensajeEl.textContent = "Escribe el mensaje del aviso.";
+    mensajeEl.className = "mensaje-form mensaje-form-error";
+    return;
+  }
+
+  const confirmado = window.confirm(`¿Publicar este aviso para TODAS las familias?\n\n${mensaje}`);
+  if (!confirmado) return;
+
+  const btn = el("btnPublicarAvisoImportante");
+  btn.disabled = true;
+  btn.textContent = "Publicando...";
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const archivos = [];
+    for (const archivo of archivosAvisoImportante) {
+      btn.textContent = `Subiendo ${archivo.name}...`;
+      archivos.push({
+        archivoBase64: await leerArchivoBase64(archivo),
+        nombreArchivo: archivo.name,
+        tipoArchivo: archivo.type,
+      });
+    }
+    btn.textContent = "Publicando...";
+
+    const datos = await llamarWorker({
+      accion: "recepcionMandarAvisoImportante",
+      clave: claveRecepcion,
+      mensaje,
+      archivos,
+    });
+    mensajeEl.textContent = "✅ " + (datos.resumen || "Aviso publicado.");
+    mensajeEl.classList.add("mensaje-form-ok");
+    prepararFormularioAvisoImportante();
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "📋 Publicar aviso";
   }
 });
 

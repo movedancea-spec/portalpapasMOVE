@@ -277,6 +277,7 @@ function mostrarPantalla(id) {
     "pantallaMensajesAnuncios",
     "pantallaMensajesMaestra",
     "pantallaAvisosEntradas",
+    "pantallaInfoImportante",
     "pantallaSelectorMaestra",
     "pantallaChat",
   ];
@@ -680,6 +681,64 @@ function renderMensajesMaestra(avisos) {
     if (a.adjunto && a.adjunto.url) {
       caja.appendChild(crearAdjuntoAnuncio(a.adjunto));
     }
+
+    cont.appendChild(caja);
+  });
+}
+
+// ==========================================
+// INFORMACIÓN IMPORTANTE (avisos generales de Recepción para TODA la
+// academia, no por alumna) — viven detrás del botón "📋 Información
+// importante" en el perfil. A diferencia de los Mensajes de
+// Recepción (que solo muestran el mes en curso), aquí se ve el
+// historial completo del año, más reciente arriba, con todos sus
+// adjuntos.
+// ==========================================
+
+el("btnInfoImportante").addEventListener("click", abrirInfoImportante);
+el("btnAtrasInfoImportante").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
+
+async function abrirInfoImportante() {
+  mostrarPantalla("pantallaInfoImportante");
+  const cont = el("listaInfoImportante");
+  cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "obtenerAvisosImportantes" });
+    renderInfoImportante(datos.avisos || []);
+  } catch (e) {
+    cont.innerHTML = "";
+    mostrarError(e.message);
+  }
+}
+
+function renderInfoImportante(avisos) {
+  const cont = el("listaInfoImportante");
+  cont.innerHTML = "";
+
+  if (!avisos.length) {
+    cont.innerHTML = '<p class="lista-alumnas-aviso">Todavía no hay avisos de información importante.</p>';
+    return;
+  }
+
+  avisos.forEach((a) => {
+    const caja = document.createElement("div");
+    caja.style.cssText =
+      "background:#fff0f6;border:1px solid #ffd3e6;border-radius:14px;padding:12px 14px;margin:0 0 10px;";
+
+    const fecha = document.createElement("p");
+    fecha.textContent = "🕐 " + formatearFechaHoraMensajePortal(a.fecha);
+    fecha.style.cssText = "font-weight:700;font-size:11.5px;color:#a15277;margin:0 0 4px;";
+    caja.appendChild(fecha);
+
+    const cuerpo = document.createElement("p");
+    cuerpo.textContent = a.mensaje;
+    cuerpo.style.cssText = "font-size:13.5px;color:#444;margin:0;white-space:pre-line;overflow-wrap:anywhere;";
+    caja.appendChild(cuerpo);
+
+    (a.adjuntos || []).forEach((adjunto) => {
+      if (adjunto && adjunto.url) caja.appendChild(crearAdjuntoAnuncio(adjunto));
+    });
 
     cont.appendChild(caja);
   });
