@@ -693,3 +693,173 @@ flex-shrink:0;
 .tarjeta-item{ flex-direction:column; align-items:flex-start; }
 .tarjeta-item .acciones-item{ width:100%; }
 }
+
+/* Copiado tal cual desde portal.js/portal.css (Portal de Alumnas):
+   decoración de temporada (un tema por mes, todo el año). No incluye
+   la parte de cumpleaños — el Biométrico ya maneja eso por su cuenta. */
+/*=====================================
+DECORACIÓN DE TEMPORADA (cumpleaños / halloween / navidad)
+=====================================*/
+
+.tema-decoracion{
+position:fixed;
+inset:0;
+overflow:hidden;
+pointer-events:none;
+z-index:15;
+}
+
+.tema-particula{
+position:absolute;
+top:0;
+line-height:1;
+user-select:none;
+will-change:transform, opacity;
+}
+
+.tema-particula.cae{
+animation-name:temaCae;
+animation-timing-function:linear;
+animation-iteration-count:infinite;
+}
+
+.tema-particula.sube{
+top:auto;
+bottom:0;
+animation-name:temaSube;
+animation-timing-function:linear;
+animation-iteration-count:infinite;
+}
+
+.tema-particula.flota{
+top:50%;
+animation-name:temaFlota;
+animation-timing-function:ease-in-out;
+animation-iteration-count:infinite;
+animation-direction:alternate;
+}
+
+@keyframes temaCae{
+0%{ transform:translateY(-10vh) rotate(0deg); opacity:0; }
+10%{ opacity:.9; }
+90%{ opacity:.9; }
+100%{ transform:translateY(110vh) rotate(360deg); opacity:0; }
+}
+
+@keyframes temaSube{
+0%{ transform:translateY(10vh) rotate(0deg); opacity:0; }
+10%{ opacity:.9; }
+90%{ opacity:.9; }
+100%{ transform:translateY(-110vh) rotate(-15deg); opacity:0; }
+}
+
+@keyframes temaFlota{
+0%{ transform:translate(0,0) rotate(0deg); opacity:.75; }
+100%{ transform:translate(18px,-24px) rotate(10deg); opacity:1; }
+}
+
+.tema-banner{
+display:inline-block;
+margin:0 0 14px;
+padding:8px 18px;
+border-radius:999px;
+font-weight:800;
+font-size:clamp(13px,3.6vw,16px);
+color:#fff;
+}
+
+.tema-banner.back-to-dance{
+background:linear-gradient(90deg,#4cc9f0,#7c3aed);
+}
+
+.tema-banner.carino{
+background:linear-gradient(90deg,#ff6b9d,#e0245e);
+}
+
+.tema-banner.mujer{
+background:linear-gradient(90deg,#9b5de5,#7c3aed);
+}
+
+.tema-banner.danza{
+background:linear-gradient(90deg,#ff72b7,#ffd166);
+}
+
+.tema-banner.madre{
+background:linear-gradient(90deg,#ff9ed2,#ff6b9d);
+}
+
+.tema-banner.padre{
+background:linear-gradient(90deg,#4cc9f0,#2563eb);
+}
+
+.tema-banner.independencia{
+background:linear-gradient(90deg,#0d6efd,#1e3a8a);
+}
+
+.tema-banner.nino{
+background:linear-gradient(90deg,#ff9ed2,#ffd166,#4cc9f0);
+background-size:300% 300%;
+animation:bannerRainbow 4s ease infinite;
+}
+
+.tema-banner.halloween{
+background:linear-gradient(90deg,#ff8a3d,#7c3aed);
+}
+
+.tema-banner.show{
+background:linear-gradient(90deg,#ffd166,#ff72b7);
+}
+
+.tema-banner.navidad{
+background:linear-gradient(90deg,#e53950,#1f9d63);
+}
+
+.tema-banner.cumple{
+background:linear-gradient(90deg,#ff72b7,#ffd166,#06d6a0,#4cc9f0);
+background-size:300% 300%;
+animation:bannerRainbow 4s ease infinite;
+}
+
+@keyframes bannerRainbow{
+0%{ background-position:0% 50%; }
+50%{ background-position:100% 50%; }
+100%{ background-position:0% 50%; }
+}
+
+/* Cada tema define de qué color se pone el brillo de la tarjeta
+   principal mientras esté activo (variable --tema-color), y una sola
+   regla usa esa variable — así no hay que repetir el box-shadow
+   completo para cada uno de los 12 temas. */
+body.tema-back-to-dance{ --tema-color:124,58,237; }
+body.tema-carino{ --tema-color:224,36,94; }
+body.tema-mujer{ --tema-color:155,93,229; }
+body.tema-danza{ --tema-color:255,114,183; }
+body.tema-madre{ --tema-color:255,107,157; }
+body.tema-padre{ --tema-color:37,99,235; }
+body.tema-independencia{ --tema-color:13,110,253; }
+body.tema-nino{ --tema-color:255,159,28; }
+body.tema-halloween{ --tema-color:124,58,237; }
+body.tema-show{ --tema-color:255,209,102; }
+body.tema-navidad{ --tema-color:31,157,99; }
+body.tema-cumple{ --tema-color:255,183,0; }
+
+/* Mismo patrón que portal.css: mientras haya un tema activo, la
+   tarjeta principal (aquí .tarjeta-login, la pantalla de login) usa
+   el glow de color del tema en vez de su sombra gris de siempre. */
+body[class*="tema-"] .tarjeta-login{
+box-shadow:0 12px 30px rgba(var(--tema-color),.25);
+}
+
+/* Ajuste solo del Biométrico: aquí el body es flex en fila (a
+   diferencia del Portal, que tiene un solo .container en columna),
+   así que el banner queda fijo arriba y centrado en vez de flotar al
+   lado de la tarjeta que esté visible. */
+#temaBanner{
+position:fixed;
+top:16px;
+left:50%;
+transform:translateX(-50%);
+z-index:20;
+max-width:92%;
+text-align:center;
+}
