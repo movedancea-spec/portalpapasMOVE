@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Mis evaluaciones</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="aviso.css" />
+<link rel="stylesheet" href="mis-evaluaciones.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">Mis evaluaciones</div>
+
+  <!-- ============ PANTALLA 0: CLAVE DE MAESTRA ============ -->
+  <section id="pantallaLogin" class="pantalla">
+    <p class="subtitulo">🔒 Escribe tu clave de maestra</p>
+    <input type="password" id="inputClaveMaestra" class="input-clave" placeholder="••••" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnEntrarMaestra">Entrar →</button>
+    <p class="mensaje-error" id="mensajeErrorLogin"></p>
+  </section>
+
+  <!-- ============ PANTALLA 1: MIS EVALUACIONES ============ -->
+  <section id="pantallaEvaluaciones" class="pantalla" hidden>
+    <div class="barra-superior">
+      <a class="btn-volver" href="portal-maestras.html">← Portal</a>
+      <span class="barra-titulo" id="tituloMaestra">Mis evaluaciones</span>
+    </div>
+
+    <p class="pista-campo">
+      Así te ven tus alumnas 💗 Estas evaluaciones son anónimas: no se muestra quién las escribió.
+    </p>
+
+    <div id="listaEvaluaciones"></div>
+    <p class="mensaje-error" id="mensajeErrorEvaluaciones"></p>
+  </section>
+
+</div>
+
+<script src="sesionmaestra.js"></script>
+<script src="mis-evaluaciones.js"></script>
+</body>
+</html>

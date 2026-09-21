@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css" />
+<link rel="stylesheet" href="recepcion.css?v=eval-v2" />
 </head>
 <body>
 
@@ -288,6 +288,17 @@
       <p class="lista-vacia">Cargando...</p>
     </div>
     <p class="mensaje-form" id="mensajeEvalMaestras"></p>
+
+    <div class="separador-lista"></div>
+
+    <p class="subtitulo">Todas las evaluaciones recibidas</p>
+    <p class="pista-campo">
+      Ordenadas por maestra y por grupo, con el nombre de la alumna. Solo Recepción ve los nombres — la maestra ve sus evaluaciones sin saber quién las hizo.
+    </p>
+    <select id="selectRondaEvalMaestras" class="input-select"></select>
+    <div id="listaEvalMaestrasTodas" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
   </section>
 
   <!-- ============ PANTALLA: ANUNCIOS (canal + escribir) ============ -->
@@ -358,6 +369,6 @@
 
 </div>
 
-<script src="recepcion.js"></script>
+<script src="recepcion.js?v=eval-v2"></script>
 </body>
 </html>

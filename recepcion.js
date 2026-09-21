@@ -832,6 +832,125 @@ async function cargarEvalMaestras() {
   } catch (e) {
     cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
   }
+
+  cargarListaEvaluacionesMaestras();
+}
+
+// ---------- todas las evaluaciones (con nombre de alumna) ----------
+// Solo Recepción ve quién evaluó; el Worker ordena por maestra → grupo →
+// ronda (la más nueva primero) → alumna, aquí solo se agrupa para mostrar.
+
+const ETIQUETAS_CRITERIOS_EVAL = [
+  ["puntualidad", "Puntualidad"],
+  ["explicaClaro", "Explica claro"],
+  ["paciencia", "Paciencia"],
+  ["motiva", "Motiva"],
+  ["ambiente", "Ambiente"],
+  ["atencionIndividual", "Atención individual"],
+  ["organizacionTiempo", "Organización del tiempo"],
+  ["disciplina", "Disciplina"],
+];
+
+const CARITA_POR_VALOR_EVAL = { 1: "😞", 3: "😐", 5: "😊" };
+
+let evaluacionesMaestrasTodas = [];
+
+async function cargarListaEvaluacionesMaestras() {
+  const cont = el("listaEvalMaestrasTodas");
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "recepcionListarEvaluacionesMaestras", clave: claveRecepcion });
+    evaluacionesMaestrasTodas = datos.evaluaciones || [];
+
+    const rondas = [...new Set(evaluacionesMaestrasTodas.map((e) => e.ronda))].sort((a, b) => b - a);
+    const select = el("selectRondaEvalMaestras");
+    const previa = select.value;
+    select.innerHTML = "";
+    const optTodas = document.createElement("option");
+    optTodas.value = "";
+    optTodas.textContent = "Todas las rondas";
+    select.appendChild(optTodas);
+    rondas.forEach((r) => {
+      const o = document.createElement("option");
+      o.value = String(r);
+      o.textContent = "Ronda " + r;
+      select.appendChild(o);
+    });
+    if (rondas.map(String).includes(previa)) select.value = previa;
+
+    renderListaEvaluacionesMaestras();
+  } catch (e) {
+    cont.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "lista-vacia";
+    p.textContent = e.message;
+    cont.appendChild(p);
+  }
+}
+
+el("selectRondaEvalMaestras").addEventListener("change", renderListaEvaluacionesMaestras);
+
+function renderListaEvaluacionesMaestras() {
+  const cont = el("listaEvalMaestrasTodas");
+  cont.innerHTML = "";
+  const filtro = el("selectRondaEvalMaestras").value;
+  const lista = evaluacionesMaestrasTodas.filter((e) => !filtro || String(e.ronda) === filtro);
+
+  if (!lista.length) {
+    const p = document.createElement("p");
+    p.className = "lista-vacia";
+    p.textContent = "Todavía no hay evaluaciones.";
+    cont.appendChild(p);
+    return;
+  }
+
+  let maestraActual = null;
+  let grupoActual = null;
+  lista.forEach((ev) => {
+    if (ev.maestra !== maestraActual) {
+      maestraActual = ev.maestra;
+      grupoActual = null;
+      const h = document.createElement("p");
+      h.className = "eval-rec-maestra";
+      h.textContent = "👩‍🏫 " + ev.maestra;
+      cont.appendChild(h);
+    }
+    if (ev.grupo !== grupoActual) {
+      grupoActual = ev.grupo;
+      const h = document.createElement("p");
+      h.className = "eval-rec-grupo";
+      h.textContent = "💃 " + ev.grupo;
+      cont.appendChild(h);
+    }
+
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "eval-rec-tarjeta";
+
+    const cab = document.createElement("div");
+    cab.className = "eval-rec-cabecera";
+    const nombre = document.createElement("span");
+    nombre.className = "eval-rec-alumna";
+    nombre.textContent = ev.alumna;
+    const meta = document.createElement("span");
+    meta.className = "eval-rec-meta";
+    meta.textContent = `Ronda ${ev.ronda} · ${"★".repeat(ev.general)}${"☆".repeat(5 - ev.general)}`;
+    cab.append(nombre, meta);
+
+    const criterios = document.createElement("p");
+    criterios.className = "eval-rec-criterios";
+    criterios.textContent = ETIQUETAS_CRITERIOS_EVAL.map(
+      ([k, etiqueta]) => `${etiqueta} ${CARITA_POR_VALOR_EVAL[ev.criterios[k]] || "—"}`
+    ).join(" · ");
+
+    tarjeta.append(cab, criterios);
+    if (ev.comentario) {
+      const c = document.createElement("p");
+      c.className = "eval-rec-comentario";
+      c.textContent = "“" + ev.comentario + "”";
+      tarjeta.appendChild(c);
+    }
+    cont.appendChild(tarjeta);
+  });
 }
 
 function renderEvalMaestras() {
