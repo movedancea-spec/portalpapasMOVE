@@ -17,7 +17,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css" />
+<link rel="stylesheet" href="portal.css?v=evalmaestras-v1" />
 </head>
 <body>
 
@@ -200,6 +200,8 @@
 
     <button class="btn-grande btn-siguiente" id="btnChat">💬 Hablar con las maestras</button>
 
+    <button class="btn-grande btn-siguiente" id="btnEvaluarMaestras" type="button" hidden>⭐ Evaluar a mis maestras</button>
+
     <section id="seccionCambiarClave" class="seccion-pago">
       <p class="pago-titulo" id="tituloCambiarClave">🔒 Cambiar mi clave</p>
 
@@ -288,12 +290,40 @@
     <button class="btn-grande btn-siguiente" id="btnAtrasChat">← Elegir otra maestra</button>
   </section>
 
+  <!-- ============ PANTALLA 7A: EVALUAR MAESTRAS (elegir a quién) ============ -->
+  <section id="pantallaEvalMaestras" class="pantalla" hidden>
+    <p class="perfil-nombre">⭐ Evalúa a tus maestras</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Elige a quién quieres evaluar. Solo puedes evaluar a cada maestra una vez en esta ronda.</p>
+    <div id="listaEvalMaestras" class="lista-alumnas"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasEvalMaestras">← Volver al perfil</button>
+  </section>
+
+  <!-- ============ PANTALLA 7B: FORMULARIO DE EVALUACIÓN ============ -->
+  <section id="pantallaEvalForm" class="pantalla" hidden>
+    <p class="perfil-nombre" id="evalFormTitulo">⭐ Maestra</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Contesta con sinceridad. Tus respuestas ayudan a que las clases sean mejores 💗</p>
+    <div id="evalCriterios"></div>
+
+    <div class="eval-pregunta">
+      <p class="eval-titulo">Calificación general</p>
+      <div class="eval-estrellas" id="evalGeneral"></div>
+    </div>
+
+    <div class="eval-pregunta">
+      <p class="eval-titulo">¿Quieres agregar algo? (opcional)</p>
+      <textarea id="evalComentario" class="chat-input eval-comentario" rows="3" maxlength="2000" placeholder="Escribe aquí tu comentario..."></textarea>
+    </div>
+
+    <button class="btn-grande btn-siguiente" id="btnEnviarEvaluacion">Enviar evaluación</button>
+    <button class="btn-secundario btn-ancho" id="btnAtrasEvalForm">← Elegir otra maestra</button>
+  </section>
+
   <p class="mensaje-error" id="mensajeError"></p>
 
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="portal.js"></script>
+<script src="portal.js?v=evalmaestras-v1"></script>
 <script>
   if ("serviceWorker" in navigator) {
     let registroSW = null;

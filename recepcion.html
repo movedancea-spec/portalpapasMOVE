@@ -65,6 +65,10 @@
         <span class="btn-menu-icono">💬</span>
         <span class="btn-menu-texto">Canal de chat</span>
       </button>
+      <button class="btn-menu" id="btnMenuEvalMaestras" type="button">
+        <span class="btn-menu-icono">⭐</span>
+        <span class="btn-menu-texto">Evaluación de maestras</span>
+      </button>
       <button class="btn-menu" id="btnMenuAnuncios" type="button">
         <span class="btn-menu-icono">📢</span>
         <span class="btn-menu-texto">Anuncios</span>
@@ -266,6 +270,24 @@
       <p class="lista-vacia">Cargando...</p>
     </div>
     <p class="mensaje-form" id="mensajeCanalChat"></p>
+  </section>
+
+  <!-- ============ PANTALLA: EVALUACIÓN DE MAESTRAS (interruptor global) ============ -->
+  <section id="pantallaEvalMaestras" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverEvalMaestras" type="button">← Menú</button>
+      <span class="barra-titulo">⭐ Evaluación de maestras</span>
+    </div>
+
+    <p class="subtitulo">¿Pueden las alumnas evaluar a sus maestras ahora?</p>
+    <p class="pista-campo">
+      Es un solo interruptor para toda la academia. Cada vez que lo ENCIENDES se abre una ronda nueva: cada alumna puede evaluar una vez a cada una de sus maestras. Al apagarlo, el botón desaparece del Portal de las alumnas. Los resultados se ven en Airtable, tabla "EVALUACIONES MAESTRAS POR ALUMNAS".
+    </p>
+
+    <div id="opcionesEvalMaestras" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+    <p class="mensaje-form" id="mensajeEvalMaestras"></p>
   </section>
 
   <!-- ============ PANTALLA: ANUNCIOS (canal + escribir) ============ -->

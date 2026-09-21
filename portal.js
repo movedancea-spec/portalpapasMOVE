@@ -280,6 +280,8 @@ function mostrarPantalla(id) {
     "pantallaInfoImportante",
     "pantallaSelectorMaestra",
     "pantallaChat",
+    "pantallaEvalMaestras",
+    "pantallaEvalForm",
   ];
   pantallas.forEach((p) => {
     el(p).hidden = p !== id;
@@ -491,6 +493,10 @@ function mostrarPerfilDesdeDatos(datos) {
   // notificaciones push en segundo plano, sin retrasar que se vea el
   // perfil. Ver sección "NOTIFICACIONES PUSH" más abajo.
   actualizarBloqueNotificacionesPush();
+
+  // Igual, en segundo plano: el botón de evaluar maestras solo aparece
+  // si Recepción tiene la evaluación encendida.
+  actualizarBotonEvaluarMaestras();
 
   // Los Mensajes de Recepción y los Avisos de la maestra ya NO se
   // muestran solos al entrar — quedan detrás de sus propios botones
@@ -3640,6 +3646,180 @@ el("chatInput").addEventListener("keydown", (e) => {
     enviarMensajeChat();
   }
 });
+
+// ==========================================
+// EVALUAR A MIS MAESTRAS (las alumnas evalúan a sus maestras)
+// ==========================================
+// Recepción enciende/apaga esto con un interruptor global; cada vez que
+// lo enciende se abre una RONDA nueva. El Worker decide qué maestras le
+// faltan a esta alumna en la ronda en curso (una evaluación por maestra
+// por ronda), y también valida todo otra vez al guardar — esta pantalla
+// solo es la cara bonita.
+
+const CRITERIOS_EVAL_MAESTRAS = [
+  { clave: "puntualidad", titulo: "Puntualidad", ayuda: "¿Llega a tiempo a la clase?" },
+  { clave: "explicaClaro", titulo: "Explica claro", ayuda: "¿Se entienden los pasos y las correcciones?" },
+  { clave: "paciencia", titulo: "Paciencia", ayuda: "¿Cómo trata a las alumnas cuando algo no sale?" },
+  { clave: "motiva", titulo: "Motiva", ayuda: "¿Hace que quieras seguir intentando?" },
+  { clave: "ambiente", titulo: "Ambiente de la clase", ayuda: "¿Se siente divertida, segura y cómoda?" },
+  { clave: "atencionIndividual", titulo: "Atención individual", ayuda: "¿Se nota que te pone cuidado a ti?" },
+  { clave: "organizacionTiempo", titulo: "Organización del tiempo", ayuda: "¿La clase se siente bien aprovechada?" },
+  { clave: "disciplina", titulo: "Disciplina y control del grupo", ayuda: "¿Mantiene el orden sin ser dura de más?" },
+];
+
+// Caritas → 1/3/5, para que se puedan comparar en Airtable con la
+// calificación general de 1 a 5 estrellas.
+const CARITAS_EVAL = [
+  { valor: 1, emoji: "😞", texto: "Mal" },
+  { valor: 3, emoji: "😐", texto: "Regular" },
+  { valor: 5, emoji: "😊", texto: "Bien" },
+];
+
+let maestraEnEvaluacion = null;
+let respuestasEval = {};
+
+async function actualizarBotonEvaluarMaestras() {
+  const btn = el("btnEvaluarMaestras");
+  btn.hidden = true;
+  if (!alumnaSeleccionada) return;
+  const alumnaDeEstaConsulta = alumnaSeleccionada.id;
+  try {
+    const datos = await llamarWorker({
+      accion: "evaluacionMaestrasEstado",
+      alumnaId: alumnaDeEstaConsulta,
+    });
+    // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
+    if (alumnaSeleccionada && alumnaSeleccionada.id === alumnaDeEstaConsulta) {
+      btn.hidden = !datos.activa;
+    }
+  } catch (e) {
+    btn.hidden = true;
+  }
+}
+
+async function abrirEvalMaestras() {
+  mostrarPantalla("pantallaEvalMaestras");
+  const cont = el("listaEvalMaestras");
+  cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando maestras...</p>';
+  try {
+    const datos = await llamarWorker({
+      accion: "evaluacionMaestrasEstado",
+      alumnaId: alumnaSeleccionada.id,
+    });
+    cont.innerHTML = "";
+    if (!datos.activa) {
+      cont.innerHTML = '<p class="lista-alumnas-aviso">La evaluación ya no está disponible.</p>';
+      el("btnEvaluarMaestras").hidden = true;
+      return;
+    }
+    if (!datos.maestras.length) {
+      cont.innerHTML = '<p class="lista-alumnas-aviso">¡Listo! Ya evaluaste a todas tus maestras 💗 ¡Gracias!</p>';
+      return;
+    }
+    datos.maestras.forEach((m) => {
+      const btn = document.createElement("button");
+      btn.textContent = m.nombre;
+      btn.addEventListener("click", () => abrirFormEval(m));
+      cont.appendChild(btn);
+    });
+  } catch (e) {
+    cont.innerHTML = "";
+    mostrarError(e.message);
+  }
+}
+
+function abrirFormEval(maestra) {
+  maestraEnEvaluacion = maestra;
+  respuestasEval = {};
+  el("evalFormTitulo").textContent = "⭐ " + maestra.nombre;
+  el("evalComentario").value = "";
+
+  const cont = el("evalCriterios");
+  cont.innerHTML = "";
+  CRITERIOS_EVAL_MAESTRAS.forEach((c) => {
+    const bloque = document.createElement("div");
+    bloque.className = "eval-pregunta";
+    const titulo = document.createElement("p");
+    titulo.className = "eval-titulo";
+    titulo.textContent = c.titulo;
+    const ayuda = document.createElement("p");
+    ayuda.className = "eval-ayuda";
+    ayuda.textContent = c.ayuda;
+    const fila = document.createElement("div");
+    fila.className = "eval-caritas";
+    CARITAS_EVAL.forEach((car) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "eval-carita";
+      b.innerHTML = `<span class="eval-carita-emoji">${car.emoji}</span><span>${car.texto}</span>`;
+      b.addEventListener("click", () => {
+        respuestasEval[c.clave] = car.valor;
+        fila.querySelectorAll(".eval-carita").forEach((x) => x.classList.remove("activo"));
+        b.classList.add("activo");
+      });
+      fila.appendChild(b);
+    });
+    bloque.append(titulo, ayuda, fila);
+    cont.appendChild(bloque);
+  });
+
+  const estrellas = el("evalGeneral");
+  estrellas.innerHTML = "";
+  for (let n = 1; n <= 5; n++) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "eval-estrella";
+    b.textContent = "★";
+    b.setAttribute("aria-label", n + " de 5 estrellas");
+    b.addEventListener("click", () => {
+      respuestasEval.general = n;
+      estrellas.querySelectorAll(".eval-estrella").forEach((x, i) => {
+        x.classList.toggle("activo", i < n);
+      });
+    });
+    estrellas.appendChild(b);
+  }
+
+  mostrarPantalla("pantallaEvalForm");
+  window.scrollTo({ top: 0 });
+}
+
+async function enviarEvaluacionMaestra() {
+  const faltan = CRITERIOS_EVAL_MAESTRAS.some((c) => !respuestasEval[c.clave]) || !respuestasEval.general;
+  if (faltan) {
+    mostrarError("Falta contestar todas las preguntas y elegir la calificación general ⭐");
+    return;
+  }
+  const btn = el("btnEnviarEvaluacion");
+  btn.disabled = true;
+  btn.textContent = "Enviando...";
+  try {
+    const criterios = {};
+    CRITERIOS_EVAL_MAESTRAS.forEach((c) => {
+      criterios[c.clave] = respuestasEval[c.clave];
+    });
+    await llamarWorker({
+      accion: "guardarEvaluacionMaestra",
+      alumnaId: alumnaSeleccionada.id,
+      maestraId: maestraEnEvaluacion.id,
+      criterios,
+      general: respuestasEval.general,
+      comentario: el("evalComentario").value.trim(),
+    });
+    maestraEnEvaluacion = null;
+    abrirEvalMaestras();
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Enviar evaluación";
+  }
+}
+
+el("btnEvaluarMaestras").addEventListener("click", abrirEvalMaestras);
+el("btnAtrasEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
+el("btnAtrasEvalForm").addEventListener("click", abrirEvalMaestras);
+el("btnEnviarEvaluacion").addEventListener("click", enviarEvaluacionMaestra);
 
 // ---------- arranque ----------
 iniciar();

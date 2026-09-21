@@ -49,6 +49,7 @@ const PANTALLAS = [
   "pantallaPagos",
   "pantallaCanalAsistencia",
   "pantallaCanalChat",
+  "pantallaEvalMaestras",
   "pantallaAnuncios",
   "pantallaAvisoImportante",
 ];
@@ -284,6 +285,11 @@ el("btnMenuCanalChat").addEventListener("click", () => {
   cargarCanalChat();
 });
 
+el("btnMenuEvalMaestras").addEventListener("click", () => {
+  mostrarPantalla("pantallaEvalMaestras");
+  cargarEvalMaestras();
+});
+
 el("btnMenuAnuncios").addEventListener("click", () => {
   mostrarPantalla("pantallaAnuncios");
   cargarCanalAnuncios();
@@ -296,6 +302,7 @@ el("btnMenuAvisoImportante").addEventListener("click", () => {
 });
 
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverElegirGrupoChat").addEventListener("click", () => mostrarPantalla("pantallaRecepcion"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverIngresos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -792,6 +799,87 @@ async function elegirCanalChat(canal, titulo) {
     canalChatActual = canal;
     renderCanalChat();
     mensajeEl.textContent = `✅ Listo — el aviso de mensaje nuevo del chat ahora llega por ${titulo} para todas.`;
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ==========================================
+// EVALUACIÓN DE MAESTRAS (interruptor GLOBAL — las alumnas evalúan a
+// sus maestras)
+// ==========================================
+// Enciende/apaga el botón "⭐ Evaluar a mis maestras" del Portal de
+// Alumnas para TODAS a la vez. Se guarda en CONFIGURACION GENERAL
+// (campos "EVALUACION MAESTRAS ACTIVA" y "RONDA EVALUACION MAESTRAS").
+// El Worker sube la ronda en 1 cada vez que pasa de apagado a
+// encendido; por eso aquí solo mostramos el número que devuelve.
+
+let evalMaestrasActual = { activa: false, ronda: 0 };
+
+async function cargarEvalMaestras() {
+  const cont = el("opcionesEvalMaestras");
+  const mensajeEl = el("mensajeEvalMaestras");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerEvaluacionMaestras", clave: claveRecepcion });
+    evalMaestrasActual = { activa: !!datos.activa, ronda: datos.ronda || 0 };
+    renderEvalMaestras();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderEvalMaestras() {
+  const cont = el("opcionesEvalMaestras");
+  cont.innerHTML = "";
+  const { activa, ronda } = evalMaestrasActual;
+
+  const tarjeta = document.createElement("button");
+  tarjeta.type = "button";
+  tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activa ? " activo" : "");
+  const nombre = document.createElement("span");
+  nombre.className = "tarjeta-resultado-nombre";
+  nombre.textContent = activa
+    ? `⭐ Evaluación ENCENDIDA — ronda ${ronda}`
+    : "⭐ Evaluación apagada";
+  const detalle = document.createElement("span");
+  detalle.className = "tarjeta-resultado-detalle";
+  detalle.textContent = activa
+    ? "Toca aquí para APAGARLA. El botón desaparece del Portal de las alumnas."
+    : ronda > 0
+      ? `Toca aquí para ENCENDERLA. Se abrirá la ronda ${ronda + 1}: podrán evaluar otra vez a cada maestra.`
+      : "Toca aquí para ENCENDERLA. Se abrirá la ronda 1.";
+  tarjeta.append(nombre, detalle);
+  tarjeta.addEventListener("click", () => cambiarEvalMaestras(!activa));
+  cont.appendChild(tarjeta);
+}
+
+async function cambiarEvalMaestras(activar) {
+  const pregunta = activar
+    ? `¿Encender la evaluación de maestras? Se abre la ronda ${evalMaestrasActual.ronda + 1} para TODAS las alumnas.`
+    : "¿Apagar la evaluación de maestras? El botón desaparece del Portal de las alumnas.";
+  if (!window.confirm(pregunta)) return;
+
+  const mensajeEl = el("mensajeEvalMaestras");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const datos = await llamarWorker({
+      accion: "recepcionGuardarEvaluacionMaestras",
+      clave: claveRecepcion,
+      activa: activar,
+    });
+    evalMaestrasActual = { activa: !!datos.activa, ronda: datos.ronda || 0 };
+    renderEvalMaestras();
+    mensajeEl.textContent = activar
+      ? `✅ Listo — ronda ${datos.ronda} abierta. Las alumnas ya ven el botón.`
+      : "✅ Listo — la evaluación quedó apagada.";
     mensajeEl.classList.add("mensaje-form-ok");
   } catch (e) {
     mensajeEl.textContent = e.message;
