@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOVE — Reconocimientos</title>
+<meta name="theme-color" content="#ef4b9b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="aviso.css" />
+<link rel="stylesheet" href="reconocimientos.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <div class="title">Reconocimientos</div>
+
+  <!-- ============ PANTALLA 0: CLAVE DE MAESTRA ============ -->
+  <section id="pantallaLogin" class="pantalla">
+    <p class="subtitulo">🔒 Escribe tu clave de maestra</p>
+    <input type="password" id="inputClaveMaestra" class="input-clave" placeholder="••••" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnEntrarMaestra">Entrar →</button>
+    <p class="mensaje-error" id="mensajeErrorLogin"></p>
+  </section>
+
+  <!-- ============ PANTALLA 1: ELEGIR CLASE ============ -->
+  <section id="pantallaGrupos" class="pantalla" hidden>
+    <div class="barra-superior">
+      <a class="btn-volver" href="portal-maestras.html">← Portal</a>
+      <span class="barra-titulo">¿A cuál clase?</span>
+    </div>
+    <p class="subtitulo">💌 ¿De cuál de tus clases es la alumna a la que le mandamos el reconocimiento?</p>
+    <div id="listaGrupos" class="lista-grupos"></div>
+    <p class="mensaje-error" id="mensajeErrorGrupos"></p>
+    <button class="btn-enlace" id="btnVerHistorial" type="button">📜 Ver lo que ya he mandado</button>
+  </section>
+
+  <!-- ============ PANTALLA 2: ELEGIR ALUMNA ============ -->
+  <section id="pantallaAlumnas" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverGruposDesdeAlumnas" type="button">← Clases</button>
+      <span class="barra-titulo" id="nombreGrupoAlumnas"></span>
+    </div>
+    <p class="subtitulo">¿A cuál alumna?</p>
+    <div id="listaAlumnasReconocimiento" class="lista-grupos"></div>
+    <p class="mensaje-error" id="mensajeErrorAlumnas"></p>
+  </section>
+
+  <!-- ============ PANTALLA 3: ESCRIBIR EL RECONOCIMIENTO ============ -->
+  <section id="pantallaMensaje" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverAlumnas" type="button">← Alumnas</button>
+      <span class="barra-titulo" id="nombreAlumnaMensaje"></span>
+    </div>
+
+    <p class="pista-campo">
+      Este mensaje se va a ver en el Portal de esta alumna, con tu nombre y la fecha. No se puede editar ni borrar después de mandarlo.
+    </p>
+
+    <p class="etiqueta-campo">Mensaje</p>
+    <textarea id="inputMensajeReconocimiento" class="input-textarea" rows="4" maxlength="200" placeholder="Ej. ¡Hoy te concentraste muchísimo en el giro! Sigue así 💪"></textarea>
+    <p class="contador-caracteres" id="contadorMensajeReconocimiento">200 caracteres disponibles</p>
+
+    <button class="btn-grande btn-siguiente" id="btnMandarReconocimiento" type="button">💌 Mandar reconocimiento</button>
+    <p class="mensaje-form" id="mensajeReconocimiento"></p>
+  </section>
+
+  <!-- ============ PANTALLA 4: HISTORIAL ============ -->
+  <section id="pantallaHistorial" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverGruposDesdeHistorial" type="button">← Clases</button>
+      <span class="barra-titulo">Lo que ya he mandado</span>
+    </div>
+    <div id="listaHistorialReconocimientos" class="lista-reconocimientos-historial"></div>
+    <p class="mensaje-error" id="mensajeErrorHistorial"></p>
+  </section>
+
+</div>
+
+<script src="sesionmaestra.js"></script>
+<script src="reconocimientos.js"></script>
+</body>
+</html>

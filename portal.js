@@ -510,6 +510,137 @@ function mostrarPerfilDesdeDatos(datos) {
   // El panel de ingresos del mes se arma plegado (no pide datos al
   // Worker hasta que lo abran) — ver sección más abajo.
   cargarAsistenciaMes();
+
+  // Saludo de bienvenida + racha, y reconocimientos de la maestra:
+  // igual que las notificaciones push y el botón de evaluar, en
+  // segundo plano (sin "await") para no retrasar que se vea el perfil.
+  cargarResumenAsistencia();
+  cargarReconocimientos();
+}
+
+// ==========================================
+// SALUDO SEMANAL + RACHA DE ASISTENCIA (estilo Duolingo)
+// Piden juntos en una sola llamada al Worker (obtenerResumenAsistencia)
+// porque las dos vistas salen del mismo historial de asistencia. La
+// racha se calcula en semanas (lunes a sábado, hora Guatemala)
+// consecutivas con al menos una clase — ver el comentario de la
+// regla completa junto a obtenerResumenAsistencia en el Worker.
+// ==========================================
+async function cargarResumenAsistencia() {
+  const bloque = el("bloqueSaludoSemanal");
+  if (!alumnaSeleccionada) {
+    bloque.hidden = true;
+    return;
+  }
+  const alumnaDeEstaConsulta = alumnaSeleccionada.id;
+  const primerNombre = (alumnaSeleccionada.nombre || "").split(" ")[0] || alumnaSeleccionada.nombre || "";
+
+  try {
+    const datos = await llamarWorker({
+      accion: "obtenerResumenAsistencia",
+      alumnaId: alumnaDeEstaConsulta,
+    });
+    // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
+    if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
+
+    el("textoSaludoSemanal").textContent =
+      datos.clasesSemana > 0
+        ? `¡Hola ${primerNombre}! Esta semana llevas ${datos.clasesSemana} clase${datos.clasesSemana === 1 ? "" : "s"} 💪`
+        : `¡Hola ${primerNombre}! Te esperamos esta semana 🩰`;
+    bloque.hidden = false;
+
+    const bloqueRacha = el("bloqueRacha");
+    if (datos.racha > 0) {
+      el("rachaNumero").textContent = datos.racha;
+      el("rachaEtiqueta").textContent = datos.racha === 1 ? "semana seguida" : "semanas seguidas";
+      bloqueRacha.hidden = false;
+    } else {
+      bloqueRacha.hidden = true;
+    }
+  } catch (e) {
+    bloque.hidden = true;
+  }
+}
+
+// ==========================================
+// RECONOCIMIENTOS DE MAESTRA A ALUMNA
+// Se muestran directo en el perfil (no detrás de un botón), los más
+// recientes primero — todo el historial, sin límite de mes.
+// ==========================================
+function formatearFechaReconocimiento(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("es-GT", {
+      timeZone: "America/Guatemala",
+      day: "numeric",
+      month: "short",
+    });
+  } catch (e) {
+    return "";
+  }
+}
+
+async function cargarReconocimientos() {
+  const bloque = el("bloqueReconocimientos");
+  if (!alumnaSeleccionada) {
+    bloque.hidden = true;
+    return;
+  }
+  const alumnaDeEstaConsulta = alumnaSeleccionada.id;
+
+  try {
+    const datos = await llamarWorker({
+      accion: "reconocimientosDeAlumna",
+      alumnaId: alumnaDeEstaConsulta,
+    });
+    if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
+
+    const reconocimientos = datos.reconocimientos || [];
+    if (!reconocimientos.length) {
+      bloque.hidden = true;
+      return;
+    }
+
+    const cont = el("listaReconocimientos");
+    cont.innerHTML = "";
+    reconocimientos.forEach((r) => {
+      const caja = document.createElement("div");
+      caja.className = "tarjeta-reconocimiento";
+
+      const cabecera = document.createElement("div");
+      cabecera.className = "tarjeta-reconocimiento-cabecera";
+
+      const maestra = document.createElement("span");
+      maestra.className = "tarjeta-reconocimiento-maestra";
+      maestra.textContent = "👩‍🏫 " + (r.maestra || "Tu maestra");
+      cabecera.appendChild(maestra);
+
+      const fecha = document.createElement("span");
+      fecha.className = "tarjeta-reconocimiento-fecha";
+      fecha.textContent = formatearFechaReconocimiento(r.fecha);
+      cabecera.appendChild(fecha);
+
+      caja.appendChild(cabecera);
+
+      const mensaje = document.createElement("p");
+      mensaje.className = "tarjeta-reconocimiento-mensaje";
+      mensaje.textContent = r.mensaje;
+      caja.appendChild(mensaje);
+
+      if (r.grupo) {
+        const grupo = document.createElement("p");
+        grupo.className = "tarjeta-reconocimiento-grupo";
+        grupo.textContent = r.grupo;
+        caja.appendChild(grupo);
+      }
+
+      cont.appendChild(caja);
+    });
+
+    bloque.hidden = false;
+  } catch (e) {
+    bloque.hidden = true;
+  }
 }
 
 // ==========================================

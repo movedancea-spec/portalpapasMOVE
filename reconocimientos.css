@@ -1,0 +1,69 @@
+/* ===================================================
+   MOVE — RECONOCIMIENTOS DE MAESTRA A ALUMNA
+   Reglas propias, además de las de aviso.css (mismo lenguaje visual
+   del resto del Portal de Maestras: tarjetas rosa/blanco, botones
+   grandes). Los tonos morados de aquí son los mismos que ya usa el
+   Portal de Alumnas para bloques "secundarios" (familia/chat).
+=================================================== */
+
+.contador-caracteres{
+font-size:11.5px;
+font-weight:600;
+color:#999;
+margin:-6px 0 12px;
+text-align:right;
+}
+
+.contador-caracteres.contador-limite{
+color:#e0245e;
+}
+
+.lista-reconocimientos-historial{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.tarjeta-reconocimiento-historial{
+background:#faf7ff;
+border:1px solid #e6d9ff;
+border-radius:14px;
+padding:12px 14px;
+text-align:left;
+}
+
+.tarjeta-reconocimiento-historial-cabecera{
+display:flex;
+justify-content:space-between;
+align-items:baseline;
+gap:8px;
+margin-bottom:4px;
+}
+
+.tarjeta-reconocimiento-historial-alumna{
+font-weight:700;
+font-size:13.5px;
+color:#6b4fa0;
+}
+
+.tarjeta-reconocimiento-historial-fecha{
+font-size:11px;
+font-weight:600;
+color:#9a8bc2;
+white-space:nowrap;
+}
+
+.tarjeta-reconocimiento-historial-mensaje{
+font-size:13.5px;
+color:#444;
+margin:0;
+white-space:pre-line;
+overflow-wrap:anywhere;
+}
+
+.tarjeta-reconocimiento-historial-grupo{
+font-size:11px;
+font-weight:600;
+color:#a889e8;
+margin-top:4px;
+}

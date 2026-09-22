@@ -17,7 +17,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=evalmaestras-v1" />
+<link rel="stylesheet" href="portal.css?v=reconocimientos-v1" />
 </head>
 <body>
 
@@ -115,6 +115,20 @@
     </div>
     <p class="mensaje-clave-ok" id="mensajeFotoPerfilOk" hidden>✅ Foto actualizada.</p>
     <p class="perfil-nombre" id="perfilNombre"></p>
+
+    <div id="bloqueSaludoSemanal" class="bloque-saludo-semanal" hidden>
+      <p id="textoSaludoSemanal" class="texto-saludo-semanal"></p>
+      <div id="bloqueRacha" class="bloque-racha" hidden>
+        <span class="racha-fuego">🔥</span>
+        <span class="racha-numero" id="rachaNumero">0</span>
+        <span class="racha-etiqueta" id="rachaEtiqueta">semanas seguidas</span>
+      </div>
+    </div>
+
+    <div id="bloqueReconocimientos" class="bloque-reconocimientos" hidden>
+      <p class="titulo-reconocimientos">💌 Reconocimientos de tu maestra</p>
+      <div id="listaReconocimientos" class="lista-reconocimientos"></div>
+    </div>
 
     <button class="btn-grande btn-siguiente" id="btnMensajesAnuncios" type="button">📢 Mensajes e información importante MOVE</button>
     <button class="btn-grande btn-siguiente" id="btnMensajesMaestra" type="button">👩‍🏫 Mensajes de tu maestra</button>
@@ -323,7 +337,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="portal.js?v=evalmaestras-v1"></script>
+<script src="portal.js?v=reconocimientos-v1"></script>
 <script>
   if ("serviceWorker" in navigator) {
     let registroSW = null;
