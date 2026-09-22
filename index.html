@@ -17,7 +17,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=reconocimientos-v1" />
+<link rel="stylesheet" href="portal.css?v=reconocimientos-v2" />
 </head>
 <body>
 
@@ -125,13 +125,9 @@
       </div>
     </div>
 
-    <div id="bloqueReconocimientos" class="bloque-reconocimientos" hidden>
-      <p class="titulo-reconocimientos">💌 Reconocimientos de tu maestra</p>
-      <div id="listaReconocimientos" class="lista-reconocimientos"></div>
-    </div>
-
     <button class="btn-grande btn-siguiente" id="btnMensajesAnuncios" type="button">📢 Mensajes e información importante MOVE</button>
     <button class="btn-grande btn-siguiente" id="btnMensajesMaestra" type="button">👩‍🏫 Mensajes de tu maestra</button>
+    <button class="btn-grande btn-siguiente" id="btnMisReconocimientos" type="button">💗 Mis reconocimientos</button>
     <button class="btn-grande btn-siguiente" id="btnAvisosEntradas" type="button">🎟️ Avisos de entradas</button>
     <button class="btn-grande btn-siguiente" id="btnInfoImportante" type="button">📋 Información importante</button>
 
@@ -269,6 +265,14 @@
     <button class="btn-grande btn-siguiente" id="btnAtrasMensajesMaestra">← Volver al perfil</button>
   </section>
 
+  <!-- ============ PANTALLA 5C-2: MIS RECONOCIMIENTOS ============ -->
+  <section id="pantallaReconocimientos" class="pantalla" hidden>
+    <p class="perfil-nombre">💗 Mis reconocimientos</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Notitas de tus maestras, agrupadas por año y mes — la más reciente arriba.</p>
+    <div id="listaReconocimientos"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasReconocimientos">← Volver al perfil</button>
+  </section>
+
   <!-- ============ PANTALLA 5D: AVISOS DE ENTRADAS ============ -->
   <section id="pantallaAvisosEntradas" class="pantalla" hidden>
     <p class="perfil-nombre">🎟️ Avisos de entradas</p>
@@ -337,7 +341,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="portal.js?v=reconocimientos-v1"></script>
+<script src="portal.js?v=reconocimientos-v2"></script>
 <script>
   if ("serviceWorker" in navigator) {
     let registroSW = null;

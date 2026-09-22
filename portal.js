@@ -276,6 +276,7 @@ function mostrarPantalla(id) {
     "pantallaHistorialPagos",
     "pantallaMensajesAnuncios",
     "pantallaMensajesMaestra",
+    "pantallaReconocimientos",
     "pantallaAvisosEntradas",
     "pantallaInfoImportante",
     "pantallaSelectorMaestra",
@@ -511,11 +512,12 @@ function mostrarPerfilDesdeDatos(datos) {
   // Worker hasta que lo abran) — ver sección más abajo.
   cargarAsistenciaMes();
 
-  // Saludo de bienvenida + racha, y reconocimientos de la maestra:
-  // igual que las notificaciones push y el botón de evaluar, en
-  // segundo plano (sin "await") para no retrasar que se vea el perfil.
+  // Saludo de bienvenida + racha: igual que las notificaciones push y
+  // el botón de evaluar, en segundo plano (sin "await") para no
+  // retrasar que se vea el perfil. Los reconocimientos ya NO se piden
+  // aquí — viven detrás de su propio botón "💗 Mis reconocimientos"
+  // (ver sección más abajo), igual que Mensajes de Recepción/maestra.
   cargarResumenAsistencia();
-  cargarReconocimientos();
 }
 
 // ==========================================
@@ -564,9 +566,22 @@ async function cargarResumenAsistencia() {
 
 // ==========================================
 // RECONOCIMIENTOS DE MAESTRA A ALUMNA
-// Se muestran directo en el perfil (no detrás de un botón), los más
-// recientes primero — todo el historial, sin límite de mes.
+// Viven detrás del botón "💗 Mis reconocimientos" (igual que Mensajes
+// de Recepción/maestra) — TODO el historial, agrupado por año (el
+// actual arriba) y dentro de cada año por mes (el más reciente
+// arriba). El Worker borra solo, cada día, los reconocimientos de un
+// año que ya cerró (ver limpiarReconocimientosAnioAnterior en
+// worker.js), así que en la práctica aquí casi siempre se ve un solo
+// año — pero el agrupado queda listo por si algún borrado se atrasa.
 // ==========================================
+el("btnMisReconocimientos").addEventListener("click", abrirReconocimientos);
+el("btnAtrasReconocimientos").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
+
+const MESES_RECONOCIMIENTOS = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
 function formatearFechaReconocimiento(iso) {
   if (!iso) return "";
   try {
@@ -580,66 +595,109 @@ function formatearFechaReconocimiento(iso) {
   }
 }
 
-async function cargarReconocimientos() {
-  const bloque = el("bloqueReconocimientos");
-  if (!alumnaSeleccionada) {
-    bloque.hidden = true;
+// Año y mes (1-12) del calendario de Guatemala para una fecha ISO —
+// para agrupar, no basta con new Date(iso).getFullYear()/getMonth()
+// porque esos usan la hora local del navegador, no la de Guatemala.
+function anioMesGuatemala(iso) {
+  const partes = new Date(iso).toLocaleDateString("en-CA", {
+    timeZone: "America/Guatemala",
+    year: "numeric",
+    month: "numeric",
+  });
+  const [anio, mes] = partes.split("-").map(Number);
+  return { anio, mes };
+}
+
+function crearTarjetaReconocimiento(r) {
+  const caja = document.createElement("div");
+  caja.className = "tarjeta-reconocimiento";
+
+  const cabecera = document.createElement("div");
+  cabecera.className = "tarjeta-reconocimiento-cabecera";
+
+  const maestra = document.createElement("span");
+  maestra.className = "tarjeta-reconocimiento-maestra";
+  maestra.textContent = "👩‍🏫 " + (r.maestra || "Tu maestra");
+  cabecera.appendChild(maestra);
+
+  const fecha = document.createElement("span");
+  fecha.className = "tarjeta-reconocimiento-fecha";
+  fecha.textContent = formatearFechaReconocimiento(r.fecha);
+  cabecera.appendChild(fecha);
+
+  caja.appendChild(cabecera);
+
+  const mensaje = document.createElement("p");
+  mensaje.className = "tarjeta-reconocimiento-mensaje";
+  mensaje.textContent = r.mensaje;
+  caja.appendChild(mensaje);
+
+  if (r.grupo) {
+    const grupo = document.createElement("p");
+    grupo.className = "tarjeta-reconocimiento-grupo";
+    grupo.textContent = r.grupo;
+    caja.appendChild(grupo);
+  }
+
+  return caja;
+}
+
+function renderReconocimientosAgrupados(reconocimientos) {
+  const cont = el("listaReconocimientos");
+  cont.innerHTML = "";
+
+  if (!reconocimientos.length) {
+    cont.innerHTML = '<p class="lista-alumnas-aviso">Todavía no tienes reconocimientos de tus maestras.</p>';
     return;
   }
-  const alumnaDeEstaConsulta = alumnaSeleccionada.id;
+
+  // Ya vienen del Worker más recientes primero; solo hay que partirlos
+  // en grupos consecutivos por año y luego por mes, sin volver a ordenar.
+  const porAnio = new Map();
+  reconocimientos.forEach((r) => {
+    const { anio, mes } = anioMesGuatemala(r.fecha);
+    if (!porAnio.has(anio)) porAnio.set(anio, new Map());
+    const porMes = porAnio.get(anio);
+    if (!porMes.has(mes)) porMes.set(mes, []);
+    porMes.get(mes).push(r);
+  });
+
+  porAnio.forEach((porMes, anio) => {
+    const tituloAnio = document.createElement("p");
+    tituloAnio.className = "reconocimientos-anio-titulo";
+    tituloAnio.textContent = String(anio);
+    cont.appendChild(tituloAnio);
+
+    porMes.forEach((delMes, mes) => {
+      const tituloMes = document.createElement("p");
+      tituloMes.className = "reconocimientos-mes-titulo";
+      tituloMes.textContent = MESES_RECONOCIMIENTOS[mes - 1] || "";
+      cont.appendChild(tituloMes);
+
+      const lista = document.createElement("div");
+      lista.className = "lista-reconocimientos";
+      delMes.forEach((r) => lista.appendChild(crearTarjetaReconocimiento(r)));
+      cont.appendChild(lista);
+    });
+  });
+}
+
+async function abrirReconocimientos() {
+  mostrarPantalla("pantallaReconocimientos");
+  const cont = el("listaReconocimientos");
+  cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
+
+  if (!alumnaSeleccionada || !alumnaSeleccionada.id) {
+    cont.innerHTML = "";
+    return;
+  }
 
   try {
-    const datos = await llamarWorker({
-      accion: "reconocimientosDeAlumna",
-      alumnaId: alumnaDeEstaConsulta,
-    });
-    if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
-
-    const reconocimientos = datos.reconocimientos || [];
-    if (!reconocimientos.length) {
-      bloque.hidden = true;
-      return;
-    }
-
-    const cont = el("listaReconocimientos");
-    cont.innerHTML = "";
-    reconocimientos.forEach((r) => {
-      const caja = document.createElement("div");
-      caja.className = "tarjeta-reconocimiento";
-
-      const cabecera = document.createElement("div");
-      cabecera.className = "tarjeta-reconocimiento-cabecera";
-
-      const maestra = document.createElement("span");
-      maestra.className = "tarjeta-reconocimiento-maestra";
-      maestra.textContent = "👩‍🏫 " + (r.maestra || "Tu maestra");
-      cabecera.appendChild(maestra);
-
-      const fecha = document.createElement("span");
-      fecha.className = "tarjeta-reconocimiento-fecha";
-      fecha.textContent = formatearFechaReconocimiento(r.fecha);
-      cabecera.appendChild(fecha);
-
-      caja.appendChild(cabecera);
-
-      const mensaje = document.createElement("p");
-      mensaje.className = "tarjeta-reconocimiento-mensaje";
-      mensaje.textContent = r.mensaje;
-      caja.appendChild(mensaje);
-
-      if (r.grupo) {
-        const grupo = document.createElement("p");
-        grupo.className = "tarjeta-reconocimiento-grupo";
-        grupo.textContent = r.grupo;
-        caja.appendChild(grupo);
-      }
-
-      cont.appendChild(caja);
-    });
-
-    bloque.hidden = false;
+    const datos = await llamarWorker({ accion: "reconocimientosDeAlumna", alumnaId: alumnaSeleccionada.id });
+    renderReconocimientosAgrupados(datos.reconocimientos || []);
   } catch (e) {
-    bloque.hidden = true;
+    cont.innerHTML = "";
+    mostrarError(e.message);
   }
 }
 

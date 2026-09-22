@@ -546,18 +546,28 @@ color:#a15277;
 
 /*=====================================
 RECONOCIMIENTOS DE MAESTRA A ALUMNA
+(pantalla "Mis reconocimientos", agrupada por año y mes)
 =====================================*/
 
-.bloque-reconocimientos{
-margin-bottom:18px;
+.reconocimientos-anio-titulo{
+font-size:clamp(16px,4.3vw,18px);
+font-weight:900;
+color:#ef4b9b;
+margin:18px 0 10px;
+text-align:left;
 }
 
-.titulo-reconocimientos{
-font-size:clamp(14px,3.8vw,16px);
+.reconocimientos-anio-titulo:first-child{
+margin-top:0;
+}
+
+.reconocimientos-mes-titulo{
+font-size:clamp(12.5px,3.5vw,14px);
 font-weight:800;
 color:#8a63e8;
-margin-bottom:10px;
+margin:12px 0 8px;
 text-align:left;
+text-transform:capitalize;
 }
 
 .lista-reconocimientos{
