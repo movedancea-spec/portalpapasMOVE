@@ -1380,6 +1380,50 @@ el("btnProbarInasistencias").addEventListener("click", async () => {
   }
 });
 
+el("btnProbarRacha").addEventListener("click", async () => {
+  const confirmado = window.confirm(
+    "Esto SÍ puede mandar notificaciones push reales a las alumnas con racha ≥ 2 semanas que todavía no hayan sido notificadas esta semana (aunque lo corras varias veces, a cada una solo le llega una vez por semana). ¿Continuar?"
+  );
+  if (!confirmado) return;
+
+  const btn = el("btnProbarRacha");
+  const mensajeEl = el("mensajeProbarRacha");
+  btn.disabled = true;
+  btn.textContent = "Revisando...";
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionProbarNotificacionRacha", clave: claveRecepcion });
+    const notificadas = datos.notificadas || [];
+    const omitidas = datos.omitidas || [];
+
+    if (datos.error) {
+      mensajeEl.textContent = "⚠️ Encontró un error: " + datos.error;
+      mensajeEl.classList.add("mensaje-form-error");
+    } else if (!notificadas.length && !omitidas.length) {
+      mensajeEl.textContent = "✅ Revisado: ninguna alumna tiene racha de 2 semanas o más ahorita.";
+      mensajeEl.classList.add("mensaje-form-ok");
+    } else {
+      const partes = [];
+      if (notificadas.length) {
+        partes.push(`✅ Se mandó push a ${notificadas.length}: ${notificadas.map((n) => `${n.nombre} (${n.racha} sem.)`).join(", ")}.`);
+      }
+      if (omitidas.length) {
+        partes.push(`ℹ️ ${omitidas.length} ya estaban notificadas esta semana (no se les volvió a mandar): ${omitidas.map((n) => n.nombre).join(", ")}.`);
+      }
+      mensajeEl.textContent = partes.join(" ");
+      mensajeEl.classList.add("mensaje-form-ok");
+    }
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔥 Probar push de racha semanal ahora";
+  }
+});
+
 // ==========================================
 // ALUMNAS
 // ==========================================
