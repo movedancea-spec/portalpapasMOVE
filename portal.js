@@ -554,7 +554,10 @@ async function cargarResumenAsistencia() {
     const bloqueRacha = el("bloqueRacha");
     if (datos.racha > 0) {
       el("rachaNumero").textContent = datos.racha;
-      el("rachaEtiqueta").textContent = datos.racha === 1 ? "semana seguida" : "semanas seguidas";
+      el("rachaExplicacion").textContent =
+        datos.racha === 1
+          ? "semana seguida de asistencia, sin faltar ninguna"
+          : "semanas seguidas de asistencia, sin faltar ninguna";
       bloqueRacha.hidden = false;
     } else {
       bloqueRacha.hidden = true;
