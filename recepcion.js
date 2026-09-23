@@ -53,6 +53,7 @@ const PANTALLAS = [
   "pantallaAnuncios",
   "pantallaAvisoImportante",
   "pantallaExtranamos",
+  "pantallaFeriados",
 ];
 
 function mostrarPantalla(id) {
@@ -307,6 +308,11 @@ el("btnMenuExtranamos").addEventListener("click", () => {
   cargarExtranamos();
 });
 
+el("btnMenuFeriados").addEventListener("click", () => {
+  mostrarPantalla("pantallaFeriados");
+  cargarFeriados();
+});
+
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverElegirGrupoChat").addEventListener("click", () => mostrarPantalla("pantallaRecepcion"));
@@ -318,6 +324,7 @@ el("btnVolverCanalChat").addEventListener("click", () => mostrarPantalla("pantal
 el("btnVolverAnuncios").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAvisoImportante").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverExtranamos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverFeriados").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
   detenerAutoRefresco();
@@ -1423,6 +1430,125 @@ el("btnProbarRacha").addEventListener("click", async () => {
     btn.textContent = "🔥 Probar push de racha semanal ahora";
   }
 });
+
+// ==========================================
+// DÍAS FERIADOS
+// Fechas en las que la academia no tuvo clase — una semana que
+// contenga alguna de estas fechas no le rompe la racha de asistencia
+// a ninguna alumna en el Portal. Se mantienen aquí, sin ir a Airtable
+// directo.
+// ==========================================
+
+function formatearFechaFeriado(fechaIso) {
+  if (!fechaIso) return "";
+  try {
+    return new Date(`${fechaIso}T12:00:00`).toLocaleDateString("es-GT", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch (e) {
+    return fechaIso;
+  }
+}
+
+async function cargarFeriados() {
+  const cont = el("listaFeriados");
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionListarFeriados", clave: claveRecepcion });
+    renderFeriados(datos.feriados || []);
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderFeriados(feriados) {
+  const cont = el("listaFeriados");
+  cont.innerHTML = "";
+
+  if (!feriados.length) {
+    cont.innerHTML = '<p class="lista-vacia">Todavía no has agregado ningún feriado.</p>';
+    return;
+  }
+
+  feriados.forEach((f) => {
+    const fila = document.createElement("div");
+    fila.className = "tarjeta-resultado";
+    fila.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;cursor:default;";
+
+    const texto = document.createElement("div");
+    texto.innerHTML =
+      `<span class="tarjeta-resultado-nombre">${f.nombre}</span><br>` +
+      `<span class="tarjeta-resultado-detalle">${formatearFechaFeriado(f.fecha)}</span>`;
+    fila.appendChild(texto);
+
+    const btnBorrar = document.createElement("button");
+    btnBorrar.type = "button";
+    btnBorrar.className = "btn-enlace";
+    btnBorrar.textContent = "Borrar";
+    btnBorrar.addEventListener("click", () => eliminarFeriado(f.id, f.nombre));
+    fila.appendChild(btnBorrar);
+
+    cont.appendChild(fila);
+  });
+}
+
+el("btnAgregarFeriado").addEventListener("click", async () => {
+  const fecha = el("inputFeriadoFecha").value;
+  const nombre = el("inputFeriadoNombre").value.trim();
+  const mensajeEl = el("mensajeFeriado");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  if (!fecha) {
+    mensajeEl.textContent = "Elige una fecha.";
+    mensajeEl.classList.add("mensaje-form-error");
+    return;
+  }
+  if (!nombre) {
+    mensajeEl.textContent = "Escribe el nombre del feriado.";
+    mensajeEl.classList.add("mensaje-form-error");
+    return;
+  }
+
+  const btn = el("btnAgregarFeriado");
+  btn.disabled = true;
+  btn.textContent = "Agregando...";
+
+  try {
+    await llamarWorker({ accion: "recepcionAgregarFeriado", clave: claveRecepcion, fecha, nombre });
+    el("inputFeriadoFecha").value = "";
+    el("inputFeriadoNombre").value = "";
+    mensajeEl.textContent = "✅ Feriado agregado.";
+    mensajeEl.classList.add("mensaje-form-ok");
+    cargarFeriados();
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "+ Agregar feriado";
+  }
+});
+
+async function eliminarFeriado(id, nombre) {
+  const confirmado = window.confirm(`¿Borrar "${nombre}" de la lista de feriados?`);
+  if (!confirmado) return;
+
+  const mensajeEl = el("mensajeFeriado");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    await llamarWorker({ accion: "recepcionEliminarFeriado", clave: claveRecepcion, id });
+    cargarFeriados();
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
 
 // ==========================================
 // ALUMNAS

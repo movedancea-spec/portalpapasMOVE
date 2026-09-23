@@ -81,6 +81,10 @@
         <span class="btn-menu-icono">💗</span>
         <span class="btn-menu-texto">Las extrañamos</span>
       </button>
+      <button class="btn-menu" id="btnMenuFeriados" type="button">
+        <span class="btn-menu-icono">📅</span>
+        <span class="btn-menu-texto">Días feriados</span>
+      </button>
     </div>
 
     <button class="btn-enlace" id="btnSalirMenu" type="button">Salir</button>
@@ -392,8 +396,31 @@
     <p class="mensaje-form" id="mensajeProbarRacha"></p>
   </section>
 
+  <!-- ============ PANTALLA: DÍAS FERIADOS ============ -->
+  <section id="pantallaFeriados" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverFeriados" type="button">← Menú</button>
+      <span class="barra-titulo">📅 Días feriados</span>
+    </div>
+
+    <p class="pista-campo">
+      Fechas en las que la academia no tuvo clase — esas semanas no le rompen la racha de asistencia a ninguna alumna en el Portal, aunque no haya venido.
+    </p>
+
+    <p class="etiqueta-campo">Fecha</p>
+    <input type="date" id="inputFeriadoFecha" class="input-texto" />
+
+    <p class="etiqueta-campo">Nombre del feriado</p>
+    <input type="text" id="inputFeriadoNombre" class="input-texto" placeholder="Ej. Independencia" autocomplete="off" />
+
+    <button class="btn-grande btn-siguiente" id="btnAgregarFeriado" type="button">+ Agregar feriado</button>
+    <p class="mensaje-form" id="mensajeFeriado"></p>
+
+    <div id="listaFeriados" class="lista-resultados" style="margin-top:16px;"></div>
+  </section>
+
 </div>
 
-<script src="recepcion.js?v=racha-test-v1"></script>
+<script src="recepcion.js?v=feriados-v1"></script>
 </body>
 </html>
