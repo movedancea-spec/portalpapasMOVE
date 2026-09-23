@@ -527,7 +527,36 @@ function mostrarPerfilDesdeDatos(datos) {
 // racha se calcula en semanas (lunes a sábado, hora Guatemala)
 // consecutivas con al menos una clase — ver el comentario de la
 // regla completa junto a obtenerResumenAsistencia en el Worker.
+//
+// El saludo se elige al azar entre varias variantes cada vez que entra
+// al portal (una lista si ya vino esta semana, otra si todavía no),
+// para que no se sienta repetitivo.
 // ==========================================
+const SALUDOS_CON_CLASE = [
+  (nombre, n, s) => `¡Hola ${nombre}! Esta semana ya llevas ${n} clase${s} 💪 ¡Sigue así!`,
+  (nombre, n, s) => `¡${nombre}, qué constancia! Ya son ${n} clase${s} esta semana 🌟`,
+  (nombre, n, s) => `Esta semana llevas ${n} clase${s}, ${nombre} — se nota tu esfuerzo 💗`,
+  (nombre, n, s) => `¡${n} clase${s} esta semana, ${nombre}! Así se hace 🩰`,
+  (nombre, n, s) => `¡Vas increíble, ${nombre}! ${n} clase${s} esta semana y contando 🔥`,
+];
+
+const SALUDOS_SIN_CLASE = [
+  (nombre) => `¡Hola ${nombre}! Te esperamos esta semana 🩰`,
+  (nombre) => `${nombre}, esta semana te extrañamos en clase — ¡nos vemos pronto! 💗`,
+  (nombre) => `¡Hola ${nombre}! Todavía hay tiempo esta semana para venir a bailar 💃`,
+  (nombre) => `${nombre}, te esperamos con los brazos abiertos esta semana 🌸`,
+  (nombre) => `¡Hola ${nombre}! Esta semana es perfecta para venir a movernos juntas ✨`,
+];
+
+function elegirSaludoSemanal(primerNombre, clasesSemana) {
+  if (clasesSemana > 0) {
+    const plantilla = SALUDOS_CON_CLASE[Math.floor(Math.random() * SALUDOS_CON_CLASE.length)];
+    return plantilla(primerNombre, clasesSemana, clasesSemana === 1 ? "" : "s");
+  }
+  const plantilla = SALUDOS_SIN_CLASE[Math.floor(Math.random() * SALUDOS_SIN_CLASE.length)];
+  return plantilla(primerNombre);
+}
+
 async function cargarResumenAsistencia() {
   const bloque = el("bloqueSaludoSemanal");
   if (!alumnaSeleccionada) {
@@ -545,10 +574,7 @@ async function cargarResumenAsistencia() {
     // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
     if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
 
-    el("textoSaludoSemanal").textContent =
-      datos.clasesSemana > 0
-        ? `¡Hola ${primerNombre}! Esta semana llevas ${datos.clasesSemana} clase${datos.clasesSemana === 1 ? "" : "s"} 💪`
-        : `¡Hola ${primerNombre}! Te esperamos esta semana 🩰`;
+    el("textoSaludoSemanal").textContent = elegirSaludoSemanal(primerNombre, datos.clasesSemana);
     bloque.hidden = false;
 
     const bloqueRacha = el("bloqueRacha");
