@@ -52,6 +52,7 @@ const PANTALLAS = [
   "pantallaEvalMaestras",
   "pantallaAnuncios",
   "pantallaAvisoImportante",
+  "pantallaExtranamos",
 ];
 
 function mostrarPantalla(id) {
@@ -301,6 +302,11 @@ el("btnMenuAvisoImportante").addEventListener("click", () => {
   prepararFormularioAvisoImportante();
 });
 
+el("btnMenuExtranamos").addEventListener("click", () => {
+  mostrarPantalla("pantallaExtranamos");
+  cargarExtranamos();
+});
+
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverElegirGrupoChat").addEventListener("click", () => mostrarPantalla("pantallaRecepcion"));
@@ -311,6 +317,7 @@ el("btnVolverCanalAsistencia").addEventListener("click", () => mostrarPantalla("
 el("btnVolverCanalChat").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAnuncios").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAvisoImportante").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverExtranamos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
   detenerAutoRefresco();
@@ -1263,6 +1270,113 @@ el("btnPublicarAvisoImportante").addEventListener("click", async () => {
   } finally {
     btn.disabled = false;
     btn.textContent = "📋 Publicar aviso";
+  }
+});
+
+// ==========================================
+// LAS EXTRAÑAMOS
+// Alumnas activas y monitoreadas (mismo criterio que el aviso semanal
+// de WhatsApp: ESTADO=ACTIVA + CLASES SEMANA puesto) que llevan 5 días
+// hábiles o más sin ninguna clase. A propósito NO es un reporte de
+// cobranza/bajas — es para que Recepción les escriba como gesto de
+// comunidad, así que el tono es cálido en vez de administrativo.
+// ==========================================
+
+function formatearFechaCortaExtranamos(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("es-GT", {
+      timeZone: "America/Guatemala",
+      day: "numeric",
+      month: "short",
+    });
+  } catch (e) {
+    return "";
+  }
+}
+
+async function cargarExtranamos() {
+  const cont = el("listaExtranamos");
+  const mensajeError = el("mensajeErrorExtranamos");
+  mensajeError.textContent = "";
+  el("mensajeProbarInasistencias").textContent = "";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionAlumnasSinAsistencia", clave: claveRecepcion });
+    renderExtranamos(datos.alumnas || []);
+  } catch (e) {
+    cont.innerHTML = "";
+    mensajeError.textContent = e.message;
+  }
+}
+
+function renderExtranamos(alumnas) {
+  const cont = el("listaExtranamos");
+  cont.innerHTML = "";
+
+  if (!alumnas.length) {
+    cont.innerHTML = '<p class="lista-vacia">¡Nadie lleva 5 días hábiles o más sin venir! 💗</p>';
+    return;
+  }
+
+  alumnas.forEach((a) => {
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "tarjeta-resultado";
+    tarjeta.style.cursor = "default";
+
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = a.nombre;
+    tarjeta.appendChild(nombre);
+
+    const grupos = document.createElement("span");
+    grupos.className = "tarjeta-resultado-detalle";
+    grupos.textContent = a.grupos && a.grupos.length ? a.grupos.join(", ") : "(sin grupo)";
+    tarjeta.appendChild(grupos);
+
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent =
+      `Última clase: hace ${a.diasHabiles} día${a.diasHabiles === 1 ? "" : "s"} hábil${a.diasHabiles === 1 ? "" : "es"}` +
+      (a.ultimaFecha ? ` (${formatearFechaCortaExtranamos(a.ultimaFecha)})` : "");
+    tarjeta.appendChild(detalle);
+
+    cont.appendChild(tarjeta);
+  });
+}
+
+el("btnProbarInasistencias").addEventListener("click", async () => {
+  const btn = el("btnProbarInasistencias");
+  const mensajeEl = el("mensajeProbarInasistencias");
+  btn.disabled = true;
+  btn.textContent = "Revisando...";
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionProbarInasistenciasSemanales", clave: claveRecepcion });
+    const faltantes = datos.faltantes || [];
+
+    if (datos.error) {
+      mensajeEl.textContent = "⚠️ Encontró un error: " + datos.error;
+      mensajeEl.classList.add("mensaje-form-error");
+    } else if (!faltantes.length) {
+      mensajeEl.textContent = "✅ Revisado: nadie de las monitoreadas faltó TODA la semana (no se manda WhatsApp).";
+      mensajeEl.classList.add("mensaje-form-ok");
+    } else if (datos.enviado) {
+      mensajeEl.textContent = `✅ Se encontraron ${faltantes.length} alumna(s) sin ninguna clase esta semana y el WhatsApp SÍ se mandó a Recepción: ${faltantes.map((f) => f.nombre).join(", ")}.`;
+      mensajeEl.classList.add("mensaje-form-ok");
+    } else {
+      mensajeEl.textContent = `⚠️ Se encontraron ${faltantes.length} alumna(s), pero el WhatsApp NO se pudo mandar: ${datos.error || "error desconocido"}.`;
+      mensajeEl.classList.add("mensaje-form-error");
+    }
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔔 Probar aviso de inasistencias semanal ahora";
   }
 });
 

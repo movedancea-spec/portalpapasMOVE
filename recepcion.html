@@ -77,6 +77,10 @@
         <span class="btn-menu-icono">📋</span>
         <span class="btn-menu-texto">Información importante</span>
       </button>
+      <button class="btn-menu" id="btnMenuExtranamos" type="button">
+        <span class="btn-menu-icono">💗</span>
+        <span class="btn-menu-texto">Las extrañamos</span>
+      </button>
     </div>
 
     <button class="btn-enlace" id="btnSalirMenu" type="button">Salir</button>
@@ -367,8 +371,26 @@
     <p class="mensaje-form" id="mensajeAvisoImportante"></p>
   </section>
 
+  <!-- ============ PANTALLA: LAS EXTRAÑAMOS ============ -->
+  <section id="pantallaExtranamos" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverExtranamos" type="button">← Menú</button>
+      <span class="barra-titulo">💗 Las extrañamos</span>
+    </div>
+
+    <p class="pista-campo">
+      Alumnas activas que llevan 5 días hábiles o más sin venir a clase — un buen momento para escribirles y preguntar cómo están. Esto no es un reporte de cobranza ni de bajas.
+    </p>
+
+    <div id="listaExtranamos" class="lista-resultados"></div>
+    <p class="mensaje-error" id="mensajeErrorExtranamos"></p>
+
+    <button class="btn-enlace" id="btnProbarInasistencias" type="button">🔔 Probar aviso de inasistencias semanal ahora</button>
+    <p class="mensaje-form" id="mensajeProbarInasistencias"></p>
+  </section>
+
 </div>
 
-<script src="recepcion.js?v=eval-v2"></script>
+<script src="recepcion.js?v=extranamos-v1"></script>
 </body>
 </html>
