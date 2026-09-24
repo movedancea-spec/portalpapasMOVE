@@ -738,13 +738,15 @@ async function elegirCanalAsistencia(canal, titulo) {
 
 // ==========================================
 // CANAL DE CHAT (interruptor GLOBAL — igual que el de asistencia, pero
-// para el aviso de mensaje nuevo del Chat de Maestras)
+// para el aviso de mensaje nuevo del Chat de Maestras — más un canal
+// propio opcional POR MAESTRA)
 // ==========================================
 // Decide si el aviso de "tienes un mensaje nuevo" del Chat de Maestras
 // se manda por WhatsApp (GREEN-API) o por el Portal (notificación
-// push) — para TODAS las maestras y familias al mismo tiempo. Se
-// guarda en la tabla CONFIGURACION GENERAL de Airtable (campo "CANAL
-// CHAT") y lo lee worker.js (chatEnviar) en cada mensaje.
+// push). El interruptor general vale para TODAS las familias y para
+// las maestras que no tengan canal propio. Se guarda en la tabla
+// CONFIGURACION GENERAL de Airtable (campo "CANAL CHAT") y lo lee
+// worker.js (chatEnviar) en cada mensaje.
 
 const OPCIONES_CANAL_CHAT = [
   {
@@ -776,6 +778,8 @@ async function cargarCanalChat() {
   } catch (e) {
     cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
   }
+
+  cargarCanalChatMaestras();
 }
 
 function renderCanalChat() {
@@ -789,7 +793,7 @@ function renderCanalChat() {
     tarjeta.type = "button";
     tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
     tarjeta.innerHTML = `
-      <span class="tarjeta-resultado-nombre">${op.titulo}${activo ? " — ✅ Activo ahora para todas" : ""}</span>
+      <span class="tarjeta-resultado-nombre">${op.titulo}${activo ? " — ✅ Activo ahora (general)" : ""}</span>
       <span class="tarjeta-resultado-detalle">${op.descripcion}</span>
     `;
     tarjeta.disabled = activo;
@@ -800,7 +804,7 @@ function renderCanalChat() {
 
 async function elegirCanalChat(canal, titulo) {
   const confirmado = window.confirm(
-    `¿Cambiar el canal de chat a ${titulo} para TODAS las maestras y familias? Este cambio aplica de inmediato, no se puede elegir por maestra ni por alumna.`
+    `¿Cambiar el canal de chat general a ${titulo}? Aplica de inmediato a TODAS las familias y a las maestras que siguen el general (las que tienen canal propio no cambian).`
   );
   if (!confirmado) return;
 
@@ -812,7 +816,138 @@ async function elegirCanalChat(canal, titulo) {
     await llamarWorker({ accion: "recepcionGuardarCanalChat", clave: claveRecepcion, canal });
     canalChatActual = canal;
     renderCanalChat();
-    mensajeEl.textContent = `✅ Listo — el aviso de mensaje nuevo del chat ahora llega por ${titulo} para todas.`;
+    // Las maestras que "siguen el general" cambian con esto — se vuelve
+    // a pintar su lista para que la etiqueta muestre el canal nuevo.
+    if (canalChatMaestras.length) renderCanalChatMaestras();
+    mensajeEl.textContent = `✅ Listo — el aviso de mensaje nuevo del chat ahora llega por ${titulo} para las familias y las maestras que siguen el general.`;
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ==========================================
+// CANAL DE CHAT POR MAESTRA
+// ==========================================
+// Cada maestra puede tener su propio canal para el aviso que le llega
+// A ELLA cuando una familia le escribe (campo "CANAL CHAT" de la tabla
+// MAESTRAS en Airtable). Vacío = "Seguir el general" (el interruptor
+// de arriba), que es como quedan todas al principio — así nadie cambia
+// de canal hasta que Recepción lo elija a propósito. El aviso que le
+// llega a las FAMILIAS no se toca aquí.
+
+const OPCIONES_CANAL_CHAT_MAESTRA = [
+  { valor: "", titulo: "Seguir el general" },
+  { valor: "WhatsApp", titulo: "📱 WhatsApp" },
+  { valor: "Portal", titulo: "🔔 Portal" },
+];
+
+let canalChatMaestras = [];
+
+async function cargarCanalChatMaestras() {
+  const cont = el("listaCanalChatMaestras");
+  const mensajeEl = el("mensajeCanalChatMaestras");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionListarCanalChatMaestras", clave: claveRecepcion });
+    canalChatMaestras = datos.maestras || [];
+    renderCanalChatMaestras();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function tituloCanalChat(valor) {
+  return valor === "Portal" ? "🔔 Portal" : "📱 WhatsApp";
+}
+
+function renderCanalChatMaestras() {
+  const cont = el("listaCanalChatMaestras");
+  cont.innerHTML = "";
+
+  if (!canalChatMaestras.length) {
+    cont.innerHTML = '<p class="lista-vacia">No hay maestras activas.</p>';
+    return;
+  }
+
+  canalChatMaestras.forEach((m) => {
+    // El canal que de verdad le va a llegar hoy (propio, o el general).
+    const canalEfectivo = m.canal || canalChatActual || "WhatsApp";
+
+    const fila = document.createElement("div");
+    fila.className = "tarjeta-resultado fila-canal-maestra";
+
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = m.nombre;
+
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent = m.canal
+      ? `Le llega por ${tituloCanalChat(canalEfectivo)} (canal propio)`
+      : `Le llega por ${tituloCanalChat(canalEfectivo)} (sigue el general)`;
+
+    fila.appendChild(nombre);
+    fila.appendChild(detalle);
+
+    // Avisos para que no quede en un canal por el que no le llega nada.
+    let alerta = "";
+    if (canalEfectivo === "Portal" && !m.tienePush) {
+      alerta = "⚠️ Todavía no activó las notificaciones en el Portal de Maestras — así NO le llega ningún aviso.";
+    } else if (canalEfectivo === "WhatsApp" && !m.tieneWhatsapp) {
+      alerta = "⚠️ No tiene WhatsApp registrado en Airtable — así NO le llega ningún aviso.";
+    }
+    if (alerta) {
+      const alertaEl = document.createElement("span");
+      alertaEl.className = "tarjeta-resultado-detalle alerta-canal-maestra";
+      alertaEl.textContent = alerta;
+      fila.appendChild(alertaEl);
+    }
+
+    const chips = document.createElement("div");
+    chips.className = "chips-contenedor chips-canal-maestra";
+    OPCIONES_CANAL_CHAT_MAESTRA.forEach((op) => {
+      const activo = (m.canal || "") === op.valor;
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip" + (activo ? " activo" : "");
+      chip.textContent = op.titulo;
+      chip.disabled = activo;
+      chip.addEventListener("click", () => elegirCanalChatMaestra(m, op.valor, op.titulo));
+      chips.appendChild(chip);
+    });
+    fila.appendChild(chips);
+
+    cont.appendChild(fila);
+  });
+}
+
+async function elegirCanalChatMaestra(maestra, canal, titulo) {
+  const texto = canal
+    ? `¿Cambiar el canal de chat de ${maestra.nombre} a ${titulo}? Solo cambia el aviso que le llega a ella; aplica de inmediato.`
+    : `¿Que ${maestra.nombre} vuelva a seguir el canal general (${tituloCanalChat(canalChatActual)})? Aplica de inmediato.`;
+  if (!window.confirm(texto)) return;
+
+  const mensajeEl = el("mensajeCanalChatMaestras");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    await llamarWorker({
+      accion: "recepcionGuardarCanalChatMaestra",
+      clave: claveRecepcion,
+      maestraId: maestra.id,
+      canal,
+    });
+    maestra.canal = canal;
+    renderCanalChatMaestras();
+    mensajeEl.textContent = canal
+      ? `✅ Listo — a ${maestra.nombre} ahora le llega el aviso por ${titulo}.`
+      : `✅ Listo — ${maestra.nombre} ahora sigue el canal general.`;
     mensajeEl.classList.add("mensaje-form-ok");
   } catch (e) {
     mensajeEl.textContent = e.message;

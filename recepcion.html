@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=eval-v2" />
+<link rel="stylesheet" href="recepcion.css?v=canalchat-maestras-v1" />
 </head>
 <body>
 
@@ -262,22 +262,32 @@
     <p class="mensaje-form" id="mensajeCanalAsistencia"></p>
   </section>
 
-  <!-- ============ PANTALLA: CANAL DE CHAT (interruptor global) ============ -->
+  <!-- ============ PANTALLA: CANAL DE CHAT (interruptor global + uno por maestra) ============ -->
   <section id="pantallaCanalChat" class="pantalla" hidden>
     <div class="barra-superior">
       <button class="btn-volver" id="btnVolverCanalChat" type="button">← Menú</button>
       <span class="barra-titulo">💬 Canal de chat</span>
     </div>
 
-    <p class="subtitulo">¿Por dónde le llega a TODAS las maestras y familias el aviso de mensaje nuevo del Chat de Maestras?</p>
+    <p class="subtitulo">General: ¿por dónde le llega a las familias (y a las maestras sin canal propio) el aviso de mensaje nuevo del Chat de Maestras?</p>
     <p class="pista-campo">
-      Esto es un solo interruptor para toda la academia — no se elige por maestra ni por alumna. El cambio aplica de inmediato.
+      Es un solo interruptor para todas las familias — no se elige por alumna. Las maestras lo siguen también, salvo las que tengan su propio canal elegido abajo. El cambio aplica de inmediato.
     </p>
 
     <div id="opcionesCanalChat" class="lista-resultados">
       <p class="lista-vacia">Cargando...</p>
     </div>
     <p class="mensaje-form" id="mensajeCanalChat"></p>
+
+    <p class="subtitulo subtitulo-seccion-canal">Maestras: canal propio de cada una</p>
+    <p class="pista-campo">
+      Solo cambia el aviso que le llega A LA MAESTRA cuando una familia le escribe. "Seguir el general" usa el interruptor de arriba.
+    </p>
+
+    <div id="listaCanalChatMaestras" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+    <p class="mensaje-form" id="mensajeCanalChatMaestras"></p>
   </section>
 
   <!-- ============ PANTALLA: EVALUACIÓN DE MAESTRAS (interruptor global) ============ -->
@@ -421,6 +431,6 @@
 
 </div>
 
-<script src="recepcion.js?v=feriados-v1"></script>
+<script src="recepcion.js?v=canalchat-maestras-v1"></script>
 </body>
 </html>

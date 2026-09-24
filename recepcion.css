@@ -1014,3 +1014,30 @@ color:#555;
 margin-top:6px;
 font-style:italic;
 }
+
+/*=====================================
+CANAL DE CHAT POR MAESTRA
+=====================================*/
+
+.subtitulo-seccion-canal{
+margin-top:22px;
+}
+
+/* Es una fila con botones adentro, no un botón en sí */
+.fila-canal-maestra{
+cursor:default;
+}
+
+.fila-canal-maestra:active{ transform:none; }
+
+.alerta-canal-maestra{
+color:#d9822b;
+}
+
+.chips-canal-maestra{
+margin:8px 0 0;
+}
+
+.chips-canal-maestra .chip:disabled{
+cursor:default;
+}
