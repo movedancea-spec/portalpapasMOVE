@@ -15,6 +15,12 @@
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
+// Apagado para la venta en vivo del sábado: el botón de borrar estaba
+// en cada turno no completado (incluidos los reales ya asignados) y
+// con un toque de más se borraba de verdad. Volver a poner en true
+// después de la venta si se necesita limpiar registros de prueba.
+const PERMITIR_BORRAR_TURNOS = false;
+
 let claveAdmin = "";
 let panelActual = null; // último panel cargado, para poder filtrar la lista sin volver a pedirlo
 let pollPanelTimer = null;
@@ -319,7 +325,7 @@ function pintarListaTurnos(turnos) {
     // Borrar turno — completo, uno por uno, con confirmación. No se
     // deja borrar un turno que ya completó su compra (entradas
     // vendidas de verdad), para no perder ese registro por error.
-    if (t.estado !== "Completado") {
+    if (PERMITIR_BORRAR_TURNOS && t.estado !== "Completado") {
       const btnBorrar = document.createElement("button");
       btnBorrar.type = "button";
       btnBorrar.className = "btn-borrar-turno";

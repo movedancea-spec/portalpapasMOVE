@@ -179,7 +179,16 @@ async function abrirPantallaComprarCaja() {
     `Turno #${turnoActualCaja.numero || "—"} — ${turnoActualCaja.nombre || ""}`;
   horaExpiraActual = turnoActualCaja.horaExpira ? new Date(turnoActualCaja.horaExpira) : null;
   if (horaExpiraActual) iniciarCronometro();
+  // Solo se permite un link por turno (ver entradasComprarFilas en el
+  // Worker) — si ya existe, se muestra aquí en vez de dejar generar otro.
+  const yaTieneLink = !!turnoActualCaja.linkPago;
+  el("avisoLinkExistenteCaja").hidden = !yaTieneLink;
+  el("linkExistenteCaja").href = turnoActualCaja.linkPago || "#";
   await cargarMapaFilasCaja();
+}
+
+function filaEsDeEsteTurno(f) {
+  return f.estado === "Reservada" && ((turnoActualCaja && turnoActualCaja.filasReservadas) || []).includes(f.id);
 }
 
 async function cargarMapaFilasCaja() {
@@ -261,7 +270,7 @@ function crearFilaMapa(f, voltear) {
   btn.className = "fila-mapa" + (voltear ? " volteada" : "");
   btn.dataset.id = f.id;
 
-  const disponible = f.estado === "Disponible";
+  const disponible = f.estado === "Disponible" || filaEsDeEsteTurno(f);
   if (!disponible) {
     btn.disabled = true;
     btn.classList.add(f.estado === "Vendida" ? "vendida" : "reservada");
@@ -309,7 +318,7 @@ function actualizarBarraTotal() {
     total += Number(f.precio || 0);
   });
   el("textoTotalSeleccionCaja").textContent = `Q${total.toFixed(2)}`;
-  el("btnCobrarFilas").disabled = filasSeleccionadas.size === 0;
+  el("btnCobrarFilas").disabled = filasSeleccionadas.size === 0 || !!(turnoActualCaja && turnoActualCaja.linkPago);
   el("btnCobrarEfectivo").disabled = filasSeleccionadas.size === 0;
 }
 
