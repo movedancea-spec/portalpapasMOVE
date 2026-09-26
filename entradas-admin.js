@@ -217,7 +217,7 @@ const BADGE_POR_ESTADO_INDIVIDUAL = {
   "Vencido": "badge-vencido",
   "Cancelado": "badge-cancelado",
   // Pagó, pero sus butacas ya las tenía otra persona — se resuelve a mano.
-  "Pagada - conflicto": "badge-vencido",
+  "Pagado - conflicto": "badge-vencido",
 };
 
 function pintarListaComprasIndividuales(compras) {
