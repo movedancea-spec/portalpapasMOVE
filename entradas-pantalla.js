@@ -190,6 +190,7 @@ function actualizarCronometroVivo() {
 
 function pintarStats(conteoFilas) {
   el("statDisponiblesVivo").textContent = conteoFilas["Disponible"] || 0;
+  el("statReservadasVivo").textContent = conteoFilas["Reservada"] || 0;
   el("statVendidasVivo").textContent = conteoFilas["Vendida"] || 0;
 }
 
@@ -296,14 +297,17 @@ function crearFilaMapa(f, voltear) {
 
 function pintarStatsAsientos(filas) {
   let disponibles = 0;
+  let reservadas = 0;
   let vendidas = 0;
   filas.forEach((f) => {
     (f.butacas || []).forEach((b) => {
       if (b.estado === "Disponible") disponibles++;
+      else if (b.estado === "Reservada") reservadas++;
       else vendidas++;
     });
   });
   el("statDisponiblesVivo").textContent = disponibles;
+  el("statReservadasVivo").textContent = reservadas;
   el("statVendidasVivo").textContent = vendidas;
 }
 

@@ -280,7 +280,10 @@ function pintarListaTurnos(turnos) {
 
   const filtrados = filtro
     ? turnos.filter(
-        (t) => (t.nombre || "").toLowerCase().includes(filtro) || (t.whatsapp || "").includes(filtro)
+        (t) =>
+          (t.nombre || "").toLowerCase().includes(filtro) ||
+          (t.whatsapp || "").includes(filtro) ||
+          (t.codigo || "").toLowerCase().includes(filtro)
       )
     : turnos;
 
