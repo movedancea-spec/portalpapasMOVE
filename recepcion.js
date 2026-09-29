@@ -19,7 +19,12 @@
 // botón "Solicitudes" del menú muestra un punto 🔴 si hay algo
 // pendiente.
 
-const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
+// En localhost (prueba local con `wrangler dev`) se habla con el
+// Worker local; en cualquier otro dominio, con el de producción. Así
+// nunca se sube por olvido una URL local.
+const WORKER_URL = ["localhost", "127.0.0.1"].includes(location.hostname)
+  ? "http://localhost:8787"
+  : "https://portalalumnas.movedancea.workers.dev";
 const TAMANO_MAX_ARCHIVO = 8 * 1024 * 1024; // 8 MB, igual que el portal de alumnas.
 
 let claveRecepcion = "";
@@ -50,6 +55,7 @@ const PANTALLAS = [
   "pantallaCanalAsistencia",
   "pantallaCanalChat",
   "pantallaEvalMaestras",
+  "pantallaEstadoPortal",
   "pantallaAnuncios",
   "pantallaAvisoImportante",
   "pantallaExtranamos",
@@ -292,6 +298,11 @@ el("btnMenuEvalMaestras").addEventListener("click", () => {
   cargarEvalMaestras();
 });
 
+el("btnMenuEstadoPortal").addEventListener("click", () => {
+  mostrarPantalla("pantallaEstadoPortal");
+  cargarEstadoPortal();
+});
+
 el("btnMenuAnuncios").addEventListener("click", () => {
   mostrarPantalla("pantallaAnuncios");
   cargarCanalAnuncios();
@@ -315,6 +326,10 @@ el("btnMenuFeriados").addEventListener("click", () => {
 
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverEstadoPortal").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnGuardarMensajePortal").addEventListener("click", () => guardarEstadoPortal(estadoPortalActual.estado));
+el("btnActivarAccesoPrueba").addEventListener("click", activarAccesoPruebaPortal);
+el("btnQuitarAccesoPrueba").addEventListener("click", quitarAccesoPruebaPortal);
 el("btnVolverElegirGrupoChat").addEventListener("click", () => mostrarPantalla("pantallaRecepcion"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverIngresos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -1153,6 +1168,136 @@ async function cambiarEvalMaestras(activar) {
     mensajeEl.textContent = e.message;
     mensajeEl.classList.add("mensaje-form-error");
   }
+}
+
+// ==========================================
+// ESTADO DEL PORTAL DE ALUMNAS (modo mantenimiento)
+// ==========================================
+// Tres opciones, solo una activa. Se guarda en CONFIGURACION GENERAL
+// (campos "ESTADO PORTAL ALUMNAS" y "MENSAJE PORTAL ALUMNAS"), igual
+// que la evaluación de maestras. El Worker bloquea el portal de
+// alumnas mientras no esté "Activo".
+
+const OPCIONES_ESTADO_PORTAL = [
+  { valor: "Activo", titulo: "🟢 Portal activo (normal)", detalle: "Las alumnas entran y usan el portal como siempre." },
+  { valor: "Mantenimiento", titulo: "🔧 Portal en mantenimiento", detalle: "Nadie entra. Ven: \"Estamos dando mantenimiento al portal\"." },
+  { valor: "Mejoras", titulo: "✨ Haciendo mejoras / agregando algo nuevo", detalle: "Nadie entra. Ven: \"¡Estamos preparando algo nuevo para ti!\"." },
+];
+const LLAVE_ACCESO_PRUEBA_PORTAL = "move_acceso_prueba_portal";
+
+let estadoPortalActual = { estado: "Activo", mensaje: "" };
+
+async function cargarEstadoPortal() {
+  const cont = el("opcionesEstadoPortal");
+  const mensajeEl = el("mensajeEstadoPortal");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  renderAccesoPruebaPortal();
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerEstadoPortal", clave: claveRecepcion });
+    estadoPortalActual = { estado: datos.estado || "Activo", mensaje: datos.mensaje || "" };
+    el("inputMensajePortal").value = estadoPortalActual.mensaje;
+    renderEstadoPortal();
+    if (datos.forzado) {
+      mensajeEl.textContent = "⚠️ Entorno de prueba: el estado está forzado con ESTADO_PORTAL_FORZADO y no se guarda.";
+    }
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderEstadoPortal() {
+  const cont = el("opcionesEstadoPortal");
+  cont.innerHTML = "";
+  OPCIONES_ESTADO_PORTAL.forEach((op) => {
+    const activo = estadoPortalActual.estado === op.valor;
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
+    tarjeta.setAttribute("aria-pressed", activo ? "true" : "false");
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = op.titulo + (activo ? " — ACTIVO AHORA" : "");
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent = op.detalle;
+    tarjeta.append(nombre, detalle);
+    if (!activo) tarjeta.addEventListener("click", () => guardarEstadoPortal(op.valor, true));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function guardarEstadoPortal(estado, confirmar) {
+  if (confirmar) {
+    const pregunta =
+      estado === "Activo"
+        ? "¿Volver a abrir el portal? Las alumnas podrán entrar de nuevo."
+        : "¿Cerrar el portal de alumnas? Nadie podrá entrar (ni quien ya tenía sesión abierta) hasta que lo vuelvas a activar.";
+    if (!window.confirm(pregunta)) return;
+  }
+  const mensajeEl = el("mensajeEstadoPortal");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+  try {
+    const datos = await llamarWorker({
+      accion: "recepcionGuardarEstadoPortal",
+      clave: claveRecepcion,
+      estado,
+      mensaje: el("inputMensajePortal").value.trim(),
+    });
+    estadoPortalActual = { estado: datos.estado, mensaje: datos.mensaje || "" };
+    renderEstadoPortal();
+    mensajeEl.textContent =
+      datos.estado === "Activo"
+        ? "✅ Listo — el portal está activo."
+        : "✅ Listo — el portal quedó cerrado. Se aplica en unos segundos.";
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+function renderAccesoPruebaPortal() {
+  let guardado = null;
+  try {
+    guardado = JSON.parse(localStorage.getItem(LLAVE_ACCESO_PRUEBA_PORTAL) || "null");
+  } catch (e) {}
+  const vigente = guardado && Date.now() < Number(guardado.expira);
+  el("textoAccesoPruebaPortal").textContent = vigente
+    ? `✅ Este navegador tiene acceso de prueba hasta las ${new Date(Number(guardado.expira)).toLocaleString("es-GT", {
+        timeZone: "America/Guatemala",
+        hour: "numeric",
+        minute: "2-digit",
+        day: "numeric",
+        month: "short",
+      })}.`
+    : "Este navegador no tiene acceso de prueba.";
+  el("btnQuitarAccesoPrueba").hidden = !vigente;
+}
+
+async function activarAccesoPruebaPortal() {
+  const mensajeEl = el("mensajeEstadoPortal");
+  mensajeEl.className = "mensaje-form";
+  try {
+    const datos = await llamarWorker({ accion: "recepcionGenerarAccesoPruebaPortal", clave: claveRecepcion });
+    localStorage.setItem(LLAVE_ACCESO_PRUEBA_PORTAL, JSON.stringify({ ficha: datos.ficha, expira: datos.expira }));
+    mensajeEl.textContent = "✅ Acceso de prueba activado. Abre el portal en este mismo navegador.";
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+  renderAccesoPruebaPortal();
+}
+
+function quitarAccesoPruebaPortal() {
+  try {
+    localStorage.removeItem(LLAVE_ACCESO_PRUEBA_PORTAL);
+  } catch (e) {}
+  renderAccesoPruebaPortal();
+  el("mensajeEstadoPortal").textContent = "Acceso de prueba quitado de este navegador.";
 }
 
 // ==========================================
@@ -2622,6 +2767,9 @@ async function subirComprobantePago(archivo) {
     const base64 = await leerArchivoBase64(archivo);
     await llamarWorker({
       accion: "subirComprobante",
+      // La clave deja pasar la subida aunque el Portal de Alumnas esté
+      // en mantenimiento (esta acción también la usa el portal).
+      clave: claveRecepcion,
       pagoId: pagoEditandoId,
       archivoBase64: base64,
       nombreArchivo: archivo.name,

@@ -1041,3 +1041,16 @@ margin:8px 0 0;
 .chips-canal-maestra .chip:disabled{
 cursor:default;
 }
+
+/* Estado del portal de alumnas: la opción activa tiene que verse a
+   simple vista (es la que decide si las alumnas pueden entrar). */
+#opcionesEstadoPortal .tarjeta-resultado.activo{
+border-color:#ef4b9b;
+background:#fff0f7;
+box-shadow:0 0 0 2px rgba(239,75,155,.25);
+cursor:default;
+}
+#opcionesEstadoPortal .tarjeta-resultado.activo .tarjeta-resultado-nombre{
+color:#e0245e;
+font-weight:800;
+}

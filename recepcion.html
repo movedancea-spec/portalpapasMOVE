@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=canalchat-maestras-v1" />
+<link rel="stylesheet" href="recepcion.css?v=estado-portal-v1" />
 </head>
 <body>
 
@@ -68,6 +68,10 @@
       <button class="btn-menu" id="btnMenuEvalMaestras" type="button">
         <span class="btn-menu-icono">⭐</span>
         <span class="btn-menu-texto">Evaluación de maestras</span>
+      </button>
+      <button class="btn-menu" id="btnMenuEstadoPortal" type="button">
+        <span class="btn-menu-icono">🚦</span>
+        <span class="btn-menu-texto">Estado del portal de alumnas</span>
       </button>
       <button class="btn-menu" id="btnMenuAnuncios" type="button">
         <span class="btn-menu-icono">📢</span>
@@ -290,6 +294,38 @@
     <p class="mensaje-form" id="mensajeCanalChatMaestras"></p>
   </section>
 
+  <!-- ============ PANTALLA: ESTADO DEL PORTAL DE ALUMNAS (modo mantenimiento) ============ -->
+  <section id="pantallaEstadoPortal" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverEstadoPortal" type="button">← Menú</button>
+      <span class="barra-titulo">🚦 Estado del portal de alumnas</span>
+    </div>
+
+    <p class="subtitulo">¿Pueden entrar las alumnas al portal?</p>
+    <p class="pista-campo">
+      Si eliges mantenimiento o mejoras, ninguna alumna puede entrar ni ver datos del portal (ni quien ya tenía sesión abierta). Recepción y el Portal de Maestras siguen funcionando. El cambio se aplica en unos segundos.
+    </p>
+
+    <div id="opcionesEstadoPortal" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+
+    <p class="etiqueta-campo">Mensaje extra u hora de regreso (opcional)</p>
+    <input type="text" id="inputMensajePortal" class="input-texto" maxlength="200" placeholder="Ej. Regresamos a las 4:00 pm" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnGuardarMensajePortal" type="button">Guardar mensaje</button>
+    <p class="mensaje-form" id="mensajeEstadoPortal"></p>
+
+    <div class="separador-lista"></div>
+
+    <p class="subtitulo">🧪 Acceso de prueba (solo administración)</p>
+    <p class="pista-campo">
+      Deja entrar al portal a ESTE navegador aunque esté en mantenimiento, para probar cambios. Vence solo a las 12 horas. Actívalo en el mismo navegador donde vas a abrir el portal.
+    </p>
+    <p class="pista-campo" id="textoAccesoPruebaPortal"></p>
+    <button class="btn-grande btn-siguiente" id="btnActivarAccesoPrueba" type="button">Activar acceso de prueba en este navegador</button>
+    <button class="btn-enlace" id="btnQuitarAccesoPrueba" type="button">Quitar acceso de prueba</button>
+  </section>
+
   <!-- ============ PANTALLA: EVALUACIÓN DE MAESTRAS (interruptor global) ============ -->
   <section id="pantallaEvalMaestras" class="pantalla" hidden>
     <div class="barra-superior">
@@ -431,6 +467,6 @@
 
 </div>
 
-<script src="recepcion.js?v=canalchat-maestras-v1"></script>
+<script src="recepcion.js?v=estado-portal-v1"></script>
 </body>
 </html>

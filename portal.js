@@ -8,7 +8,12 @@
 // cada alumna se define desde la tabla "CONFIGURACION PORTAL
 // ALUMNAS" en Airtable, no está escrito a mano aquí.
 
-const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
+// En localhost (prueba local con `wrangler dev`) se habla con el
+// Worker local; en cualquier otro dominio, con el de producción. Así
+// nunca se sube por olvido una URL local.
+const WORKER_URL = ["localhost", "127.0.0.1"].includes(location.hostname)
+  ? "http://localhost:8787"
+  : "https://portalalumnas.movedancea.workers.dev";
 
 // Llave pública VAPID (no es secreta — se usa del lado del navegador
 // para suscribirse a notificaciones push). Con esta MISMA suscripción
@@ -300,13 +305,116 @@ function mostrarError(msg) {
   el("mensajeError").textContent = msg || "";
 }
 
+// ==========================================
+// MODO MANTENIMIENTO
+// ==========================================
+// Recepción puede cerrar el portal ("Mantenimiento" o "Mejoras"). El
+// Worker responde 503 con { mantenimiento: true } a CUALQUIER acción
+// del portal, así que basta con revisarlo aquí: tanto al abrir la
+// página como en la siguiente acción de quien ya tenía sesión, se
+// tapa todo con la pantalla de aviso.
+//
+// Acceso de prueba: Recepción (ya autenticada, mismo dominio) guarda
+// una ficha firmada por el Worker en localStorage; se manda en cada
+// llamada y el Worker la verifica. Vence sola a las 12 horas.
+const LLAVE_ACCESO_PRUEBA_PORTAL = "move_acceso_prueba_portal";
+
+function leerAccesoPruebaPortal() {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(LLAVE_ACCESO_PRUEBA_PORTAL) || "null");
+    if (!guardado || !guardado.ficha || Date.now() > Number(guardado.expira)) {
+      localStorage.removeItem(LLAVE_ACCESO_PRUEBA_PORTAL);
+      return "";
+    }
+    return guardado.ficha;
+  } catch (e) {
+    return "";
+  }
+}
+
+const TEXTOS_MANTENIMIENTO = {
+  Mantenimiento: {
+    icono: "🔧",
+    titulo: "Estamos dando mantenimiento al portal 🔧",
+    texto: "Vuelve a intentarlo en un ratito 💕",
+  },
+  Mejoras: {
+    icono: "✨",
+    titulo: "¡Estamos preparando algo nuevo para ti! ✨",
+    texto: "El portal regresa muy pronto 💃",
+  },
+};
+
+function mostrarAvisoMantenimiento(estado, mensaje) {
+  const t = TEXTOS_MANTENIMIENTO[estado] || TEXTOS_MANTENIMIENTO.Mantenimiento;
+  let capa = document.getElementById("avisoMantenimientoPortal");
+  if (!capa) {
+    const estilo = document.createElement("style");
+    estilo.textContent = `
+      #avisoMantenimientoPortal{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+        padding:24px 16px;background:linear-gradient(160deg,#fff0f7 0%,#ffd6ea 55%,#ffc2df 100%);
+        font-family:"Poppins",system-ui,sans-serif;text-align:center;overflow-y:auto}
+      #avisoMantenimientoPortal .aviso-mant-caja{max-width:420px;width:100%;background:#fff;border-radius:24px;
+        padding:32px 24px;box-shadow:0 12px 40px rgba(239,75,155,.25)}
+      #avisoMantenimientoPortal img{width:96px;height:auto;margin:0 auto 12px;display:block}
+      #avisoMantenimientoPortal .aviso-mant-marca{margin:0 0 18px;font-weight:700;letter-spacing:.08em;color:#ef4b9b;font-size:.8rem}
+      #avisoMantenimientoPortal .aviso-mant-icono{font-size:3rem;margin:0 0 8px}
+      #avisoMantenimientoPortal h1{font-size:1.3rem;line-height:1.35;margin:0 0 10px;color:#2b2b2b}
+      #avisoMantenimientoPortal .aviso-mant-texto{margin:0 0 14px;color:#555;font-size:1rem}
+      #avisoMantenimientoPortal .aviso-mant-extra{margin:0 0 18px;padding:10px 14px;border-radius:14px;
+        background:#fff0f7;color:#e0245e;font-weight:600}
+      #avisoMantenimientoPortal button{border:0;border-radius:999px;padding:14px 28px;font:inherit;font-weight:700;
+        color:#fff;background:linear-gradient(90deg,#ff6b9d,#e0245e);cursor:pointer;width:100%}`;
+    document.head.appendChild(estilo);
+    capa = document.createElement("div");
+    capa.id = "avisoMantenimientoPortal";
+    capa.setAttribute("role", "alert");
+    document.body.appendChild(capa);
+  }
+  capa.innerHTML = "";
+  const caja = document.createElement("div");
+  caja.className = "aviso-mant-caja";
+  const logo = document.createElement("img");
+  logo.src = "logo.png";
+  logo.alt = "Move Dance Academy";
+  const marca = document.createElement("p");
+  marca.className = "aviso-mant-marca";
+  marca.textContent = "MOVE DANCE ACADEMY";
+  const icono = document.createElement("p");
+  icono.className = "aviso-mant-icono";
+  icono.textContent = t.icono;
+  const titulo = document.createElement("h1");
+  titulo.textContent = t.titulo;
+  const texto = document.createElement("p");
+  texto.className = "aviso-mant-texto";
+  texto.textContent = t.texto;
+  caja.append(logo, marca, icono, titulo, texto);
+  if (mensaje) {
+    const extra = document.createElement("p");
+    extra.className = "aviso-mant-extra";
+    extra.textContent = mensaje;
+    caja.appendChild(extra);
+  }
+  const boton = document.createElement("button");
+  boton.type = "button";
+  boton.textContent = "Intentar de nuevo";
+  boton.addEventListener("click", () => window.location.reload());
+  caja.appendChild(boton);
+  capa.appendChild(caja);
+}
+
 async function llamarWorker(payload) {
+  const accesoPrueba = leerAccesoPruebaPortal();
   const res = await fetch(WORKER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(accesoPrueba ? { ...payload, accesoPruebaPortal: accesoPrueba } : payload),
   });
   const datos = await res.json();
+  if (datos.mantenimiento) {
+    mostrarAvisoMantenimiento(datos.estado, datos.mensaje);
+    throw new Error(datos.error || "El portal no está disponible en este momento.");
+  }
   if (!datos.success) {
     throw new Error(datos.error || "Ocurrió un error inesperado.");
   }
