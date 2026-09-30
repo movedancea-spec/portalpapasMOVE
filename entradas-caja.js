@@ -665,7 +665,7 @@ async function cobrarEfectivoCajaIndividual() {
       selecciones,
       formaPago: "Efectivo",
     });
-    el("tituloResultadoCajaIndividual").textContent = "✅ Pago en efectivo confirmado";
+    el("tituloResultadoCajaIndividual").textContent = "✅ Pago confirmado";
     el("detalleResultadoCajaIndividual").textContent =
       `Total cobrado: Q${Number(datos.total || 0).toFixed(2)} — los asientos ya quedaron marcados como vendidos.`;
     el("linkResultadoCajaIndividual").hidden = true;
