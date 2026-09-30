@@ -1,0 +1,215 @@
+/* ==========================================
+   MOVE — MINI JUEGO "COPIA LA COREOGRAFÍA"
+   Modal a pantalla completa, mobile-first, con la marca rosa del
+   portal. Queda debajo del aviso de mantenimiento (z-index 99999).
+   ========================================== */
+
+body.juego-baile-abierto{
+overflow:hidden;
+}
+
+.juego-baile{
+position:fixed;
+inset:0;
+z-index:9000;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:16px;
+background:linear-gradient(160deg,#fff0f7 0%,#ffd6ea 55%,#ffc2df 100%);
+font-family:"Poppins",system-ui,sans-serif;
+overflow-y:auto;
+animation:juegoBaileEntrar .25s ease-out;
+}
+
+.juego-baile[hidden]{
+display:none;
+}
+
+.juego-baile-caja{
+position:relative;
+width:100%;
+max-width:440px;
+background:white;
+border-radius:24px;
+padding:22px 16px 20px;
+box-shadow:0 12px 40px rgba(239,75,155,.25);
+text-align:center;
+}
+
+.juego-baile-cerrar{
+position:absolute;
+top:10px;
+right:10px;
+width:44px;
+height:44px;
+border:none;
+border-radius:50%;
+background:#fff0f7;
+color:#e0245e;
+font-size:18px;
+font-weight:700;
+cursor:pointer;
+}
+
+.juego-baile-marca{
+margin:0 0 4px;
+font-size:.72rem;
+font-weight:700;
+letter-spacing:.1em;
+color:#ef4b9b;
+}
+
+.juego-baile-titulo{
+margin:0 0 12px;
+font-size:clamp(20px,6vw,24px);
+color:#2b2b2b;
+}
+
+.juego-baile-marcador{
+display:flex;
+justify-content:center;
+gap:16px;
+flex-wrap:wrap;
+margin-bottom:8px;
+font-size:clamp(14px,4vw,16px);
+color:#555;
+}
+
+.juego-baile-marcador strong{
+color:#e0245e;
+font-size:1.15em;
+}
+
+.juego-baile-estado{
+min-height:1.5em;
+margin:0 0 14px;
+font-weight:600;
+color:#ef4b9b;
+}
+
+.juego-baile-pasos{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+margin-bottom:16px;
+}
+
+.juego-baile-paso{
+--color-paso:#ef4b9b;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:4px;
+aspect-ratio:1/1;
+min-height:110px;
+border:none;
+border-radius:22px;
+background:var(--color-paso);
+color:white;
+font-family:inherit;
+cursor:pointer;
+opacity:.55;
+filter:saturate(.75);
+touch-action:manipulation;
+-webkit-tap-highlight-color:transparent;
+user-select:none;
+transition:transform .15s ease,opacity .15s ease,filter .15s ease,box-shadow .15s ease;
+}
+
+.juego-baile.turno-alumna .juego-baile-paso{
+opacity:.85;
+}
+
+.juego-baile-paso.iluminado{
+opacity:1;
+filter:saturate(1.15) brightness(1.1);
+transform:scale(1.03);
+box-shadow:0 0 0 3px white,0 0 0 6px var(--color-paso),0 8px 22px rgba(0,0,0,.18);
+}
+
+.juego-baile-paso-emoji{
+font-size:clamp(34px,11vw,48px);
+line-height:1;
+}
+
+.juego-baile-paso-nombre{
+font-size:clamp(15px,4.5vw,18px);
+font-weight:700;
+text-shadow:0 1px 2px rgba(0,0,0,.2);
+}
+
+.juego-baile-final{
+margin-bottom:14px;
+padding:12px 14px;
+border-radius:16px;
+background:#fff0f7;
+animation:juegoBaileEntrar .3s ease-out;
+}
+
+.juego-baile-final[hidden]{
+display:none;
+}
+
+.juego-baile-final p{
+margin:4px 0;
+}
+
+.juego-baile-final-puntos{
+font-size:1.2rem;
+font-weight:800;
+color:#e0245e;
+}
+
+.juego-baile-final-mensaje{
+color:#444;
+}
+
+.juego-baile-final-record{
+font-weight:700;
+color:#b8860b;
+}
+
+.juego-baile-empezar[hidden]{
+display:none;
+}
+
+.juego-baile.acierto .juego-baile-caja{
+animation:juegoBaileSaltito .45s ease;
+}
+
+.juego-baile.error .juego-baile-caja{
+animation:juegoBaileTemblor .45s ease;
+}
+
+@keyframes juegoBaileEntrar{
+from{ opacity:0; transform:translateY(8px); }
+to{ opacity:1; transform:none; }
+}
+
+@keyframes juegoBaileSaltito{
+0%,100%{ transform:none; }
+40%{ transform:translateY(-6px); }
+}
+
+@keyframes juegoBaileTemblor{
+0%,100%{ transform:none; }
+20%,60%{ transform:translateX(-6px); }
+40%,80%{ transform:translateX(6px); }
+}
+
+@media (prefers-reduced-motion: reduce){
+.juego-baile,
+.juego-baile-final,
+.juego-baile.acierto .juego-baile-caja,
+.juego-baile.error .juego-baile-caja{
+animation:none;
+}
+.juego-baile-paso{
+transition:none;
+}
+.juego-baile-paso.iluminado{
+transform:none;
+}
+}
