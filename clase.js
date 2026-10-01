@@ -500,6 +500,29 @@ function actualizarRelojGuatemala() {
 actualizarRelojGuatemala();
 setInterval(actualizarRelojGuatemala, 15000);
 
+// ---------- fechas especiales (Día del Niño, Halloween, Navidad...) ----------
+
+// Las fechas y estilos viven en temas-fecha.js (compartido con el
+// Portal de Alumnas). Aquí solo se pinta, con menos partículas que en
+// el portal para no distraer durante la clase. Se revisa cada minuto
+// porque el panel puede quedarse abierto al cruzar la medianoche de
+// Guatemala; solo se vuelve a pintar si el tema cambió.
+let temaPanelActual;
+
+function actualizarTemaPanel() {
+  const tema = TemasFecha.temaDeHoy();
+  if (tema === temaPanelActual) return;
+  temaPanelActual = tema;
+  TemasFecha.aplicar(tema, {
+    contenedor: el("temaDecoracion"),
+    banner: el("temaBanner"),
+    particulas: 12,
+  });
+}
+
+actualizarTemaPanel();
+setInterval(actualizarTemaPanel, 60000);
+
 function iniciarAutoRefrescoBienvenida() {
   if (intervaloBienvenida) clearInterval(intervaloBienvenida);
   intervaloBienvenida = setInterval(() => {

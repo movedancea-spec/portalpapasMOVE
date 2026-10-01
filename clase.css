@@ -350,6 +350,30 @@ text-align:center;
 margin-bottom:12px;
 }
 
+/* Nombre del grupo + letrero de fecha especial en la misma fila. El
+   letrero es más bajito que el nombre, así que no agrega altura y el
+   resto del panel queda exactamente donde estaba. Solo en pantallas
+   muy angostas, si no caben los dos, el letrero baja a otra línea. */
+.fila-nombre-grupo{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+align-items:center;
+gap:6px 10px;
+margin-bottom:12px;
+}
+
+.fila-nombre-grupo .nombre-grupo{
+margin-bottom:0;
+}
+
+.fila-nombre-grupo .tema-banner{
+margin:0;
+padding:4px 12px;
+font-size:clamp(11px,2.8vw,13px);
+white-space:nowrap;
+}
+
 .tabs-panel{
 display:flex;
 flex-wrap:wrap;

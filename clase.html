@@ -8,9 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="clase.css?v=audios-anio-v1" />
+<link rel="stylesheet" href="temas-fecha.css?v=fechas-v1" />
+<link rel="stylesheet" href="clase.css?v=fechas-v1" />
 </head>
 <body>
+
+<!-- Decoración de fechas especiales (ver temas-fecha.js): detrás de la
+     tarjeta y sin recibir toques, para no tapar nada del panel. -->
+<div id="temaDecoracion" class="tema-decoracion" aria-hidden="true"></div>
 
 <div class="container">
 
@@ -50,7 +55,12 @@
 
   <!-- ============ PANTALLA 2: PANEL DE CLASE ============ -->
   <section id="pantallaPanel" class="pantalla" hidden>
-    <p class="nombre-grupo" id="nombreGrupoPanel"></p>
+    <!-- El letrero de fecha especial va en la misma fila que el nombre del
+         grupo, para no empujar hacia abajo el resto del panel. -->
+    <div class="fila-nombre-grupo">
+      <p class="nombre-grupo" id="nombreGrupoPanel"></p>
+      <p class="tema-banner" id="temaBanner" hidden></p>
+    </div>
 
     <div class="tabs-panel">
       <button class="tab-btn activo" id="tabBienvenida" type="button">👋 Bienvenida</button>
@@ -265,7 +275,8 @@
 </div>
 
 <script src="sesionmaestra.js"></script>
-<script src="clase.js?v=audios-anio-v1"></script>
+<script src="temas-fecha.js?v=fechas-v1"></script>
+<script src="clase.js?v=fechas-v1"></script>
 <script>
   // Registra el Service Worker y le pide revisar actualizaciones cada vez
   // que se vuelve a esta pantalla (al abrir la app, o al volver a ella

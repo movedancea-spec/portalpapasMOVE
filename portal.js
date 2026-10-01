@@ -134,141 +134,29 @@ function el(id) {
   return document.getElementById(id);
 }
 
-// ---------- decoración de temporada (un tema por mes, todo el año) ----------
+// ---------- decoración de temporada (fechas especiales) ----------
 
-const EMOJIS_TEMA = {
-  "back-to-dance": ["📚", "🩰", "🎒", "✨", "👟"],
-  carino: ["💕", "❤️", "💌", "🌹", "💗"],
-  mujer: ["💜", "🌷", "✨", "👑", "💪"],
-  danza: ["💃", "🕺", "🎶", "✨", "👯"],
-  madre: ["💐", "🌸", "💖", "🌷", "👩‍👧"],
-  padre: ["👔", "💙", "🎩", "⭐", "👨‍👧"],
-  independencia: ["🇬🇹", "🎆", "🔥", "💙", "🤍"],
-  nino: ["🎈", "🧸", "🎨", "🎠", "🍭"],
-  halloween: ["🎃", "👻", "🕸️", "🦇", "🕷️"],
-  show: ["🎭", "🌟", "✨", "🎬", "👑"],
-  navidad: ["❄️", "🎄", "🎅", "⛄", "🎁"],
-  cumple: ["🎈", "🎉", "🎊", "🍰", "✨"],
-};
-
-// Cómo se mueven las partículas de cada tema: "cae" (bajan, como
-// confeti o nieve), "sube" (suben, como globos) o "flota" (se
-// mecen en su lugar, como fantasmas).
-const ESTILO_PARTICULA = {
-  "back-to-dance": "sube",
-  carino: "cae",
-  mujer: "flota",
-  danza: "flota",
-  madre: "cae",
-  padre: "cae",
-  independencia: "cae",
-  nino: "sube",
-  halloween: "flota",
-  show: "cae",
-  navidad: "cae",
-  cumple: "sube",
-};
-
-const BANNER_TEXTO = {
-  "back-to-dance": "✨ ¡Bienvenidas de vuelta a MOVE!",
-  carino: "💕 ¡Feliz Día del Cariño!",
-  mujer: "💜 ¡Feliz Día de la Mujer!",
-  danza: "💃 ¡Feliz Mes de la Danza!",
-  madre: "💐 ¡Feliz Día de la Madre!",
-  padre: "💙 ¡Feliz Día del Padre!",
-  independencia: "🇬🇹 ¡Feliz Independencia, Guatemala!",
-  nino: "🎈 ¡Feliz Día del Niño!",
-  halloween: "🎃 ¡Feliz Halloween!",
-  show: "🌟 ¡Se viene nuestro Show de Fin de Año! 🌟",
-  navidad: "🎄 ¡Feliz Navidad!",
-};
-
-// Un tema por mes, todo el año. Julio y agosto se quedan sin tema
-// especial (portal normal). Para probar cualquiera sin esperar al mes
-// correcto, se puede abrir la página con ?temaPrueba=nombreDelTema al
-// final del link (por ejemplo ?temaPrueba=danza o ?temaPrueba=cumple)
-// — solo para pruebas, quítalo del link cuando termines de revisar.
-const TEMA_POR_MES = {
-  1: "back-to-dance",
-  2: "carino",
-  3: "mujer",
-  4: "danza",
-  5: "madre",
-  6: "padre",
-  9: "independencia",
-  10: "halloween",
-  11: "show",
-  12: "navidad",
-};
-
-// Excepciones de un solo día dentro de un mes (formato "mes-día"),
-// que interrumpen por ese único día el tema del mes completo. Por
-// ahora solo el 1 de octubre (Día del Niño) interrumpe a Halloween;
-// el resto de octubre sigue siendo Halloween normal.
-const TEMA_POR_DIA_ESPECIFICO = {
-  "10-1": "nino",
-};
+// Las fechas, emojis y letreros viven en temas-fecha.js (compartido con
+// el Panel de Clase y el Biométrico). "Hoy" se calcula en hora de
+// Guatemala, no la del dispositivo. Para probar un tema sin esperar a
+// su fecha: ?temaPrueba=nombreDelTema al final del link.
 
 function obtenerTemaDelDia() {
-  const forzado = new URLSearchParams(window.location.search).get("temaPrueba");
-  if (forzado && EMOJIS_TEMA[forzado]) return forzado;
-
-  const hoy = new Date();
-  const mes = hoy.getMonth() + 1; // 1-12
-  const claveDia = `${mes}-${hoy.getDate()}`;
-
-  return TEMA_POR_DIA_ESPECIFICO[claveDia] || TEMA_POR_MES[mes] || null;
+  return TemasFecha.temaDeHoy();
 }
 
 // Compara solo mes y día (ignora el año) contra la fecha "AAAA-MM-DD"
-// que manda el campo CUMPLEAÑOS.
+// que manda el campo CUMPLEAÑOS, usando el día de hoy en Guatemala.
 function esHoyElCumpleanos(fechaISO) {
-  if (!fechaISO) return false;
-  const partes = fechaISO.split("-");
-  if (partes.length !== 3) return false;
-  const hoy = new Date();
-  return Number(partes[1]) === hoy.getMonth() + 1 && Number(partes[2]) === hoy.getDate();
-}
-
-function limpiarDecoracion() {
-  Object.keys(EMOJIS_TEMA).forEach((t) => document.body.classList.remove("tema-" + t));
-  el("temaDecoracion").innerHTML = "";
-  const banner = el("temaBanner");
-  banner.hidden = true;
-  banner.className = "tema-banner";
+  return TemasFecha.esCumpleHoy(fechaISO);
 }
 
 function aplicarDecoracion(tema, nombre) {
-  limpiarDecoracion();
-  if (!tema) return;
-
-  document.body.classList.add("tema-" + tema);
-
-  const emojis = EMOJIS_TEMA[tema] || [];
-  const cont = el("temaDecoracion");
-  const estilo = ESTILO_PARTICULA[tema] || "cae";
-
-  for (let i = 0; i < 18; i++) {
-    const span = document.createElement("span");
-    span.className = "tema-particula " + estilo;
-    span.textContent = emojis[i % emojis.length];
-    span.style.left = Math.random() * 96 + "%";
-    span.style.fontSize = 1.2 + Math.random() * 1.3 + "rem";
-    span.style.animationDuration = 6 + Math.random() * 8 + "s";
-    span.style.animationDelay = Math.random() * 8 + "s";
-    if (estilo === "flota") {
-      span.style.top = Math.random() * 85 + "%";
-    }
-    cont.appendChild(span);
-  }
-
-  const banner = el("temaBanner");
-  banner.className = "tema-banner " + tema;
-  banner.textContent =
-    tema === "cumple"
-      ? "🎉 ¡Feliz cumpleaños, " + (nombre || "") + "! 🎉"
-      : BANNER_TEXTO[tema] || "";
-  banner.hidden = false;
+  TemasFecha.aplicar(tema, {
+    contenedor: el("temaDecoracion"),
+    banner: el("temaBanner"),
+    nombre,
+  });
 }
 
 function mostrarPantalla(id) {

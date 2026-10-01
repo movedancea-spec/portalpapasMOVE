@@ -12,141 +12,44 @@ const API_URL = "https://biometrico-saas.movedancea.workers.dev";
 
 const el = (id) => document.getElementById(id);
 
-let sesion = null; // { academiaId, clave, nombre }
+let sesion = null; // { academiaId, clave, nombre, colorMarca, logoKey, tipoCliente }
 let codigoActual = "";
 let timeoutResultado = null;
 
 document.body.classList.add("modo-kiosko");
 
 // =====================================================================
-// DECORACIÓN DE TEMPORADA (copiado tal cual desde portal.js del Portal
-// de Alumnas — un tema por mes, todo el año). No incluye la parte de
+// DECORACIÓN DE TEMPORADA — las fechas, emojis y letreros viven en
+// temas-fecha.js (compartido con el Portal de Alumnas y el Panel de
+// Clase). "Hoy" se calcula en hora de Guatemala. No incluye la parte de
 // cumpleaños: el Biométrico ya la maneja por su cuenta.
 // =====================================================================
 
-const EMOJIS_TEMA = {
-  "back-to-dance": ["📚", "🩰", "🎒", "✨", "👟"],
-  carino: ["💕", "❤️", "💌", "🌹", "💗"],
-  mujer: ["💜", "🌷", "✨", "👑", "💪"],
-  danza: ["💃", "🕺", "🎶", "✨", "👯"],
-  madre: ["💐", "🌸", "💖", "🌷", "👩‍👧"],
-  padre: ["👔", "💙", "🎩", "⭐", "👨‍👧"],
-  independencia: ["🇬🇹", "🎆", "🔥", "💙", "🤍"],
-  nino: ["🎈", "🧸", "🎨", "🎠", "🍭"],
-  halloween: ["🎃", "👻", "🕸️", "🦇", "🕷️"],
-  show: ["🎭", "🌟", "✨", "🎬", "👑"],
-  navidad: ["❄️", "🎄", "🎅", "⛄", "🎁"],
-  cumple: ["🎈", "🎉", "🎊", "🍰", "✨"],
-};
-
-// Cómo se mueven las partículas de cada tema: "cae" (bajan, como
-// confeti o nieve), "sube" (suben, como globos) o "flota" (se
-// mecen en su lugar, como fantasmas).
-const ESTILO_PARTICULA = {
-  "back-to-dance": "sube",
-  carino: "cae",
-  mujer: "flota",
-  danza: "flota",
-  madre: "cae",
-  padre: "cae",
-  independencia: "cae",
-  nino: "sube",
-  halloween: "flota",
-  show: "cae",
-  navidad: "cae",
-  cumple: "sube",
-};
-
-const BANNER_TEXTO = {
-  "back-to-dance": "✨ ¡Bienvenidas de vuelta a MOVE!",
-  carino: "💕 ¡Feliz Día del Cariño!",
-  mujer: "💜 ¡Feliz Día de la Mujer!",
-  danza: "💃 ¡Feliz Mes de la Danza!",
-  madre: "💐 ¡Feliz Día de la Madre!",
-  padre: "💙 ¡Feliz Día del Padre!",
-  independencia: "🇬🇹 ¡Feliz Independencia, Guatemala!",
-  nino: "🎈 ¡Feliz Día del Niño!",
-  halloween: "🎃 ¡Feliz Halloween!",
-  show: "🌟 ¡Se viene nuestro Show de Fin de Año! 🌟",
-  navidad: "🎄 ¡Feliz Navidad!",
-};
-
-// Un tema por mes, todo el año. Julio y agosto se quedan sin tema
-// especial (portal normal). Para probar cualquiera sin esperar al mes
-// correcto, se puede abrir la página con ?temaPrueba=nombreDelTema al
-// final del link (por ejemplo ?temaPrueba=danza o ?temaPrueba=cumple)
-// — solo para pruebas, quítalo del link cuando termines de revisar.
-const TEMA_POR_MES = {
-  1: "back-to-dance",
-  2: "carino",
-  3: "mujer",
-  4: "danza",
-  5: "madre",
-  6: "padre",
-  9: "independencia",
-  10: "halloween",
-  11: "show",
-  12: "navidad",
-};
-
-// Excepciones de un solo día dentro de un mes (formato "mes-día"),
-// que interrumpen por ese único día el tema del mes completo. Por
-// ahora solo el 1 de octubre (Día del Niño) interrumpe a Halloween;
-// el resto de octubre sigue siendo Halloween normal.
-const TEMA_POR_DIA_ESPECIFICO = {
-  "10-1": "nino",
-};
-
 function obtenerTemaDelDia() {
-  const forzado = new URLSearchParams(window.location.search).get("temaPrueba");
-  if (forzado && EMOJIS_TEMA[forzado]) return forzado;
-
-  const hoy = new Date();
-  const mes = hoy.getMonth() + 1; // 1-12
-  const claveDia = `${mes}-${hoy.getDate()}`;
-
-  return TEMA_POR_DIA_ESPECIFICO[claveDia] || TEMA_POR_MES[mes] || null;
+  return TemasFecha.temaDeHoy();
 }
 
-function limpiarDecoracion() {
-  Object.keys(EMOJIS_TEMA).forEach((t) => document.body.classList.remove("tema-" + t));
-  el("temaDecoracion").innerHTML = "";
-  const banner = el("temaBanner");
-  banner.hidden = true;
-  banner.className = "tema-banner";
+function aplicarDecoracion(tema) {
+  TemasFecha.aplicar(tema, {
+    contenedor: el("temaDecoracion"),
+    banner: el("temaBanner"),
+  });
 }
 
-function aplicarDecoracion(tema, nombre) {
-  limpiarDecoracion();
-  if (!tema) return;
+// Las fechas especiales (Día del Niño, Halloween...) son solo para
+// academias, NO para clientes empresa. Mientras no se sepa el tipo
+// (antes de iniciar sesión, o una sesión guardada de antes de este
+// cambio que todavía no pasa por la revisión silenciosa) no se decora.
+// Se vuelve a revisar cada minuto porque el kiosko se queda prendido
+// por días y el tema tiene que cambiar solo a la medianoche de
+// Guatemala; solo se vuelve a pintar si algo cambió.
+let temaKioskoActual;
 
-  document.body.classList.add("tema-" + tema);
-
-  const emojis = EMOJIS_TEMA[tema] || [];
-  const cont = el("temaDecoracion");
-  const estilo = ESTILO_PARTICULA[tema] || "cae";
-
-  for (let i = 0; i < 18; i++) {
-    const span = document.createElement("span");
-    span.className = "tema-particula " + estilo;
-    span.textContent = emojis[i % emojis.length];
-    span.style.left = Math.random() * 96 + "%";
-    span.style.fontSize = 1.2 + Math.random() * 1.3 + "rem";
-    span.style.animationDuration = 6 + Math.random() * 8 + "s";
-    span.style.animationDelay = Math.random() * 8 + "s";
-    if (estilo === "flota") {
-      span.style.top = Math.random() * 85 + "%";
-    }
-    cont.appendChild(span);
-  }
-
-  const banner = el("temaBanner");
-  banner.className = "tema-banner " + tema;
-  banner.textContent =
-    tema === "cumple"
-      ? "🎉 ¡Feliz cumpleaños, " + (nombre || "") + "! 🎉"
-      : BANNER_TEXTO[tema] || "";
-  banner.hidden = false;
+function actualizarDecoracionKiosko() {
+  const tema = sesion && sesion.tipoCliente === "academia" ? obtenerTemaDelDia() : null;
+  if (tema === temaKioskoActual) return;
+  temaKioskoActual = tema;
+  aplicarDecoracion(tema);
 }
 
 function urlFoto(fotoKey) {
@@ -247,6 +150,7 @@ function mostrarTeclado() {
   el("marcaAcademiaKiosko").textContent = sesion.nombre;
   aplicarMarca(sesion.colorMarca);
   aplicarLogoKiosko(sesion.logoKey);
+  actualizarDecoracionKiosko();
   reiniciarCodigo();
   iniciarActualizacionAutomaticaDeMarca();
 }
@@ -277,12 +181,17 @@ async function refrescarMarcaEnSilencio() {
     if (!r.success) return; // si falla (ej. desactivada), no se interrumpe el kiosko por esto
     const colorNuevo = r.colorMarca || null;
     const logoNuevo = r.logoKey || null;
-    if (colorNuevo !== sesion.colorMarca || logoNuevo !== sesion.logoKey) {
+    const tipoNuevo = r.tipoCliente || null;
+    if (colorNuevo !== sesion.colorMarca || logoNuevo !== sesion.logoKey || tipoNuevo !== sesion.tipoCliente) {
       sesion.colorMarca = colorNuevo;
       sesion.logoKey = logoNuevo;
+      // Las tablets con sesión guardada de antes no tenían tipoCliente;
+      // aquí lo reciben sin tener que volver a iniciar sesión.
+      sesion.tipoCliente = tipoNuevo;
       guardarSesion(sesion);
       aplicarMarca(sesion.colorMarca);
       aplicarLogoKiosko(sesion.logoKey);
+      actualizarDecoracionKiosko();
     }
   } catch (e) {
     // Sin conexión momentánea: no pasa nada, se vuelve a intentar en el siguiente ciclo.
@@ -328,6 +237,7 @@ async function intentarEntrar() {
       nombre: r.nombre,
       colorMarca: r.colorMarca || null,
       logoKey: r.logoKey || null,
+      tipoCliente: r.tipoCliente || null,
     });
     mostrarTeclado();
   } catch (e) {
@@ -349,6 +259,7 @@ el("btnSalirKiosko").addEventListener("click", () => {
   el("pantallaLogin").hidden = false;
   aplicarMarca(null);
   aplicarLogoKiosko(null);
+  actualizarDecoracionKiosko(); // sin sesión no se sabe el tipo: se quita la decoración
   el("inputNombreAcademia").value = "";
   el("inputClaveAcademia").value = "";
 });
@@ -540,7 +451,8 @@ function mostrarBienvenida(r) {
 // ---------------------------------------------------------------
 // INICIO
 // ---------------------------------------------------------------
-aplicarDecoracion(obtenerTemaDelDia());
+actualizarDecoracionKiosko();
+setInterval(actualizarDecoracionKiosko, 60000);
 
 const sesionGuardada = cargarSesionGuardada();
 if (sesionGuardada) {
