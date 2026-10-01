@@ -1621,3 +1621,36 @@ transition:.15s;
 width:100%;
 margin-top:6px;
 }
+
+/* Audios de mis clases: agrupados por mes. El mes actual abierto y los
+   anteriores colapsados (<details>), se abren con un toque. */
+.audios-mes{
+margin-bottom:8px;
+}
+.audios-mes-titulo{
+cursor:pointer;
+list-style:none;
+padding:8px 12px;
+border-radius:12px;
+background:#fff0f7;
+color:#ef4b9b;
+border:2px solid #ffd1e6;
+font-weight:700;
+font-size:clamp(12.5px,3.5vw,14px);
+}
+.audios-mes-titulo::-webkit-details-marker{ display:none; }
+.audios-mes-titulo::after{ content:"▾"; float:right; transition:transform .2s; }
+.audios-mes:not([open]) .audios-mes-titulo::after{ transform:rotate(-90deg); }
+.audios-mes[open] .audios-mes-titulo{ margin-bottom:8px; }
+/* Botones de cada audio y título del mes con alto mínimo de 44 px,
+   para tocarlos fácil con el dedo en el teléfono. */
+.audios-mes-titulo{ min-height:44px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.audios-mes-titulo::after{ margin-left:auto; }
+.audios-mes .video-portal-boton-ver,
+.audios-mes .video-portal-boton-descargar{
+min-height:44px;
+display:inline-flex;
+align-items:center;
+padding-left:14px;
+padding-right:14px;
+}

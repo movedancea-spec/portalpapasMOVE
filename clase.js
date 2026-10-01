@@ -1412,6 +1412,62 @@ async function subirVideoAlPortal() {
   }
 }
 
+// Audios del año agrupados por mes, el más nuevo primero. El Worker
+// manda "mes" ('YYYY-MM', hora de Guatemala) en cada audio; si no
+// viniera, se calcula aquí con la misma zona horaria. Queda abierto el
+// mes actual (o, si no tiene audios, el más reciente que sí tenga) y
+// los demás colapsados (<details>: se abren con un toque, sin JS extra).
+const NOMBRES_MES_AUDIOS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+function mesClaveGuatemala(fecha) {
+  const partes = {};
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guatemala", year: "numeric", month: "2-digit" })
+    .formatToParts(new Date(fecha))
+    .forEach((p) => {
+      partes[p.type] = p.value;
+    });
+  return `${partes.year}-${partes.month}`;
+}
+
+function agruparAudiosPorMes(audios) {
+  const porMes = new Map();
+  (audios || []).forEach((a) => {
+    const mes = a.mes || mesClaveGuatemala(a.fecha);
+    if (!porMes.has(mes)) porMes.set(mes, []);
+    porMes.get(mes).push(a);
+  });
+  const meses = [...porMes.entries()]
+    .sort((x, y) => y[0].localeCompare(x[0]))
+    .map(([mes, lista]) => ({
+      mes,
+      audios: lista.sort((x, y) => new Date(y.fecha) - new Date(x.fecha)),
+      abierto: false,
+    }));
+  // Se abre el mes actual; si este mes todavía no tiene audios, el más
+  // reciente que sí tenga (el primero, porque van del más nuevo al más viejo).
+  const actual = meses.find((m) => m.mes === mesClaveGuatemala(new Date()));
+  if (actual) actual.abierto = true;
+  else if (meses.length) meses[0].abierto = true;
+  return meses;
+}
+
+function crearBloqueMesAudios(mes, cantidad, abierto) {
+  const bloque = document.createElement("details");
+  bloque.className = "audios-mes";
+  bloque.open = !!abierto;
+  const resumen = document.createElement("summary");
+  resumen.className = "audios-mes-titulo";
+  const nombreMes = NOMBRES_MES_AUDIOS[Number(mes.split("-")[1]) - 1] || mes;
+  resumen.textContent = `📅 ${nombreMes} · ${cantidad} ${cantidad === 1 ? "audio" : "audios"}`;
+  const lista = document.createElement("div");
+  lista.className = "audios-mes-lista";
+  bloque.append(resumen, lista);
+  return { bloque, lista };
+}
+
 function formatearFechaHoraVideo(iso) {
   if (!iso) return "";
   try {
@@ -1623,52 +1679,56 @@ function renderAudiosClase(audios) {
   }
   titulo.hidden = false;
 
-  audiosClaseActual.forEach((a) => {
-    const fila = document.createElement("div");
-    fila.className = "video-clase-fila";
+  agruparAudiosPorMes(audiosClaseActual).forEach(({ mes, audios, abierto }) => {
+    const { bloque, lista } = crearBloqueMesAudios(mes, audios.length, abierto);
+    audios.forEach((a) => {
+      const fila = document.createElement("div");
+      fila.className = "video-clase-fila";
 
-    const info = document.createElement("span");
-    info.className = "video-clase-fila-info";
-    info.textContent = `🎵 ${formatearFechaHoraVideo(a.fecha)} · ${a.tamanoMB} MB`;
-    fila.appendChild(info);
+      const info = document.createElement("span");
+      info.className = "video-clase-fila-info";
+      info.textContent = `🎵 ${formatearFechaHoraVideo(a.fecha)} · ${a.tamanoMB} MB`;
+      fila.appendChild(info);
 
-    const botones = document.createElement("div");
-    botones.className = "video-clase-fila-botones";
+      const botones = document.createElement("div");
+      botones.className = "video-clase-fila-botones";
 
-    const escucharLink = document.createElement("a");
-    escucharLink.className = "video-clase-fila-boton-ver";
-    escucharLink.href = a.url;
-    escucharLink.target = "_blank";
-    escucharLink.rel = "noopener";
-    escucharLink.textContent = "▶ Escuchar";
-    botones.appendChild(escucharLink);
+      const escucharLink = document.createElement("a");
+      escucharLink.className = "video-clase-fila-boton-ver";
+      escucharLink.href = a.url;
+      escucharLink.target = "_blank";
+      escucharLink.rel = "noopener";
+      escucharLink.textContent = "▶ Escuchar";
+      botones.appendChild(escucharLink);
 
-    const descargarLink = document.createElement("a");
-    descargarLink.className = "video-clase-fila-boton-descargar";
-    descargarLink.href = a.urlDescarga;
-    descargarLink.textContent = "⬇ Descargar";
-    botones.appendChild(descargarLink);
+      const descargarLink = document.createElement("a");
+      descargarLink.className = "video-clase-fila-boton-descargar";
+      descargarLink.href = a.urlDescarga;
+      descargarLink.textContent = "⬇ Descargar";
+      botones.appendChild(descargarLink);
 
-    const eliminarBtn = document.createElement("button");
-    eliminarBtn.className = "video-clase-fila-boton-eliminar";
-    eliminarBtn.type = "button";
-    eliminarBtn.textContent = "🗑 Borrar";
-    eliminarBtn.addEventListener("click", () => {
-      if (eliminarBtn.dataset.confirmar === "1") {
-        eliminarAudioClase(a.clave);
-      } else {
-        eliminarBtn.dataset.confirmar = "1";
-        eliminarBtn.textContent = "¿Seguro? Toca de nuevo";
-        setTimeout(() => {
-          eliminarBtn.dataset.confirmar = "";
-          eliminarBtn.textContent = "🗑 Borrar";
-        }, 3000);
-      }
+      const eliminarBtn = document.createElement("button");
+      eliminarBtn.className = "video-clase-fila-boton-eliminar";
+      eliminarBtn.type = "button";
+      eliminarBtn.textContent = "🗑 Borrar";
+      eliminarBtn.addEventListener("click", () => {
+        if (eliminarBtn.dataset.confirmar === "1") {
+          eliminarAudioClase(a.clave);
+        } else {
+          eliminarBtn.dataset.confirmar = "1";
+          eliminarBtn.textContent = "¿Seguro? Toca de nuevo";
+          setTimeout(() => {
+            eliminarBtn.dataset.confirmar = "";
+            eliminarBtn.textContent = "🗑 Borrar";
+          }, 3000);
+        }
+      });
+      botones.appendChild(eliminarBtn);
+
+      fila.appendChild(botones);
+      lista.appendChild(fila);
     });
-    botones.appendChild(eliminarBtn);
-
-    fila.appendChild(botones);
-    cont.appendChild(fila);
+    cont.appendChild(bloque);
   });
 }
 

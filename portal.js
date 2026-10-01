@@ -1897,6 +1897,62 @@ function renderBotonObjetivosMensuales(objetivosMensuales) {
 // clases" — SOLO si al menos una de sus clases tiene algún video
 // subido desde el Panel de Clase. Agrupa los videos por clase, igual
 // que el objetivo mensual.
+// Audios del año agrupados por mes, el más nuevo primero. El Worker
+// manda "mes" ('YYYY-MM', hora de Guatemala) en cada audio; si no
+// viniera, se calcula aquí con la misma zona horaria. Queda abierto el
+// mes actual (o, si no tiene audios, el más reciente que sí tenga) y
+// los demás colapsados (<details>: se abren con un toque, sin JS extra).
+const NOMBRES_MES_AUDIOS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+function mesClaveGuatemala(fecha) {
+  const partes = {};
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guatemala", year: "numeric", month: "2-digit" })
+    .formatToParts(new Date(fecha))
+    .forEach((p) => {
+      partes[p.type] = p.value;
+    });
+  return `${partes.year}-${partes.month}`;
+}
+
+function agruparAudiosPorMes(audios) {
+  const porMes = new Map();
+  (audios || []).forEach((a) => {
+    const mes = a.mes || mesClaveGuatemala(a.fecha);
+    if (!porMes.has(mes)) porMes.set(mes, []);
+    porMes.get(mes).push(a);
+  });
+  const meses = [...porMes.entries()]
+    .sort((x, y) => y[0].localeCompare(x[0]))
+    .map(([mes, lista]) => ({
+      mes,
+      audios: lista.sort((x, y) => new Date(y.fecha) - new Date(x.fecha)),
+      abierto: false,
+    }));
+  // Se abre el mes actual; si este mes todavía no tiene audios, el más
+  // reciente que sí tenga (el primero, porque van del más nuevo al más viejo).
+  const actual = meses.find((m) => m.mes === mesClaveGuatemala(new Date()));
+  if (actual) actual.abierto = true;
+  else if (meses.length) meses[0].abierto = true;
+  return meses;
+}
+
+function crearBloqueMesAudios(mes, cantidad, abierto) {
+  const bloque = document.createElement("details");
+  bloque.className = "audios-mes";
+  bloque.open = !!abierto;
+  const resumen = document.createElement("summary");
+  resumen.className = "audios-mes-titulo";
+  const nombreMes = NOMBRES_MES_AUDIOS[Number(mes.split("-")[1]) - 1] || mes;
+  resumen.textContent = `📅 ${nombreMes} · ${cantidad} ${cantidad === 1 ? "audio" : "audios"}`;
+  const lista = document.createElement("div");
+  lista.className = "videos-clase-grupo-lista";
+  bloque.append(resumen, lista);
+  return { bloque, lista };
+}
+
 function formatearFechaHoraVideoPortal(iso) {
   if (!iso) return "";
   try {
@@ -2007,40 +2063,40 @@ function renderBotonAudiosClase(audiosPorClase) {
     titulo.textContent = grupo.clase ? `🎵 ${grupo.clase}` : "🎵 Audios";
     bloqueGrupo.appendChild(titulo);
 
-    const lista = document.createElement("div");
-    lista.className = "videos-clase-grupo-lista";
+    agruparAudiosPorMes(grupo.audios).forEach(({ mes, audios, abierto }) => {
+      const { bloque, lista } = crearBloqueMesAudios(mes, audios.length, abierto);
+      audios.forEach((a) => {
+        const fila = document.createElement("div");
+        fila.className = "video-portal-fila";
 
-    grupo.audios.forEach((a) => {
-      const fila = document.createElement("div");
-      fila.className = "video-portal-fila";
+        const info = document.createElement("span");
+        info.className = "video-portal-fila-info";
+        info.textContent = `🎵 ${formatearFechaHoraVideoPortal(a.fecha)} · ${a.tamanoMB} MB`;
+        fila.appendChild(info);
 
-      const info = document.createElement("span");
-      info.className = "video-portal-fila-info";
-      info.textContent = `🎵 ${formatearFechaHoraVideoPortal(a.fecha)} · ${a.tamanoMB} MB`;
-      fila.appendChild(info);
+        const botones = document.createElement("div");
+        botones.className = "video-portal-fila-botones";
 
-      const botones = document.createElement("div");
-      botones.className = "video-portal-fila-botones";
+        const escucharLink = document.createElement("a");
+        escucharLink.className = "video-portal-boton-ver";
+        escucharLink.href = a.url;
+        escucharLink.target = "_blank";
+        escucharLink.rel = "noopener";
+        escucharLink.textContent = "▶ Escuchar";
+        botones.appendChild(escucharLink);
 
-      const escucharLink = document.createElement("a");
-      escucharLink.className = "video-portal-boton-ver";
-      escucharLink.href = a.url;
-      escucharLink.target = "_blank";
-      escucharLink.rel = "noopener";
-      escucharLink.textContent = "▶ Escuchar";
-      botones.appendChild(escucharLink);
+        const descargarLink = document.createElement("a");
+        descargarLink.className = "video-portal-boton-descargar";
+        descargarLink.href = a.urlDescarga;
+        descargarLink.textContent = "⬇ Descargar";
+        botones.appendChild(descargarLink);
 
-      const descargarLink = document.createElement("a");
-      descargarLink.className = "video-portal-boton-descargar";
-      descargarLink.href = a.urlDescarga;
-      descargarLink.textContent = "⬇ Descargar";
-      botones.appendChild(descargarLink);
-
-      fila.appendChild(botones);
-      lista.appendChild(fila);
+        fila.appendChild(botones);
+        lista.appendChild(fila);
+      });
+      bloqueGrupo.appendChild(bloque);
     });
 
-    bloqueGrupo.appendChild(lista);
     panel.appendChild(bloqueGrupo);
   });
 }
