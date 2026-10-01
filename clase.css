@@ -548,19 +548,59 @@ padding:2px 0;
 RELOJ (Bienvenida / Clase / Cierre)
 =====================================*/
 
+/* Reloj de la hora de Guatemala (Bienvenida / Clase / Cierre), justo
+   debajo de "Marcar asistencia". La hora va grande para verse de lejos
+   en el salón; el tamaño se adapta al ancho de la pantalla (vw) con
+   tope, así se ve grande en la pantalla del salón sin desbordarse en
+   una laptop ni en celular. El "a. m. · Guatemala" va al lado de la
+   hora (no debajo) para que el reloj ocupe poco alto y empuje lo menos
+   posible lo de abajo; si no cabe al lado, baja solo. */
 .reloj-guate{
-display:inline-block;
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+align-items:baseline;
+column-gap:12px;
 margin:0 auto 14px;
 padding:6px 16px;
-border-radius:999px;
+border-radius:22px;
 background:#fff0f6;
 border:2px solid #ffd8ea;
 color:#ef4b9b;
-font-size:clamp(13px,3.6vw,14.5px);
 font-weight:800;
 text-align:center;
 width:100%;
 box-sizing:border-box;
+line-height:1;
+}
+
+.reloj-guate-hora{
+font-size:clamp(44px,6.5vw,96px);
+font-variant-numeric:tabular-nums;
+white-space:nowrap;
+}
+
+.reloj-guate-detalle{
+font-size:clamp(12px,1.4vw,18px);
+color:#c2185b;
+white-space:nowrap;
+}
+
+/* Para que la hora no "baile" al cambiar de minuto: tabular-nums solo
+   funciona si la letra trae números de ancho fijo, y Poppins no los
+   trae (el "1" mide 0.39 y el "4" 0.69 del tamaño de letra). Por eso
+   cada dígito va en una cajita de 0.7 (un poco más que el más ancho),
+   con el número centrado: la hora mide siempre lo mismo. */
+.reloj-digito{
+display:inline-block;
+width:.7em;
+text-align:center;
+}
+
+.reloj-separador{
+display:inline-block;
+width:.32em;
+text-align:center;
 }
 
 /*=====================================

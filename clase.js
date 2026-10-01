@@ -482,23 +482,64 @@ function renderDespedidaAlumnas(grupo) {
 
 function actualizarRelojGuatemala() {
   let texto;
+  let partes;
   try {
-    texto = new Date().toLocaleTimeString("es-GT", {
+    const formato = new Intl.DateTimeFormat("es-GT", {
       timeZone: "America/Guatemala",
       hour: "2-digit",
       minute: "2-digit",
     });
+    const ahora = new Date();
+    texto = formato.format(ahora); // ej. "04:59 p. m."
+    partes = formato.formatToParts(ahora);
   } catch (e) {
     return;
   }
+  // Reloj de Bienvenida / Clase / Cierre (debajo de "Marcar asistencia"):
+  // la hora en grande ("04:59") y el "p. m." aparte, más chico. Cada
+  // dígito va en su propia cajita de ancho fijo (ver .reloj-digito en
+  // clase.css): la letra Poppins no tiene números de ancho fijo (un "1"
+  // es mucho más angosto que un "4"), así que sin esto la hora cambiaría
+  // de ancho cada minuto.
+  const valor = (tipo) => (partes.find((p) => p.type === tipo) || {}).value || "";
+  const horaMinutos = `${valor("hour")}:${valor("minute")}`;
   ["relojBienvenida", "relojClase", "relojCierre"].forEach((id) => {
-    const elReloj = el(id);
-    if (elReloj) elReloj.textContent = texto;
+    const reloj = el(id);
+    if (!reloj) return;
+    reloj.title = texto; // ej. "04:59 p. m.", al pasar el mouse
+    const hora = reloj.querySelector(".reloj-guate-hora");
+    hora.textContent = "";
+    for (const caracter of horaMinutos) {
+      const caja = document.createElement("span");
+      caja.className = caracter === ":" ? "reloj-separador" : "reloj-digito";
+      caja.textContent = caracter;
+      hora.appendChild(caja);
+    }
+    reloj.querySelector(".reloj-guate-ampm").textContent = valor("dayPeriod");
   });
 }
 
+// Se actualiza justo al cambiar el minuto (antes era cada 15 s, y el
+// cambio de minuto podía verse hasta 15 s tarde): calcula cuánto falta
+// para el siguiente minuto y se programa para ese momento. Guatemala no
+// tiene horario de verano y su diferencia con UTC es de horas exactas,
+// así que el minuto cambia al mismo tiempo que en el reloj del sistema.
+function programarSiguienteMinutoReloj() {
+  const msHastaSiguienteMinuto = 60000 - (Date.now() % 60000) + 50;
+  setTimeout(() => {
+    actualizarRelojGuatemala();
+    programarSiguienteMinutoReloj();
+  }, msHastaSiguienteMinuto);
+}
+
 actualizarRelojGuatemala();
-setInterval(actualizarRelojGuatemala, 15000);
+programarSiguienteMinutoReloj();
+
+// Si la tablet estuvo dormida o la pestaña en segundo plano, el
+// navegador pudo retrasar el temporizador: al volver, se corrige ya.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") actualizarRelojGuatemala();
+});
 
 // ---------- fechas especiales (Día del Niño, Halloween, Navidad...) ----------
 

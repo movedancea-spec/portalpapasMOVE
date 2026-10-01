@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="temas-fecha.css?v=fechas-v1" />
-<link rel="stylesheet" href="clase.css?v=fechas-v1" />
+<link rel="stylesheet" href="clase.css?v=reloj-grande-v1" />
 </head>
 <body>
 
@@ -75,7 +75,7 @@
 
     <!-- ---- Modo Bienvenida ---- -->
     <div id="modoBienvenida" class="modo">
-      <div class="reloj-guate">🕐 <span id="relojBienvenida">--:--</span> (Guatemala)</div>
+      <div class="reloj-guate" id="relojBienvenida" aria-label="Hora de Guatemala"><span class="reloj-guate-hora">--:--</span><span class="reloj-guate-detalle">🕐 <span class="reloj-guate-ampm"></span> · Guatemala</span></div>
 
       <div class="bienvenida-saludo">
         <p class="bienvenida-saludo-titulo" id="bienvenidaSaludoTitulo">¡Hola! 👋</p>
@@ -105,7 +105,7 @@
 
     <!-- ---- Modo Clase (cronómetro + ruleta + calificación interna) ---- -->
     <div id="modoClase" class="modo" hidden>
-      <div class="reloj-guate">🕐 <span id="relojClase">--:--</span> (Guatemala)</div>
+      <div class="reloj-guate" id="relojClase" aria-label="Hora de Guatemala"><span class="reloj-guate-hora">--:--</span><span class="reloj-guate-detalle">🕐 <span class="reloj-guate-ampm"></span> · Guatemala</span></div>
 
       <div class="visualizador-musica" id="visualizadorMusica" hidden>
         <div class="visualizador-anillos">
@@ -238,7 +238,7 @@
 
     <!-- ---- Modo Cierre ---- -->
     <div id="modoCierre" class="modo" hidden>
-      <div class="reloj-guate">🕐 <span id="relojCierre">--:--</span> (Guatemala)</div>
+      <div class="reloj-guate" id="relojCierre" aria-label="Hora de Guatemala"><span class="reloj-guate-hora">--:--</span><span class="reloj-guate-detalle">🕐 <span class="reloj-guate-ampm"></span> · Guatemala</span></div>
 
       <div class="cierre-despedida">
         <p class="cierre-despedida-titulo">🎉 ¡Gracias por venir hoy!</p>
@@ -276,7 +276,7 @@
 
 <script src="sesionmaestra.js"></script>
 <script src="temas-fecha.js?v=fechas-v1"></script>
-<script src="clase.js?v=fechas-v1"></script>
+<script src="clase.js?v=reloj-grande-v1"></script>
 <script>
   // Registra el Service Worker y le pide revisar actualizaciones cada vez
   // que se vuelve a esta pantalla (al abrir la app, o al volver a ella
