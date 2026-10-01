@@ -14,7 +14,7 @@ No hay proceso de build, lint ni tests. "Desarrollar" es editar el HTML/CSS/JS d
 Todo lo que habla con el Worker `https://portalalumnas.movedancea.workers.dev`. Es un solo backend/Airtable compartido por todas estas pantallas — la única fuente de verdad de qué tabla/campo de Airtable usa cada `accion` está en el propio Worker, no en este repo.
 
 - `index.html` + `portal.js` + `portal.css` — **Portal de Alumnas**, la PWA para papás (login por alumna o por "clave familiar" para ver a varias hermanas juntas). Punto de entrada real de la PWA (`manifest.json`, `sw.js` — que también recibe sus notificaciones push).
-- `recepcion.html`/`.js` — pantalla fija de Recepción: solicitudes de clase (chat con maestras), alta/edición de alumnas, ingresos diarios, pagos.
+- `recepcion.html`/`.js` — pantalla fija de Recepción: solicitudes de clase (chat con maestras), alta/edición de alumnas, ingresos diarios, pagos. También tiene los interruptores que se guardan en `CONFIGURACION GENERAL` (evaluación de maestras, estado del portal, y "🎟️ Venta de entradas", que muestra u oculta el botón "🎟️ Caja de entradas (solo personal)" en la pantalla de bienvenida de recepción, repo `move-recepcion2-sin-biometrico`).
 - `portal-maestras.html` — Portal de Maestras (home). `sesionmaestra.js` da sesión compartida entre esta página, el Chat y el Panel de Clase (clave se escribe una sola vez).
 - `maestras.js`/`maestras.html` — Chat de Maestras.
 - `clase.html`/`.js` — Panel de Clase, pensado para la tablet/laptop de la maestra durante su clase (cronómetro, ruleta de gamificación —solo de sesión, no se guarda—, calificación de la clase que sí se guarda para `ranking.html`).

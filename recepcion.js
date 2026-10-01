@@ -56,6 +56,7 @@ const PANTALLAS = [
   "pantallaCanalChat",
   "pantallaEvalMaestras",
   "pantallaEstadoPortal",
+  "pantallaVentaEntradas",
   "pantallaAnuncios",
   "pantallaAvisoImportante",
   "pantallaExtranamos",
@@ -303,6 +304,11 @@ el("btnMenuEstadoPortal").addEventListener("click", () => {
   cargarEstadoPortal();
 });
 
+el("btnMenuVentaEntradas").addEventListener("click", () => {
+  mostrarPantalla("pantallaVentaEntradas");
+  cargarVentaEntradas();
+});
+
 el("btnMenuAnuncios").addEventListener("click", () => {
   mostrarPantalla("pantallaAnuncios");
   cargarCanalAnuncios();
@@ -327,6 +333,7 @@ el("btnMenuFeriados").addEventListener("click", () => {
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverEstadoPortal").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverVentaEntradas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnGuardarMensajePortal").addEventListener("click", () => guardarEstadoPortal(estadoPortalActual.estado));
 el("btnActivarAccesoPrueba").addEventListener("click", activarAccesoPruebaPortal);
 el("btnQuitarAccesoPrueba").addEventListener("click", quitarAccesoPruebaPortal);
@@ -1163,6 +1170,81 @@ async function cambiarEvalMaestras(activar) {
     mensajeEl.textContent = activar
       ? `✅ Listo — ronda ${datos.ronda} abierta. Las alumnas ya ven el botón.`
       : "✅ Listo — la evaluación quedó apagada.";
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ==========================================
+// VENTA DE ENTRADAS (botón "🎟️ Caja de entradas (solo personal)")
+// ==========================================
+// Dos opciones, solo una activa. Se guarda en CONFIGURACION GENERAL
+// (campo "VENTA ENTRADAS RECEPCION", casilla), igual que la evaluación
+// de maestras. La pantalla de bienvenida de recepción (repo
+// move-recepcion2-sin-biometrico) lo lee cada minuto con la acción
+// pública ventaEntradasVisible y muestra u oculta el botón.
+
+const OPCIONES_VENTA_ENTRADAS = [
+  { activa: true, titulo: "🟢 Venta de entradas: Encendida", detalle: "El botón \"🎟️ Caja de entradas (solo personal)\" aparece en la pantalla de bienvenida (en alrededor de un minuto)." },
+  { activa: false, titulo: "⚪ Venta de entradas: Apagada", detalle: "El botón no se muestra. Úsalo fuera de temporada de venta." },
+];
+
+let ventaEntradasActual = null; // true / false, o null mientras carga
+
+async function cargarVentaEntradas() {
+  const cont = el("opcionesVentaEntradas");
+  const mensajeEl = el("mensajeVentaEntradas");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerVentaEntradas", clave: claveRecepcion });
+    ventaEntradasActual = !!datos.activa;
+    renderVentaEntradas();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderVentaEntradas() {
+  const cont = el("opcionesVentaEntradas");
+  cont.innerHTML = "";
+  OPCIONES_VENTA_ENTRADAS.forEach((op) => {
+    const activo = ventaEntradasActual === op.activa;
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
+    tarjeta.setAttribute("aria-pressed", activo ? "true" : "false");
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = op.titulo + (activo ? " — ASÍ ESTÁ AHORA" : "");
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent = op.detalle;
+    tarjeta.append(nombre, detalle);
+    if (!activo) tarjeta.addEventListener("click", () => guardarVentaEntradas(op.activa));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function guardarVentaEntradas(activa) {
+  const pregunta = activa
+    ? "¿Encender la venta de entradas? El botón \"🎟️ Caja de entradas (solo personal)\" aparecerá en la pantalla de bienvenida."
+    : "¿Apagar la venta de entradas? El botón desaparecerá de la pantalla de bienvenida.";
+  if (!window.confirm(pregunta)) return;
+
+  const mensajeEl = el("mensajeVentaEntradas");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+  try {
+    const datos = await llamarWorker({ accion: "recepcionGuardarVentaEntradas", clave: claveRecepcion, activa });
+    ventaEntradasActual = !!datos.activa;
+    renderVentaEntradas();
+    mensajeEl.textContent = ventaEntradasActual
+      ? "✅ Listo — el botón aparecerá en la pantalla de bienvenida en alrededor de un minuto."
+      : "✅ Listo — el botón desaparecerá de la pantalla de bienvenida en alrededor de un minuto.";
     mensajeEl.classList.add("mensaje-form-ok");
   } catch (e) {
     mensajeEl.textContent = e.message;

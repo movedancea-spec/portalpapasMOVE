@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=estado-portal-v1" />
+<link rel="stylesheet" href="recepcion.css?v=venta-entradas-v1" />
 </head>
 <body>
 
@@ -72,6 +72,10 @@
       <button class="btn-menu" id="btnMenuEstadoPortal" type="button">
         <span class="btn-menu-icono">🚦</span>
         <span class="btn-menu-texto">Estado del portal de alumnas</span>
+      </button>
+      <button class="btn-menu" id="btnMenuVentaEntradas" type="button">
+        <span class="btn-menu-icono">🎟️</span>
+        <span class="btn-menu-texto">Venta de entradas</span>
       </button>
       <button class="btn-menu" id="btnMenuAnuncios" type="button">
         <span class="btn-menu-icono">📢</span>
@@ -327,6 +331,24 @@
   </section>
 
   <!-- ============ PANTALLA: EVALUACIÓN DE MAESTRAS (interruptor global) ============ -->
+  <!-- ============ PANTALLA: VENTA DE ENTRADAS (botón de la caja) ============ -->
+  <section id="pantallaVentaEntradas" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverVentaEntradas" type="button">← Menú</button>
+      <span class="barra-titulo">🎟️ Venta de entradas</span>
+    </div>
+
+    <p class="subtitulo">¿Mostrar el botón "🎟️ Caja de entradas (solo personal)" en la pantalla de bienvenida de recepción?</p>
+    <p class="pista-campo">
+      Enciéndelo solo en temporada de venta de entradas del Show. La pantalla de bienvenida lo revisa cada minuto, así que el botón aparece o desaparece solo, sin recargar. El botón solo abre la caja: la caja sigue pidiendo su propia clave. Esto no abre ni pausa la venta en línea (eso se maneja en el panel de entradas).
+    </p>
+
+    <div id="opcionesVentaEntradas" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+    <p class="mensaje-form" id="mensajeVentaEntradas"></p>
+  </section>
+
   <section id="pantallaEvalMaestras" class="pantalla" hidden>
     <div class="barra-superior">
       <button class="btn-volver" id="btnVolverEvalMaestras" type="button">← Menú</button>
@@ -467,6 +489,6 @@
 
 </div>
 
-<script src="recepcion.js?v=estado-portal-v1"></script>
+<script src="recepcion.js?v=venta-entradas-v1"></script>
 </body>
 </html>
