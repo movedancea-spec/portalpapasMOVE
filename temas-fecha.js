@@ -61,7 +61,7 @@
     padre: "💙 ¡Feliz Día del Padre!",
     independencia: "🇬🇹 ¡Feliz Independencia, Guatemala!",
     nino: "🎈 ¡Feliz Día del Niño!",
-    halloween: "🎃 ¡Feliz Halloween!",
+    halloween: "🎃 Halloween",
     show: "🌟 ¡Se viene nuestro Show de Fin de Año! 🌟",
     navidad: "🎄 ¡Feliz Navidad!",
   };
