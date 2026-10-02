@@ -109,14 +109,27 @@
     return TEMA_POR_DIA_ESPECIFICO[`${mes}-${dia}`] || TEMA_POR_MES[mes] || null;
   }
 
-  // Compara solo mes y día (ignora el año) de una fecha "AAAA-MM-DD"
-  // contra hoy en Guatemala.
+  // Mes y día en que se celebra un cumpleaños en el año indicado, a
+  // partir de la fecha de nacimiento "AAAA-MM-DD" (campo CUMPLEAÑOS, que
+  // es solo fecha: se lee como texto, sin Date ni zona horaria, para que
+  // no se corra un día). Las nacidas el 29 de febrero lo celebran el 28
+  // en los años que no son bisiestos. Devuelve null si no hay fecha.
+  // El Worker (maestraCumpleanosMes) aplica esta misma regla.
+  function cumpleEnAnio(fechaISO, anio) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(fechaISO || ""));
+    if (!m) return null;
+    const mes = Number(m[2]);
+    let dia = Number(m[3]);
+    const bisiesto = (anio % 4 === 0 && anio % 100 !== 0) || anio % 400 === 0;
+    if (mes === 2 && dia === 29 && !bisiesto) dia = 28;
+    return { mes, dia };
+  }
+
+  // ¿Cumple años HOY (en Guatemala)? Ignora el año de nacimiento.
   function esCumpleHoy(fechaISO) {
-    if (!fechaISO) return false;
-    const partes = fechaISO.toString().split("T")[0].split("-");
-    if (partes.length !== 3) return false;
-    const { mes, dia } = hoyGuatemala();
-    return Number(partes[1]) === mes && Number(partes[2]) === dia;
+    const hoy = hoyGuatemala();
+    const cumple = cumpleEnAnio(fechaISO, hoy.anio);
+    return !!cumple && cumple.mes === hoy.mes && cumple.dia === hoy.dia;
   }
 
   function limpiar(contenedor, banner) {
@@ -171,6 +184,7 @@
     TEMA_POR_DIA_ESPECIFICO,
     hoyGuatemala,
     temaDeHoy,
+    cumpleEnAnio,
     esCumpleHoy,
     aplicar,
     limpiar,

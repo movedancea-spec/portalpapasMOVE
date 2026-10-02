@@ -859,21 +859,12 @@ function ejecutarComandoRemoto(comando) {
 
 // ---------- modo bienvenida ----------
 
-// Compara solo mes y día como texto (nunca con objetos Date/UTC, que
-// es justo lo que antes hacía que esto se corriera un día — de 6pm a
-// medianoche, hora de Guatemala, la fecha en UTC ya es "mañana").
-// "Hoy" se calcula en la zona horaria de Guatemala, no la del
-// dispositivo, para que coincida siempre con lo que muestra Airtable.
+// La regla vive en temas-fecha.js (compartida con el Portal de Alumnas
+// y el Portal de Maestras): compara solo mes y día de la fecha de
+// nacimiento, como texto (sin zona horaria), contra HOY en Guatemala, y
+// las nacidas el 29 de febrero celebran el 28 en años no bisiestos.
 function estaCumpleHoy(fechaIso) {
-  if (!fechaIso) return false;
-  const partes = fechaIso.toString().split("T")[0].split("-");
-  if (partes.length < 3) return false;
-  const [, mesCumple, diaCumple] = partes;
-
-  const hoyGuatemala = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Guatemala" });
-  const [, mesHoy, diaHoy] = hoyGuatemala.split("-");
-
-  return mesCumple === mesHoy && diaCumple === diaHoy;
+  return TemasFecha.esCumpleHoy(fechaIso);
 }
 
 function renderBienvenida() {
