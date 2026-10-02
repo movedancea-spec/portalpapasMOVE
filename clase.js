@@ -1285,6 +1285,68 @@ let mimeTypeGrabadoVideo = "";
 let segundosGrabadosVideo = 0;
 let timerGrabacionVideoIntervalo = null;
 let videosClaseActual = [];
+// true mientras la grabación está en pausa porque giraron el teléfono a
+// vertical (para reanudarla sola cuando vuelvan a horizontal, pero no
+// si la pausa vino de otro lado).
+let pausadoPorOrientacionVideo = false;
+
+// Los videos se graban en horizontal (16:9) para que se vea más del
+// salón. En celular/tablet el navegador entrega el video según cómo se
+// sostenga el aparato (en vertical llega 720×1280 aunque pidamos
+// 1280×720), así que se revisa el video que de verdad llega: si viene
+// más alto que ancho, se pide girar y no se deja grabar. En una laptop
+// la cámara siempre llega horizontal, así que nunca sale el aviso.
+function videoCamaraEsVertical() {
+  const preview = el("videoPreviewClase");
+  return !!(preview.videoWidth && preview.videoHeight > preview.videoWidth);
+}
+
+function actualizarOrientacionVideo() {
+  if (!streamCamaraVideo) {
+    el("videoAvisoGirar").hidden = true;
+    return;
+  }
+  const vertical = videoCamaraEsVertical();
+  el("videoAvisoGirar").hidden = !vertical;
+  el("btnIniciarGrabacionVideo").disabled = vertical;
+
+  // Si giran a vertical a media grabación (en iPhone no se puede bloquear
+  // la orientación), se pausa y sigue sola al volver a horizontal, para
+  // que el video guardado nunca tenga partes de lado.
+  if (!mediaRecorderVideo) return;
+  if (vertical && mediaRecorderVideo.state === "recording") {
+    mediaRecorderVideo.pause();
+    pausadoPorOrientacionVideo = true;
+    el("videoClaseTimer").textContent = `⏸ ${formatearMMSSVideo(segundosGrabadosVideo)} · en pausa`;
+  } else if (!vertical && pausadoPorOrientacionVideo && mediaRecorderVideo.state === "paused") {
+    mediaRecorderVideo.resume();
+    pausadoPorOrientacionVideo = false;
+    el("videoClaseTimer").textContent = `🔴 ${formatearMMSSVideo(segundosGrabadosVideo)}`;
+  }
+}
+
+// En Android, mientras graba, la vista previa pasa a pantalla completa y
+// se bloquea en horizontal (Chrome solo deja bloquear la orientación en
+// pantalla completa). En iPhone no existe esa opción: ahí basta el aviso
+// y la pausa de arriba. Si algo falla, se sigue grabando normal.
+function bloquearHorizontalAndroid() {
+  if (!/Android/i.test(navigator.userAgent)) return;
+  const bloque = document.querySelector(".bloque-video-clase");
+  if (!bloque || !bloque.requestFullscreen) return;
+  bloque
+    .requestFullscreen()
+    .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape"))
+    .catch(() => {});
+}
+
+function liberarHorizontalAndroid() {
+  try {
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  } catch (e) {}
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
+  }
+}
 
 function elegirMimeTypeVideo() {
   const candidatos = [
@@ -1312,7 +1374,13 @@ async function abrirCamaraVideo() {
   }
   try {
     streamCamaraVideo = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
+      // Horizontal 16:9 (1280×720), cámara trasera en celular/tablet.
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        aspectRatio: { ideal: 16 / 9 },
+      },
       audio: true,
     });
   } catch (e) {
@@ -1325,6 +1393,9 @@ async function abrirCamaraVideo() {
   preview.hidden = false;
   el("videoRevisarClase").hidden = true;
   el("btnAbrirCamaraVideo").hidden = true;
+  // Hasta saber si el video llega horizontal, Grabar queda desactivado
+  // (se libera en actualizarOrientacionVideo, al evento "resize").
+  el("btnIniciarGrabacionVideo").disabled = true;
   el("btnIniciarGrabacionVideo").hidden = false;
   el("btnDetenerGrabacionVideo").hidden = true;
   el("videoClaseBotonesRevision").hidden = true;
@@ -1337,14 +1408,17 @@ function formatearMMSSVideo(segundos) {
 }
 
 function iniciarGrabacionVideo() {
-  if (!streamCamaraVideo) return;
+  if (!streamCamaraVideo || videoCamaraEsVertical()) return;
   mimeTypeGrabadoVideo = elegirMimeTypeVideo();
   chunksGrabacionVideo = [];
+  pausadoPorOrientacionVideo = false;
   try {
     mediaRecorderVideo = mimeTypeGrabadoVideo
       ? new MediaRecorder(streamCamaraVideo, {
           mimeType: mimeTypeGrabadoVideo,
-          videoBitsPerSecond: 1000000,
+          // 1.5 Mbps: nítido a 720p con el movimiento del baile, ~12 MB
+          // por minuto (5 min ≈ 60 MB; el Worker acepta hasta 250 MB).
+          videoBitsPerSecond: 1500000,
           audioBitsPerSecond: 96000,
         })
       : new MediaRecorder(streamCamaraVideo);
@@ -1359,6 +1433,9 @@ function iniciarGrabacionVideo() {
   };
   mediaRecorderVideo.onstop = () => {
     blobGrabadoVideo = new Blob(chunksGrabacionVideo, { type: mimeTypeGrabadoVideo });
+    pausadoPorOrientacionVideo = false;
+    liberarHorizontalAndroid();
+    el("videoAvisoGirar").hidden = true;
     if (streamCamaraVideo) {
       streamCamaraVideo.getTracks().forEach((t) => t.stop());
       streamCamaraVideo = null;
@@ -1374,6 +1451,7 @@ function iniciarGrabacionVideo() {
   };
 
   mediaRecorderVideo.start(1000);
+  bloquearHorizontalAndroid();
   segundosGrabadosVideo = 0;
   el("videoClaseTimer").hidden = false;
   el("videoClaseTimer").textContent = "🔴 00:00";
@@ -1381,6 +1459,8 @@ function iniciarGrabacionVideo() {
   el("btnDetenerGrabacionVideo").hidden = false;
 
   timerGrabacionVideoIntervalo = setInterval(() => {
+    // En pausa (teléfono en vertical) el reloj no avanza: cuenta solo lo grabado.
+    if (!mediaRecorderVideo || mediaRecorderVideo.state !== "recording") return;
     segundosGrabadosVideo += 1;
     el("videoClaseTimer").textContent = `🔴 ${formatearMMSSVideo(segundosGrabadosVideo)}`;
     if (segundosGrabadosVideo >= MAX_SEGUNDOS_VIDEO) {
@@ -1620,12 +1700,15 @@ function detenerCamaraVideo() {
     } catch (e) {}
   }
   mediaRecorderVideo = null;
+  pausadoPorOrientacionVideo = false;
+  liberarHorizontalAndroid();
   if (streamCamaraVideo) {
     streamCamaraVideo.getTracks().forEach((t) => t.stop());
     streamCamaraVideo = null;
   }
   blobGrabadoVideo = null;
   chunksGrabacionVideo = [];
+  el("videoAvisoGirar").hidden = true;
 
   const revisar = el("videoRevisarClase");
   if (revisar.src) URL.revokeObjectURL(revisar.src);
@@ -1642,6 +1725,12 @@ function detenerCamaraVideo() {
 }
 
 el("btnAbrirCamaraVideo").addEventListener("click", abrirCamaraVideo);
+// "resize" del <video> se dispara cuando cambia el tamaño del video que
+// llega de la cámara (p. ej. al girar el teléfono); el de la ventana es
+// respaldo para navegadores que tardan en avisar.
+el("videoPreviewClase").addEventListener("loadedmetadata", actualizarOrientacionVideo);
+el("videoPreviewClase").addEventListener("resize", actualizarOrientacionVideo);
+window.addEventListener("resize", () => setTimeout(actualizarOrientacionVideo, 300));
 el("btnIniciarGrabacionVideo").addEventListener("click", iniciarGrabacionVideo);
 el("btnDetenerGrabacionVideo").addEventListener("click", detenerGrabacionVideo);
 el("btnRegrabarVideo").addEventListener("click", regrabarVideo);

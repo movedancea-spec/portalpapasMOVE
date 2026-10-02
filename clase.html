@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="temas-fecha.css?v=emojis-rapidos-v2" />
-<link rel="stylesheet" href="clase.css?v=reloj-grande-v1" />
+<link rel="stylesheet" href="clase.css?v=video-horizontal-v1" />
 </head>
 <body>
 
@@ -155,8 +155,16 @@
     <div id="modoVideo" class="modo" hidden>
       <p class="pago-titulo">🎥 Video para el portal de alumnas</p>
       <div class="bloque-video-clase">
-        <video id="videoPreviewClase" class="video-preview-clase" autoplay muted playsinline hidden></video>
-        <video id="videoRevisarClase" class="video-preview-clase" controls playsinline hidden></video>
+        <div class="video-marco-clase">
+          <video id="videoPreviewClase" class="video-preview-clase" autoplay muted playsinline hidden></video>
+          <video id="videoRevisarClase" class="video-preview-clase" controls playsinline hidden></video>
+          <!-- Sale encima de la vista previa si el video llega en vertical
+               (ver actualizarOrientacionVideo en clase.js). -->
+          <div class="video-aviso-girar" id="videoAvisoGirar" hidden>
+            <span class="video-aviso-girar-icono">📱↻</span>
+            Gira tu teléfono para grabar en horizontal
+          </div>
+        </div>
 
         <div class="video-clase-timer" id="videoClaseTimer" hidden>🔴 00:00</div>
 
@@ -276,7 +284,7 @@
 
 <script src="sesionmaestra.js"></script>
 <script src="temas-fecha.js?v=emojis-rapidos-v2"></script>
-<script src="clase.js?v=parche-ids-v1"></script>
+<script src="clase.js?v=video-horizontal-v1"></script>
 <script>
   // Registra el Service Worker y le pide revisar actualizaciones cada vez
   // que se vuelve a esta pantalla (al abrir la app, o al volver a ella
