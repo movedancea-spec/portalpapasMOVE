@@ -61,7 +61,7 @@ animation-direction:alternate;
 
 @keyframes temaFlota{
 0%{ transform:translate(0,0) rotate(0deg); opacity:.75; }
-100%{ transform:translate(18px,-24px) rotate(10deg); opacity:1; }
+100%{ transform:translate(60px,-80px) rotate(20deg); opacity:1; }
 }
 
 /* Si el dispositivo pide "reducir movimiento", no se animan partículas

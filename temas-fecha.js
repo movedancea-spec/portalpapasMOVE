@@ -159,9 +159,12 @@
         span.textContent = emojis[i % emojis.length];
         span.style.left = Math.random() * 96 + "%";
         span.style.fontSize = 1.2 + Math.random() * 1.3 + "rem";
-        // Entre 4.4 y 10.3 s por recorrido (~35% más rápido que los 6–14 s de antes).
-        span.style.animationDuration = 4.4 + Math.random() * 5.9 + "s";
-        span.style.animationDelay = Math.random() * 8 + "s";
+        // Entre 2.2 y 5.2 s por recorrido (el doble de rápido que los 4.4–10.3 s de antes).
+        const duracion = 2.2 + Math.random() * 3;
+        span.style.animationDuration = duracion + "s";
+        // Retraso negativo: cada emoji arranca ya a media animación, así
+        // ninguno se queda quieto esperando al abrir la página.
+        span.style.animationDelay = -Math.random() * duracion + "s";
         if (estilo === "flota") span.style.top = Math.random() * 85 + "%";
         contenedor.appendChild(span);
       }
