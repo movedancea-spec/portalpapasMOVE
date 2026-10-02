@@ -1685,8 +1685,7 @@ function renderBotonCodigoRecogida(datos) {
         accion: "generarCodigoRecogida",
         alumnaId: alumnaSeleccionada.id,
       };
-      if (modoFamilia) payload.claveFamiliar = claveFamiliarActual;
-      else payload.clave = claveActual;
+      Object.assign(payload, credencialesAlumna());
 
       if (fotoRecogidaSeleccionada) {
         payload.fotoBase64 = await leerArchivoBase64(fotoRecogidaSeleccionada);
@@ -3646,6 +3645,13 @@ function renderListaMaestrasChat(maestras) {
   });
 }
 
+// Clave con la que se entró (de la alumna o la familiar), para las
+// acciones del Worker que confirman que quien pregunta es su familia
+// (código de recogida, maestras de la alumna, evaluación de maestras).
+function credencialesAlumna() {
+  return modoFamilia ? { claveFamiliar: claveFamiliarActual } : { clave: claveActual };
+}
+
 async function abrirSelectorMaestra() {
   mostrarPantalla("pantallaSelectorMaestra");
   el("listaMaestrasChat").innerHTML = '<p class="lista-alumnas-aviso">Cargando maestras...</p>';
@@ -3653,6 +3659,7 @@ async function abrirSelectorMaestra() {
     const datos = await llamarWorker({
       accion: "maestrasDeAlumna",
       alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
     });
     renderListaMaestrasChat(datos.maestras || []);
   } catch (e) {
@@ -3957,6 +3964,7 @@ async function actualizarBotonEvaluarMaestras() {
     const datos = await llamarWorker({
       accion: "evaluacionMaestrasEstado",
       alumnaId: alumnaDeEstaConsulta,
+      ...credencialesAlumna(),
     });
     // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
     if (alumnaSeleccionada && alumnaSeleccionada.id === alumnaDeEstaConsulta) {
@@ -3975,6 +3983,7 @@ async function abrirEvalMaestras() {
     const datos = await llamarWorker({
       accion: "evaluacionMaestrasEstado",
       alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
     });
     cont.innerHTML = "";
     if (!datos.activa) {
