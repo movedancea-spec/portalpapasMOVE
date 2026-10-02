@@ -159,7 +159,8 @@
         span.textContent = emojis[i % emojis.length];
         span.style.left = Math.random() * 96 + "%";
         span.style.fontSize = 1.2 + Math.random() * 1.3 + "rem";
-        span.style.animationDuration = 6 + Math.random() * 8 + "s";
+        // Entre 4.4 y 10.3 s por recorrido (~35% más rápido que los 6–14 s de antes).
+        span.style.animationDuration = 4.4 + Math.random() * 5.9 + "s";
         span.style.animationDelay = Math.random() * 8 + "s";
         if (estilo === "flota") span.style.top = Math.random() * 85 + "%";
         contenedor.appendChild(span);
