@@ -1,0 +1,109 @@
+/* ==========================================
+   MOVE — VISTA "ALUMNAS SHOW" (solo lectura)
+   Grupo → bailes → alumnas. La comparten show-maestras.html (Portal de
+   Maestras) y modista.html (link de la modista), para que las dos se
+   vean igual. Las pantallas de cada una (login, pestañas, impresión)
+   van en su propio CSS.
+   ========================================== */
+
+.show-grupo{
+text-align:left;
+margin-top:18px;
+}
+
+.show-grupo-encabezado{
+display:flex;
+align-items:baseline;
+justify-content:space-between;
+gap:10px;
+border-bottom:2px solid #ffd8ea;
+padding-bottom:6px;
+margin-bottom:10px;
+}
+
+.show-grupo-nombre{
+margin:0;
+font-size:clamp(16px,4.4vw,19px);
+font-weight:800;
+color:#ef4b9b;
+overflow-wrap:anywhere;
+}
+
+.show-grupo-total{
+flex-shrink:0;
+font-size:12.5px;
+font-weight:700;
+color:#a15277;
+}
+
+.show-baile{
+background:white;
+border:2px solid #ffe3f0;
+border-radius:16px;
+padding:12px 14px;
+margin-bottom:10px;
+break-inside:avoid;
+page-break-inside:avoid;
+}
+
+.show-baile-encabezado{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+}
+
+.show-baile-titulos{ min-width:0; }
+
+.show-baile-nombre{
+margin:0;
+font-size:clamp(14.5px,4vw,16px);
+font-weight:800;
+color:#444;
+overflow-wrap:anywhere;
+}
+
+.show-baile-grupo{
+margin:2px 0 0;
+font-size:12px;
+font-weight:700;
+color:#a15277;
+}
+
+.show-baile-total{
+flex-shrink:0;
+display:flex;
+flex-direction:column;
+align-items:center;
+min-width:54px;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+border-radius:14px;
+padding:5px 10px;
+line-height:1.1;
+}
+
+.show-baile-total strong{ font-size:18px; font-weight:800; }
+.show-baile-total span{ font-size:10.5px; font-weight:700; }
+
+.show-alumnas{
+margin:10px 0 0;
+padding-left:22px;
+columns:2 150px;
+column-gap:18px;
+font-size:14px;
+font-weight:600;
+color:#555;
+}
+
+.show-alumnas li{
+padding:2px 0;
+break-inside:avoid;
+}
+
+.show-vacio{
+margin:8px 0 0;
+font-size:13px;
+font-weight:600;
+color:#aaa;
+}

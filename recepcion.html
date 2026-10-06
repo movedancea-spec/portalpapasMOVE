@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css" />
+<link rel="stylesheet" href="recepcion.css?v=show1" />
 </head>
 <body>
 
@@ -72,6 +72,10 @@
       <button class="btn-menu" id="btnMenuAvisoImportante" type="button">
         <span class="btn-menu-icono">📋</span>
         <span class="btn-menu-texto">Información importante</span>
+      </button>
+      <button class="btn-menu" id="btnMenuShow" type="button">
+        <span class="btn-menu-icono">🎭</span>
+        <span class="btn-menu-texto">Alumnas Show</span>
       </button>
     </div>
 
@@ -334,8 +338,86 @@
     <p class="mensaje-form" id="mensajeAvisoImportante"></p>
   </section>
 
+  <!-- ============ PANTALLA: ALUMNAS SHOW ============ -->
+  <!-- Catálogo de bailes/trajes, qué alumna sale en cuál, resumen por
+       baile y el link de solo lectura para la modista. -->
+  <section id="pantallaShow" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverShow" type="button">← Menú</button>
+      <span class="barra-titulo">🎭 Alumnas Show</span>
+    </div>
+
+    <div class="chips-contenedor show-pestanas">
+      <button class="chip activo" type="button" data-show-pestana="Catalogo">💃 Bailes</button>
+      <button class="chip" type="button" data-show-pestana="Asignar">🩰 Asignar alumnas</button>
+      <button class="chip" type="button" data-show-pestana="Resumen">📊 Resumen</button>
+      <button class="chip" type="button" data-show-pestana="Modista">🧵 Link modista</button>
+    </div>
+    <p class="mensaje-form" id="mensajeShow"></p>
+
+    <!-- a) Catálogo de bailes -->
+    <div id="vistaShowCatalogo">
+      <div class="caja-form-ingreso">
+        <p class="subtitulo" id="tituloFormBaile">Agregar baile</p>
+        <p class="etiqueta-campo">Grupo MOVE</p>
+        <select id="selectShowGrupoBaile" class="input-select"></select>
+        <p class="etiqueta-campo">Nombre del baile</p>
+        <input type="text" id="inputShowNombreBaile" class="input-texto" placeholder="Ej. Vals de las flores" maxlength="100" />
+        <p class="etiqueta-campo">Precio del traje (Q)</p>
+        <input type="number" id="inputShowPrecioBaile" class="input-texto" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+        <button class="btn-grande btn-siguiente" id="btnGuardarBaile" type="button">Agregar baile</button>
+        <button class="btn-enlace" id="btnCancelarEdicionBaile" type="button" hidden>Cancelar edición</button>
+        <p class="mensaje-form" id="mensajeFormBaile"></p>
+      </div>
+      <div class="separador-lista"></div>
+      <div id="listaShowBailes" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
+    </div>
+
+    <!-- b) Asignación de alumnas -->
+    <div id="vistaShowAsignar" hidden>
+      <div id="cajaShowBuscarAlumna">
+        <p class="etiqueta-campo">Alumna (solo activas)</p>
+        <input type="text" id="inputShowBuscarAlumna" class="input-texto" placeholder="Escribe para buscar..." autocomplete="off" />
+        <div id="listaShowAlumnas" class="lista-resultados"><p class="lista-vacia">Cargando...</p></div>
+      </div>
+
+      <div id="cajaShowAlumna" hidden>
+        <button class="btn-enlace btn-enlace-arriba" id="btnShowCambiarAlumna" type="button">← Escoger otra alumna</button>
+        <p class="show-alumna-nombre" id="showAlumnaNombre"></p>
+
+        <p class="etiqueta-campo">Bailes actuales</p>
+        <div id="listaShowBailesActuales" class="show-lista"></div>
+
+        <p class="etiqueta-campo">Grupo MOVE</p>
+        <select id="selectShowGrupoAlumna" class="input-select"></select>
+        <p class="pista-campo">Solo salen los bailes activos de este grupo. Sus bailes de otros grupos no se tocan.</p>
+        <div id="checklistShowBailes" class="checklist-contenedor"></div>
+
+        <button class="btn-grande btn-siguiente" id="btnGuardarAsignacionesShow" type="button">Guardar bailes</button>
+        <p class="mensaje-form" id="mensajeAsignarShow"></p>
+      </div>
+    </div>
+
+    <!-- Resumen: por cada baile, cuántas alumnas y cuáles -->
+    <div id="vistaShowResumen" hidden>
+      <div id="listaShowResumen" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
+    </div>
+
+    <!-- c) Link para la modista -->
+    <div id="vistaShowModista" hidden>
+      <p class="pista-campo">
+        Link de solo lectura para la modista: ve los bailes y los nombres de las alumnas (sin precios ni otros datos).
+        Si generas uno nuevo, el anterior deja de funcionar.
+      </p>
+      <input type="text" id="inputShowLinkModista" class="input-texto" readonly placeholder="Todavía no hay link" />
+      <button class="btn-grande btn-siguiente" id="btnCopiarLinkModista" type="button" disabled>📋 Copiar link</button>
+      <button class="btn-secundario btn-ancho" id="btnRegenerarLinkModista" type="button">🔄 Generar link nuevo</button>
+      <p class="mensaje-form" id="mensajeModista"></p>
+    </div>
+  </section>
+
 </div>
 
-<script src="recepcion.js"></script>
+<script src="recepcion.js?v=show1"></script>
 </body>
 </html>

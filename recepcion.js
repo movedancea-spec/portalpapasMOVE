@@ -51,6 +51,7 @@ const PANTALLAS = [
   "pantallaCanalChat",
   "pantallaAnuncios",
   "pantallaAvisoImportante",
+  "pantallaShow",
 ];
 
 function mostrarPantalla(id) {
@@ -295,6 +296,11 @@ el("btnMenuAvisoImportante").addEventListener("click", () => {
   prepararFormularioAvisoImportante();
 });
 
+el("btnMenuShow").addEventListener("click", () => {
+  mostrarPantalla("pantallaShow");
+  abrirShow();
+});
+
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverElegirGrupoChat").addEventListener("click", () => mostrarPantalla("pantallaRecepcion"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -304,6 +310,7 @@ el("btnVolverCanalAsistencia").addEventListener("click", () => mostrarPantalla("
 el("btnVolverCanalChat").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAnuncios").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAvisoImportante").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverShow").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
   detenerAutoRefresco();
@@ -311,6 +318,7 @@ el("btnSalirMenu").addEventListener("click", () => {
   claveRecepcion = "";
   mensajesActuales = [];
   datosApoyo = null;
+  limpiarShow();
   hilosManualAbiertos = [];
   mostrarPantalla("pantallaLogin");
 });
@@ -2053,3 +2061,541 @@ async function guardarPago() {
     boton.textContent = textoOriginal;
   }
 }
+
+// ==========================================
+// ALUMNAS SHOW
+// Catálogo de bailes/trajes del show, qué alumna sale en cuál, resumen
+// por baile y el link de solo lectura para la modista. Todo lo guarda
+// el Worker (acciones show*), que es quien valida la clave, evita
+// duplicar a una alumna en el mismo baile y pone su SHOW en "SI SALE"
+// cuando se le asigna al menos un baile.
+//
+// Los nombres (de alumnas, bailes y grupos) se pintan siempre con
+// textContent, nunca dentro de innerHTML: los escribe gente y podrían
+// traer caracteres como < o &.
+// ==========================================
+
+let showDatos = null; // { grupos:[{id,nombre,activo}], bailes:[{id,nombre,grupoId,grupoNombre,precio,activo,alumnas:[...]}] }
+let showAlumnas = null; // [{id,nombre,show,grupoIds}] — se carga al abrir "Asignar alumnas"
+let showAlumnaElegida = null;
+let showBaileEditandoId = "";
+let showPestanaActual = "Catalogo";
+
+function limpiarShow() {
+  showDatos = null;
+  showAlumnas = null;
+  showAlumnaElegida = null;
+  showBaileEditandoId = "";
+}
+
+function crearEl(tag, clase, texto) {
+  const nodo = document.createElement(tag);
+  if (clase) nodo.className = clase;
+  if (texto !== undefined) nodo.textContent = texto;
+  return nodo;
+}
+
+function formatoQuetzales(monto) {
+  if (typeof monto !== "number") return "Sin precio";
+  return "Q" + monto.toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function mensajeShow(id, texto, tipo) {
+  const m = el(id);
+  m.textContent = texto || "";
+  m.className = "mensaje-form" + (tipo ? ` mensaje-form-${tipo}` : "");
+}
+
+async function abrirShow() {
+  mensajeShow("mensajeShow", "");
+  cambiarPestanaShow(showPestanaActual);
+  await recargarDatosShow();
+}
+
+document.querySelectorAll("[data-show-pestana]").forEach((chip) => {
+  chip.addEventListener("click", () => cambiarPestanaShow(chip.dataset.showPestana));
+});
+
+function cambiarPestanaShow(nombre) {
+  showPestanaActual = nombre;
+  document.querySelectorAll("[data-show-pestana]").forEach((chip) => {
+    chip.classList.toggle("activo", chip.dataset.showPestana === nombre);
+  });
+  ["Catalogo", "Asignar", "Resumen", "Modista"].forEach((n) => {
+    el("vistaShow" + n).hidden = n !== nombre;
+  });
+  if (nombre === "Asignar" && !showAlumnas) cargarAlumnasShow();
+  if (nombre === "Modista") cargarLinkModista();
+}
+
+async function recargarDatosShow() {
+  try {
+    showDatos = await llamarWorker({ accion: "showRecepcionDatos", clave: claveRecepcion });
+    mensajeShow("mensajeShow", "");
+  } catch (e) {
+    mensajeShow("mensajeShow", e.message, "error");
+    return;
+  }
+  renderSelectGruposBaile();
+  renderCatalogoShow();
+  renderResumenShow();
+  if (showAlumnaElegida) renderAlumnaShow();
+}
+
+// ---------- a) Catálogo ----------
+
+function renderSelectGruposBaile() {
+  const select = el("selectShowGrupoBaile");
+  const elegido = select.value;
+  select.innerHTML = "";
+  const vacio = crearEl("option", "", "Escoge un grupo...");
+  vacio.value = "";
+  select.appendChild(vacio);
+  showDatos.grupos.forEach((g) => {
+    const op = crearEl("option", "", g.nombre + (g.activo ? "" : " (inactivo)"));
+    op.value = g.id;
+    select.appendChild(op);
+  });
+  select.value = elegido;
+}
+
+// Bailes agrupados por Grupo MOVE, en el orden que ya manda el Worker.
+function bailesPorGrupoShow() {
+  const grupos = new Map();
+  showDatos.bailes.forEach((b) => {
+    if (!grupos.has(b.grupoNombre)) grupos.set(b.grupoNombre, []);
+    grupos.get(b.grupoNombre).push(b);
+  });
+  return grupos;
+}
+
+function renderCatalogoShow() {
+  const cont = el("listaShowBailes");
+  cont.innerHTML = "";
+  if (!showDatos.bailes.length) {
+    cont.appendChild(crearEl("p", "lista-vacia", "Todavía no hay bailes. Agrega el primero arriba. 💃"));
+    return;
+  }
+  bailesPorGrupoShow().forEach((bailes, grupoNombre) => {
+    cont.appendChild(crearEl("p", "show-grupo-titulo", grupoNombre));
+    bailes.forEach((b) => {
+      const tarjeta = crearEl("div", "show-tarjeta" + (b.activo ? "" : " inactivo"));
+      const fila = crearEl("div", "show-tarjeta-fila");
+      fila.appendChild(crearEl("span", "show-tarjeta-nombre", b.nombre));
+      if (!b.activo) fila.appendChild(crearEl("span", "show-etiqueta show-etiqueta-gris", "Desactivado"));
+      tarjeta.appendChild(fila);
+      tarjeta.appendChild(
+        crearEl(
+          "span",
+          "tarjeta-resultado-detalle",
+          `${formatoQuetzales(b.precio)} · ${b.alumnas.length} alumna${b.alumnas.length === 1 ? "" : "s"}`
+        )
+      );
+
+      const acciones = crearEl("div", "show-acciones");
+      const btnEditar = crearEl("button", "btn-secundario btn-chico", "✏️ Editar");
+      btnEditar.type = "button";
+      btnEditar.addEventListener("click", () => editarBaileShow(b));
+      const btnActivar = crearEl("button", "btn-secundario btn-chico", b.activo ? "⏸ Desactivar" : "▶️ Activar");
+      btnActivar.type = "button";
+      btnActivar.addEventListener("click", () => activarBaileShow(b, !b.activo, btnActivar));
+      const btnEliminar = crearEl("button", "btn-secundario btn-chico show-btn-peligro", "🗑 Eliminar");
+      btnEliminar.type = "button";
+      btnEliminar.addEventListener("click", () => eliminarBaileShow(b, btnEliminar));
+      acciones.append(btnEditar, btnActivar, btnEliminar);
+      tarjeta.appendChild(acciones);
+      cont.appendChild(tarjeta);
+    });
+  });
+}
+
+function editarBaileShow(baile) {
+  showBaileEditandoId = baile.id;
+  el("tituloFormBaile").textContent = "Editar baile";
+  el("selectShowGrupoBaile").value = baile.grupoId;
+  el("inputShowNombreBaile").value = baile.nombre;
+  el("inputShowPrecioBaile").value = typeof baile.precio === "number" ? baile.precio : "";
+  el("btnGuardarBaile").textContent = "Guardar cambios";
+  el("btnCancelarEdicionBaile").hidden = false;
+  mensajeShow("mensajeFormBaile", "");
+  el("tituloFormBaile").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function limpiarFormularioBaile() {
+  showBaileEditandoId = "";
+  el("tituloFormBaile").textContent = "Agregar baile";
+  el("inputShowNombreBaile").value = "";
+  el("inputShowPrecioBaile").value = "";
+  el("btnGuardarBaile").textContent = "Agregar baile";
+  el("btnCancelarEdicionBaile").hidden = true;
+}
+
+el("btnCancelarEdicionBaile").addEventListener("click", () => {
+  limpiarFormularioBaile();
+  mensajeShow("mensajeFormBaile", "");
+});
+
+el("btnGuardarBaile").addEventListener("click", async () => {
+  const grupoId = el("selectShowGrupoBaile").value;
+  const nombre = el("inputShowNombreBaile").value.trim();
+  const precio = el("inputShowPrecioBaile").value;
+  if (!grupoId) return mensajeShow("mensajeFormBaile", "Escoge el Grupo MOVE.", "error");
+  if (!nombre) return mensajeShow("mensajeFormBaile", "Escribe el nombre del baile.", "error");
+  if (precio === "" || Number(precio) < 0) {
+    return mensajeShow("mensajeFormBaile", "Escribe el precio del traje.", "error");
+  }
+
+  const boton = el("btnGuardarBaile");
+  const textoOriginal = boton.textContent;
+  boton.disabled = true;
+  boton.textContent = "Guardando...";
+  try {
+    const editando = Boolean(showBaileEditandoId);
+    await llamarWorker({
+      accion: "showGuardarBaile",
+      clave: claveRecepcion,
+      baileId: showBaileEditandoId || undefined,
+      grupoId,
+      nombre,
+      precio: Number(precio),
+    });
+    limpiarFormularioBaile();
+    mensajeShow("mensajeFormBaile", editando ? "✅ Cambios guardados." : "✅ Baile agregado.", "ok");
+    await recargarDatosShow();
+  } catch (e) {
+    boton.textContent = textoOriginal;
+    mensajeShow("mensajeFormBaile", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+async function activarBaileShow(baile, activo, boton) {
+  boton.disabled = true;
+  try {
+    await llamarWorker({ accion: "showActivarBaile", clave: claveRecepcion, baileId: baile.id, activo });
+    await recargarDatosShow();
+  } catch (e) {
+    mensajeShow("mensajeShow", e.message, "error");
+    boton.disabled = false;
+  }
+}
+
+async function eliminarBaileShow(baile, boton) {
+  const total = baile.alumnas.length;
+  const aviso =
+    total > 0
+      ? `⚠️ "${baile.nombre}" tiene ${total} alumna${total === 1 ? "" : "s"} asignada${total === 1 ? "" : "s"}.\n\n` +
+        "Si lo eliminas, también se borran esas asignaciones (y la modista deja de ver ese baile). " +
+        "Si solo quieres ocultarlo, usa \"Desactivar\".\n\n¿Eliminarlo de todos modos?"
+      : `¿Eliminar el baile "${baile.nombre}"? Esto no se puede deshacer.`;
+  if (!window.confirm(aviso)) return;
+
+  boton.disabled = true;
+  try {
+    await llamarWorker({ accion: "showEliminarBaile", clave: claveRecepcion, baileId: baile.id, confirmar: true });
+    if (showBaileEditandoId === baile.id) limpiarFormularioBaile();
+    mensajeShow("mensajeShow", `✅ Se eliminó "${baile.nombre}".`, "ok");
+    await recargarDatosShow();
+  } catch (e) {
+    mensajeShow("mensajeShow", e.message, "error");
+    boton.disabled = false;
+  }
+}
+
+// ---------- b) Asignación de alumnas ----------
+
+async function cargarAlumnasShow() {
+  el("listaShowAlumnas").innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "showListarAlumnas", clave: claveRecepcion });
+    showAlumnas = datos.alumnas;
+    renderListaAlumnasShow();
+  } catch (e) {
+    el("listaShowAlumnas").innerHTML = "";
+    el("listaShowAlumnas").appendChild(crearEl("p", "lista-vacia", e.message));
+  }
+}
+
+function sinAcentos(texto) {
+  return String(texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+function etiquetaShowAlumna(show) {
+  const clases = { "SI SALE": "show-etiqueta-si", "NO SALE": "show-etiqueta-no", PENDIENTE: "show-etiqueta-pendiente" };
+  return crearEl("span", "show-etiqueta " + (clases[show] || "show-etiqueta-gris"), show || "Sin dato");
+}
+
+function renderListaAlumnasShow() {
+  const cont = el("listaShowAlumnas");
+  cont.innerHTML = "";
+  if (!showAlumnas) return;
+  const busqueda = sinAcentos(el("inputShowBuscarAlumna").value.trim());
+  const lista = showAlumnas.filter((a) => !busqueda || sinAcentos(a.nombre).includes(busqueda));
+  if (!lista.length) {
+    cont.appendChild(crearEl("p", "lista-vacia", "No se encontró ninguna alumna activa con ese nombre."));
+    return;
+  }
+  const bailesPorAlumna = contarBailesPorAlumna();
+  lista.forEach((a) => {
+    const tarjeta = crearEl("button", "tarjeta-resultado");
+    tarjeta.type = "button";
+    const fila = crearEl("span", "show-tarjeta-fila");
+    fila.appendChild(crearEl("span", "tarjeta-resultado-nombre", a.nombre));
+    fila.appendChild(etiquetaShowAlumna(a.show));
+    tarjeta.appendChild(fila);
+    const n = bailesPorAlumna.get(a.id) || 0;
+    tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", n ? `${n} baile${n === 1 ? "" : "s"}` : "Sin bailes"));
+    tarjeta.addEventListener("click", () => elegirAlumnaShow(a));
+    cont.appendChild(tarjeta);
+  });
+}
+
+function contarBailesPorAlumna() {
+  const conteo = new Map();
+  (showDatos ? showDatos.bailes : []).forEach((b) => {
+    b.alumnas.forEach((a) => conteo.set(a.alumnaId, (conteo.get(a.alumnaId) || 0) + 1));
+  });
+  return conteo;
+}
+
+el("inputShowBuscarAlumna").addEventListener("input", renderListaAlumnasShow);
+
+function elegirAlumnaShow(alumna) {
+  showAlumnaElegida = alumna;
+  el("cajaShowBuscarAlumna").hidden = true;
+  el("cajaShowAlumna").hidden = false;
+  mensajeShow("mensajeAsignarShow", "");
+  renderSelectGrupoAlumna();
+  renderAlumnaShow();
+}
+
+el("btnShowCambiarAlumna").addEventListener("click", () => {
+  showAlumnaElegida = null;
+  el("cajaShowAlumna").hidden = true;
+  el("cajaShowBuscarAlumna").hidden = false;
+  renderListaAlumnasShow();
+});
+
+// Prellena con el primer grupo que la alumna ya tenga en "GRUPOS MOVE";
+// sus grupos salen primero en la lista, pero se puede escoger cualquiera.
+function renderSelectGrupoAlumna() {
+  const select = el("selectShowGrupoAlumna");
+  select.innerHTML = "";
+  const suyos = showDatos.grupos.filter((g) => showAlumnaElegida.grupoIds.includes(g.id));
+  const otros = showDatos.grupos.filter((g) => !showAlumnaElegida.grupoIds.includes(g.id));
+  if (!suyos.length) {
+    const vacio = crearEl("option", "", "Escoge un grupo...");
+    vacio.value = "";
+    select.appendChild(vacio);
+  }
+  [
+    ["Sus grupos", suyos],
+    ["Otros grupos", otros],
+  ].forEach(([titulo, grupos]) => {
+    if (!grupos.length) return;
+    const og = document.createElement("optgroup");
+    og.label = titulo;
+    grupos.forEach((g) => {
+      const op = crearEl("option", "", g.nombre);
+      op.value = g.id;
+      og.appendChild(op);
+    });
+    select.appendChild(og);
+  });
+  select.value = suyos.length ? suyos[0].id : "";
+}
+
+el("selectShowGrupoAlumna").addEventListener("change", renderChecklistBailesShow);
+
+function renderAlumnaShow() {
+  const a = showAlumnaElegida;
+  const titulo = el("showAlumnaNombre");
+  titulo.innerHTML = "";
+  titulo.append(crearEl("span", "", a.nombre + " "), etiquetaShowAlumna(a.show));
+
+  const cont = el("listaShowBailesActuales");
+  cont.innerHTML = "";
+  const suyos = showDatos.bailes
+    .map((b) => ({ baile: b, asignacion: b.alumnas.find((x) => x.alumnaId === a.id) }))
+    .filter((x) => x.asignacion);
+  if (!suyos.length) {
+    cont.appendChild(crearEl("p", "lista-vacia", "Todavía no tiene bailes."));
+  }
+  suyos.forEach(({ baile, asignacion }) => {
+    const tarjeta = crearEl("div", "show-tarjeta show-tarjeta-fila" + (baile.activo ? "" : " inactivo"));
+    const texto = crearEl("span", "show-tarjeta-texto");
+    texto.appendChild(crearEl("span", "show-tarjeta-nombre", baile.nombre));
+    texto.appendChild(
+      crearEl("span", "tarjeta-resultado-detalle", baile.grupoNombre + (baile.activo ? "" : " · baile desactivado"))
+    );
+    const quitar = crearEl("button", "btn-secundario btn-chico show-btn-peligro", "✕ Quitar");
+    quitar.type = "button";
+    quitar.addEventListener("click", () => quitarAsignacionShow(baile, asignacion, quitar));
+    tarjeta.append(texto, quitar);
+    cont.appendChild(tarjeta);
+  });
+
+  renderChecklistBailesShow();
+}
+
+function renderChecklistBailesShow() {
+  const cont = el("checklistShowBailes");
+  cont.innerHTML = "";
+  const grupoId = el("selectShowGrupoAlumna").value;
+  const boton = el("btnGuardarAsignacionesShow");
+  if (!grupoId) {
+    cont.appendChild(crearEl("p", "lista-vacia", "Escoge un grupo para ver sus bailes."));
+    boton.disabled = true;
+    return;
+  }
+  const bailes = showDatos.bailes.filter((b) => b.activo && b.grupoId === grupoId);
+  if (!bailes.length) {
+    cont.appendChild(crearEl("p", "lista-vacia", "Este grupo todavía no tiene bailes activos. Agrégalos en \"💃 Bailes\"."));
+    boton.disabled = true;
+    return;
+  }
+  boton.disabled = false;
+  bailes.forEach((b) => {
+    const etiqueta = crearEl("label", "opcion-checkbox");
+    const casilla = document.createElement("input");
+    casilla.type = "checkbox";
+    casilla.value = b.id;
+    casilla.checked = b.alumnas.some((x) => x.alumnaId === showAlumnaElegida.id);
+    etiqueta.append(casilla, crearEl("span", "", `${b.nombre} (${b.alumnas.length})`));
+    cont.appendChild(etiqueta);
+  });
+}
+
+el("btnGuardarAsignacionesShow").addEventListener("click", async () => {
+  const grupoId = el("selectShowGrupoAlumna").value;
+  if (!showAlumnaElegida || !grupoId) return;
+  const baileIds = [...el("checklistShowBailes").querySelectorAll("input[type=checkbox]:checked")].map((c) => c.value);
+
+  const boton = el("btnGuardarAsignacionesShow");
+  boton.disabled = true;
+  boton.textContent = "Guardando...";
+  mensajeShow("mensajeAsignarShow", "");
+  try {
+    const r = await llamarWorker({
+      accion: "showGuardarAsignaciones",
+      clave: claveRecepcion,
+      alumnaId: showAlumnaElegida.id,
+      grupoId,
+      baileIds,
+    });
+    showAlumnaElegida.show = r.show;
+    const partes = [];
+    if (r.creadas) partes.push(`se agregó a ${r.creadas} baile${r.creadas === 1 ? "" : "s"}`);
+    if (r.quitadas) partes.push(`se quitó de ${r.quitadas} baile${r.quitadas === 1 ? "" : "s"}`);
+    mensajeShow("mensajeAsignarShow", partes.length ? `✅ Listo: ${partes.join(" y ")}.` : "✅ No había cambios.", "ok");
+    await recargarDatosShow();
+  } catch (e) {
+    mensajeShow("mensajeAsignarShow", e.message, "error");
+  } finally {
+    boton.textContent = "Guardar bailes";
+    boton.disabled = false;
+  }
+});
+
+async function quitarAsignacionShow(baile, asignacion, boton) {
+  if (!window.confirm(`¿Quitar a ${asignacion.nombre} del baile "${baile.nombre}"?`)) return;
+  boton.disabled = true;
+  try {
+    await llamarWorker({ accion: "showQuitarAsignacion", clave: claveRecepcion, asignacionId: asignacion.asignacionId });
+    mensajeShow("mensajeAsignarShow", `✅ Se quitó de "${baile.nombre}".`, "ok");
+    await recargarDatosShow();
+  } catch (e) {
+    mensajeShow("mensajeAsignarShow", e.message, "error");
+    boton.disabled = false;
+  }
+}
+
+// ---------- Resumen por baile ----------
+
+function renderResumenShow() {
+  const cont = el("listaShowResumen");
+  cont.innerHTML = "";
+  if (!showDatos.bailes.length) {
+    cont.appendChild(crearEl("p", "lista-vacia", "Todavía no hay bailes."));
+    return;
+  }
+  bailesPorGrupoShow().forEach((bailes, grupoNombre) => {
+    cont.appendChild(crearEl("p", "show-grupo-titulo", grupoNombre));
+    bailes.forEach((b) => {
+      const tarjeta = crearEl("div", "show-tarjeta" + (b.activo ? "" : " inactivo"));
+      const fila = crearEl("div", "show-tarjeta-fila");
+      fila.appendChild(crearEl("span", "show-tarjeta-nombre", b.nombre + (b.activo ? "" : " (desactivado)")));
+      fila.appendChild(crearEl("span", "show-contador", String(b.alumnas.length)));
+      tarjeta.appendChild(fila);
+      tarjeta.appendChild(
+        crearEl(
+          "span",
+          "tarjeta-resultado-detalle",
+          b.alumnas.length ? b.alumnas.map((a) => a.nombre).join(", ") : "Sin alumnas todavía"
+        )
+      );
+      cont.appendChild(tarjeta);
+    });
+  });
+}
+
+// ---------- c) Link de la modista ----------
+
+// El token va después del # para que no viaje al servidor de la página
+// (no queda en logs ni en el "referer"); modista.html lo lee de ahí y
+// se lo manda al Worker.
+function urlLinkModista(token) {
+  const carpeta = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
+  return `${carpeta}modista.html#t=${token}`;
+}
+
+function mostrarLinkModista(token) {
+  el("inputShowLinkModista").value = token ? urlLinkModista(token) : "";
+  el("btnCopiarLinkModista").disabled = !token;
+  el("btnRegenerarLinkModista").textContent = token ? "🔄 Generar link nuevo (invalida el anterior)" : "✨ Generar link";
+}
+
+async function cargarLinkModista() {
+  mensajeShow("mensajeModista", "Cargando...");
+  try {
+    const { token } = await llamarWorker({ accion: "showObtenerTokenModista", clave: claveRecepcion });
+    mostrarLinkModista(token);
+    mensajeShow("mensajeModista", "");
+  } catch (e) {
+    mensajeShow("mensajeModista", e.message, "error");
+  }
+}
+
+el("btnCopiarLinkModista").addEventListener("click", async () => {
+  const input = el("inputShowLinkModista");
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch (e) {
+    // Sin permiso de portapapeles (http, navegador viejo): se selecciona
+    // el texto y se usa el método antiguo.
+    input.select();
+    document.execCommand("copy");
+  }
+  mensajeShow("mensajeModista", "✅ Link copiado. Pégalo en WhatsApp para la modista.", "ok");
+});
+
+el("btnRegenerarLinkModista").addEventListener("click", async () => {
+  if (
+    el("inputShowLinkModista").value &&
+    !window.confirm("¿Generar un link nuevo? El link anterior dejará de funcionar y tendrás que mandarle el nuevo a la modista.")
+  ) {
+    return;
+  }
+  const boton = el("btnRegenerarLinkModista");
+  boton.disabled = true;
+  try {
+    const { token } = await llamarWorker({ accion: "showRegenerarTokenModista", clave: claveRecepcion });
+    mostrarLinkModista(token);
+    mensajeShow("mensajeModista", "✅ Link nuevo listo. Cópialo y mándaselo a la modista.", "ok");
+  } catch (e) {
+    mensajeShow("mensajeModista", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});

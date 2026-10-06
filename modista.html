@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MOVE — Trajes del Show</title>
+<meta name="theme-color" content="#ef4b9b" />
+<!-- Link privado (con token): que no lo indexen buscadores ni se mande
+     la dirección completa a otros sitios. -->
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="show-vista.css?v=show1" />
+<link rel="stylesheet" href="modista.css?v=show1" />
+</head>
+<body>
+
+<main class="hoja">
+  <header class="encabezado">
+    <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+    <h1 class="titulo">🧵 Trajes del Show</h1>
+    <p class="actualizado" id="textoActualizado"></p>
+  </header>
+
+  <div id="cajaError" class="caja-error" hidden></div>
+
+  <div id="contenido" hidden>
+    <div class="resumen">
+      <div class="resumen-dato"><strong id="totalTrajes">0</strong><span>trajes en total</span></div>
+      <div class="resumen-dato"><strong id="totalBailes">0</strong><span>bailes</span></div>
+    </div>
+
+    <div class="pestanas" role="tablist">
+      <button class="pestana activa" type="button" role="tab" data-vista="Grupo" aria-selected="true">Por Grupo MOVE</button>
+      <button class="pestana" type="button" role="tab" data-vista="Baile" aria-selected="false">Por baile</button>
+      <button class="btn-imprimir" type="button" id="btnImprimir">🖨️ Imprimir</button>
+    </div>
+
+    <section id="vistaGrupo"></section>
+    <section id="vistaBaile" hidden></section>
+  </div>
+
+  <p class="cargando" id="textoCargando">Cargando...</p>
+</main>
+
+<script src="modista.js?v=show1"></script>
+</body>
+</html>

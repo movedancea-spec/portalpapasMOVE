@@ -1,0 +1,124 @@
+/* ==========================================
+   MOVE — LINK DE LA MODISTA (modista.html)
+   Página pública de solo lectura. Fondo claro (no el degradado animado
+   de las demás pantallas) porque se imprime y se lee en el celular de
+   la modista; el rosado de MOVE queda en títulos y totales.
+   ========================================== */
+
+*{ box-sizing:border-box; }
+
+body{
+margin:0;
+font-family:"Poppins",system-ui,sans-serif;
+background:#fff5fa;
+color:#444;
+-webkit-text-size-adjust:100%;
+}
+
+.hoja{
+width:100%;
+max-width:760px;
+margin:0 auto;
+padding:20px 16px 40px;
+}
+
+.encabezado{ text-align:center; }
+
+.logo{
+width:60%;
+max-width:200px;
+}
+
+.titulo{
+margin:6px 0 2px;
+font-size:clamp(22px,6vw,28px);
+font-weight:800;
+color:#ef4b9b;
+}
+
+.actualizado{
+margin:0;
+font-size:12.5px;
+font-weight:600;
+color:#a15277;
+}
+
+.resumen{
+display:flex;
+justify-content:center;
+gap:12px;
+margin:16px 0 4px;
+}
+
+.resumen-dato{
+display:flex;
+flex-direction:column;
+align-items:center;
+min-width:110px;
+background:white;
+border:2px solid #ffd8ea;
+border-radius:16px;
+padding:8px 14px;
+}
+
+.resumen-dato strong{ font-size:24px; font-weight:800; color:#ef4b9b; line-height:1.2; }
+.resumen-dato span{ font-size:12px; font-weight:700; color:#a15277; }
+
+.pestanas{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:8px;
+margin:16px 0 4px;
+}
+
+.pestana,
+.btn-imprimir{
+border:2px solid #ffd8ea;
+background:white;
+color:#a15277;
+font-family:inherit;
+font-size:14px;
+font-weight:700;
+border-radius:999px;
+padding:9px 16px;
+cursor:pointer;
+}
+
+.pestana.activa{
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+border-color:#ef4b9b;
+color:white;
+}
+
+.btn-imprimir{ border-style:dashed; }
+
+.caja-error{
+margin:24px auto;
+max-width:420px;
+background:white;
+border:2px solid #f5b5c8;
+border-radius:16px;
+padding:18px;
+text-align:center;
+font-weight:700;
+color:#e0245e;
+}
+
+.cargando{
+text-align:center;
+font-weight:600;
+color:#a15277;
+}
+
+@media print{
+  body{ background:white; }
+  .hoja{ max-width:none; padding:0; }
+  .logo{ max-width:130px; }
+  .pestanas, .cargando{ display:none !important; }
+  .resumen-dato, .show-baile{ border-color:#ddd; }
+  .show-grupo{ break-inside:auto; }
+  .show-grupo-encabezado{ break-after:avoid; page-break-after:avoid; }
+  .show-baile-total{ background:none; color:#ef4b9b; border:2px solid #ef4b9b; }
+  *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}

@@ -949,6 +949,108 @@ margin-top:10px;
 }
 
 /*=====================================
+ALUMNAS SHOW
+=====================================*/
+
+.show-pestanas{ justify-content:center; }
+
+.show-lista{
+display:flex;
+flex-direction:column;
+gap:8px;
+text-align:left;
+}
+
+.show-grupo-titulo{
+margin:14px 0 0;
+font-size:13px;
+font-weight:800;
+letter-spacing:.04em;
+text-transform:uppercase;
+color:#ef4b9b;
+}
+
+.show-tarjeta{
+display:flex;
+flex-direction:column;
+gap:4px;
+background:white;
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:12px 14px;
+}
+
+.show-tarjeta.inactivo{ opacity:.6; border-style:dashed; }
+
+.show-tarjeta-fila{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:8px;
+flex-direction:row;
+}
+
+.show-tarjeta-texto{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+
+.show-tarjeta-nombre{
+font-size:clamp(14px,3.8vw,15.5px);
+font-weight:800;
+color:#444;
+overflow-wrap:anywhere;
+}
+
+.show-acciones{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin-top:6px;
+}
+
+.show-acciones .btn-chico{ padding:7px 11px; font-size:12.5px; }
+
+.show-btn-peligro{ border-color:#f5b5c8; color:#e0245e; }
+
+.show-etiqueta{
+flex-shrink:0;
+font-size:11px;
+font-weight:800;
+border-radius:999px;
+padding:3px 9px;
+white-space:nowrap;
+}
+.show-etiqueta-si{ background:#e8f9f0; color:#1f8a52; }
+.show-etiqueta-no{ background:#fde8ee; color:#e0245e; }
+.show-etiqueta-pendiente{ background:#fff4dc; color:#b7791f; }
+.show-etiqueta-gris{ background:#f1f1f1; color:#888; }
+
+.show-alumna-nombre{
+display:flex;
+align-items:center;
+justify-content:center;
+flex-wrap:wrap;
+gap:6px;
+font-size:18px;
+font-weight:800;
+color:#444;
+margin:4px 0 8px;
+}
+
+.show-contador{
+flex-shrink:0;
+min-width:32px;
+text-align:center;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+font-weight:800;
+font-size:14px;
+border-radius:999px;
+padding:3px 10px;
+}
+
+#inputShowLinkModista{ font-size:12.5px; }
+
+
+/*=====================================
 RESPONSIVE
 =====================================*/
 
