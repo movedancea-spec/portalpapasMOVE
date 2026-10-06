@@ -68,8 +68,12 @@ async function entrarRanking() {
     await llamarWorker({ accion: "rankingEntrar", clave });
     claveRanking = clave;
     el("inputClaveRanking").value = "";
-    const ahora = new Date();
-    el("subtituloMes").textContent = `Calificación interna de ${NOMBRES_MESES[ahora.getMonth()]}`;
+    // Mes en hora de Guatemala, no la del dispositivo: así coincide
+    // con el mes que suma el Worker aunque el equipo tenga otra zona.
+    const mesGuatemala = Number(
+      new Intl.DateTimeFormat("en-US", { timeZone: "America/Guatemala", month: "numeric" }).format(new Date())
+    );
+    el("subtituloMes").textContent = `Calificación interna de ${NOMBRES_MESES[mesGuatemala - 1]}`;
     mostrarPantalla("pantallaRanking");
     await cargarRanking();
     iniciarAutoRefresco();

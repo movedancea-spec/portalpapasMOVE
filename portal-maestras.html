@@ -160,6 +160,135 @@ body{
   text-align:center;
 }
 
+/* ---------- Cumpleaños (aviso de hoy + vista del mes) ---------- */
+
+/* Aviso de "Hoy cumple…": arriba del menú, bien visible apenas entra la
+   maestra. Solo aparece si alguien de sus grupos cumple HOY. */
+.aviso-cumple-hoy{
+  margin:0 0 20px;
+  padding:16px 18px;
+  border-radius:20px;
+  background:linear-gradient(135deg,#ff72b7,#ef4b9b 55%,#ffb347);
+  color:white;
+  text-align:left;
+  box-shadow:0 10px 24px rgba(239,75,155,.30);
+  animation:avisoCumpleLatido 2.4s ease-in-out infinite;
+}
+
+.aviso-cumple-hoy-titulo{
+  font-size:clamp(16px,4.4vw,19px);
+  font-weight:800;
+  line-height:1.35;
+}
+
+.aviso-cumple-hoy-texto{
+  margin-top:4px;
+  font-size:clamp(12.5px,3.4vw,14px);
+  font-weight:600;
+  opacity:.92;
+}
+
+@keyframes avisoCumpleLatido{
+  0%,100%{ transform:scale(1); }
+  50%{ transform:scale(1.015); }
+}
+
+/* La tarjeta de Cumpleaños es un <button> (abre una vista dentro de esta
+   misma página), con el mismo aspecto que las demás tarjetas-enlace. */
+button.tarjeta-enlace{
+  width:100%;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+
+.cumple-grupo{
+  margin-bottom:18px;
+  padding:14px 14px 10px;
+  border:2px solid #ffd8ea;
+  border-radius:20px;
+  background:white;
+  text-align:left;
+}
+
+.cumple-grupo-nombre{
+  font-size:clamp(14.5px,4vw,16px);
+  font-weight:800;
+  color:#ef4b9b;
+  margin-bottom:8px;
+}
+
+.cumple-fila{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:9px 10px;
+  margin-bottom:6px;
+  border-radius:14px;
+  background:#fff6fb;
+}
+
+.cumple-fila-dia{
+  flex-shrink:0;
+  width:58px;
+  text-align:center;
+  font-size:13px;
+  font-weight:800;
+  color:#ef4b9b;
+  line-height:1.15;
+}
+
+.cumple-fila-dia b{
+  display:block;
+  font-size:20px;
+}
+
+.cumple-fila-nombre{
+  flex:1;
+  font-size:clamp(14px,3.8vw,15.5px);
+  font-weight:700;
+  color:#555;
+}
+
+.cumple-fila-estado{
+  flex-shrink:0;
+  font-size:12px;
+  font-weight:800;
+  color:#b07a95;
+}
+
+/* Hoy: resaltada en rosa fuerte. */
+.cumple-fila.hoy{
+  background:linear-gradient(135deg,#ff72b7,#ef4b9b);
+}
+.cumple-fila.hoy .cumple-fila-dia,
+.cumple-fila.hoy .cumple-fila-nombre,
+.cumple-fila.hoy .cumple-fila-estado{
+  color:white;
+}
+
+/* Ya pasó: más apagada, para que se vea cuáles faltan por felicitar. */
+.cumple-fila.pasado{
+  background:#f6f1f4;
+  opacity:.6;
+}
+.cumple-fila.pasado .cumple-fila-nombre{
+  text-decoration:line-through;
+  text-decoration-color:rgba(0,0,0,.25);
+}
+
+.cumple-vacio,
+.cumple-sin-fecha{
+  font-size:13px;
+  font-weight:600;
+  color:#999;
+  padding:4px 4px 6px;
+}
+
+.cumple-sin-fecha{
+  color:#c0567f;
+}
+
 @media(max-width:360px){
   .container{width:96%;margin:10px auto;}
 }
@@ -204,6 +333,12 @@ body{
   <!-- ============ PANTALLA 1: MENÚ PERSONAL ============ -->
   <section id="pantallaMenuPortalMaestra" class="pantalla" hidden>
     <p class="perfil-nombre" id="saludoPortalMaestra">¡Hola! 👋</p>
+
+    <!-- Aviso de cumpleaños de HOY (solo de sus grupos). Oculto si nadie cumple. -->
+    <div class="aviso-cumple-hoy" id="avisoCumpleHoy" role="status" hidden>
+      <p class="aviso-cumple-hoy-titulo" id="avisoCumpleHoyTitulo"></p>
+      <p class="aviso-cumple-hoy-texto" id="avisoCumpleHoyTexto"></p>
+    </div>
     <p class="subtitulo">Todo lo que necesitas para tu día a día en MOVE, en un solo lugar 💗</p>
 
     <div id="bloqueAnunciosMaestra"></div>
@@ -211,6 +346,15 @@ body{
     <div id="bloqueNotificacionesPushMaestra"></div>
 
     <div class="enlaces">
+
+      <button class="tarjeta-enlace" id="btnCumpleanosMaestra" type="button">
+        <div class="tarjeta-emoji">🎂</div>
+        <div class="tarjeta-texto">
+          <p class="tarjeta-titulo">Cumpleaños</p>
+          <p class="tarjeta-descripcion">Los cumpleaños de este mes en tus grupos</p>
+        </div>
+        <div class="tarjeta-flecha">→</div>
+      </button>
 
       <a class="tarjeta-enlace" href="maestras.html">
         <div class="tarjeta-emoji">💬</div>
@@ -235,6 +379,24 @@ body{
         <div class="tarjeta-texto">
           <p class="tarjeta-titulo">Aviso a mis alumnas</p>
           <p class="tarjeta-descripcion">Manda un aviso (con foto o PDF) a las familias de uno de tus grupos, por el Portal</p>
+        </div>
+        <div class="tarjeta-flecha">→</div>
+      </a>
+
+      <a class="tarjeta-enlace" href="mis-evaluaciones.html">
+        <div class="tarjeta-emoji">💗</div>
+        <div class="tarjeta-texto">
+          <p class="tarjeta-titulo">Mis evaluaciones</p>
+          <p class="tarjeta-descripcion">Lo que tus alumnas opinan de tus clases (anónimo)</p>
+        </div>
+        <div class="tarjeta-flecha">→</div>
+      </a>
+
+      <a class="tarjeta-enlace" href="reconocimientos.html">
+        <div class="tarjeta-emoji">💌</div>
+        <div class="tarjeta-texto">
+          <p class="tarjeta-titulo">Reconocimientos</p>
+          <p class="tarjeta-descripcion">Manda una notita a una alumna de tus clases — se ve en su Portal</p>
         </div>
         <div class="tarjeta-flecha">→</div>
       </a>
@@ -271,11 +433,20 @@ body{
     <button class="btn-enlace" id="btnCerrarSesionPortalMaestra" type="button">Cerrar sesión</button>
   </section>
 
+  <!-- ============ PANTALLA 2: CUMPLEAÑOS DEL MES ============ -->
+  <section id="pantallaCumpleanosMaestra" class="pantalla" hidden>
+    <p class="perfil-nombre" id="tituloCumpleanosMaestra">🎂 Cumpleaños del mes</p>
+    <p class="subtitulo">Solo las alumnas de tus grupos. 🎉 = hoy · ✓ = ya pasó.</p>
+    <div id="listaCumpleanosMaestra"></div>
+    <button class="btn-enlace" id="btnVolverCumpleanos" type="button">← Volver a mi menú</button>
+  </section>
+
   <p class="footer">MOVE DANCE ACADEMY</p>
 
 </div>
 
 <script src="sesionmaestra.js"></script>
+<script src="temas-fecha.js?v=emojis-rapidos-v2"></script>
 <script>
   // ==========================================
   // PORTAL DE MAESTRAS — LOGIN + PORTAL PERSONAL
@@ -292,6 +463,7 @@ body{
   }
 
   let maestraIdPortal = "";
+  let clavePortalMaestra = ""; // para pedir los cumpleaños (el Worker la valida)
   let nombrePortalMaestra = "";
   let maestrasParaRecuperarPortal = [];
   let maestraSeleccionadaRecuperarPortal = null;
@@ -319,7 +491,157 @@ body{
     el("saludoPortalMaestra").textContent = `¡Hola, ${nombrePortalMaestra}! 👋`;
     actualizarBloqueNotificacionesPushMaestra();
     cargarAnunciosPortalMaestra();
+    cargarCumpleanosMaestra();
   }
+
+  // ==========================================
+  // CUMPLEAÑOS DE MIS ALUMNAS
+  // ==========================================
+  // El Worker (maestraCumpleanosMes) devuelve, con la CLAVE de la maestra,
+  // solo los grupos donde ella es maestra principal y, de cada uno, nombre
+  // y día de las alumnas activas que cumplen este mes (hora de Guatemala),
+  // más cuántas no tienen fecha. Nunca el año, teléfonos ni correos.
+  // "Hoy" se calcula con TemasFecha.hoyGuatemala() (temas-fecha.js).
+  // Si falla, el aviso simplemente no aparece: nunca bloquea el menú.
+
+  let cumpleanosMaestra = null; // última respuesta del Worker
+  let fechaCargaCumpleanos = ""; // "aaaa-m-d" de Guatemala en que se cargó
+
+  function claveHoyGuatemala() {
+    const h = TemasFecha.hoyGuatemala();
+    return `${h.anio}-${h.mes}-${h.dia}`;
+  }
+
+  async function cargarCumpleanosMaestra() {
+    if (!clavePortalMaestra) return;
+    try {
+      cumpleanosMaestra = await llamarWorkerPortal({ accion: "maestraCumpleanosMes", clave: clavePortalMaestra });
+      fechaCargaCumpleanos = claveHoyGuatemala();
+    } catch (e) {
+      cumpleanosMaestra = null;
+    }
+    renderAvisoCumpleHoy();
+    if (!el("pantallaCumpleanosMaestra").hidden) renderListaCumpleanos();
+  }
+
+  function renderAvisoCumpleHoy() {
+    const aviso = el("avisoCumpleHoy");
+    aviso.hidden = true;
+    if (!cumpleanosMaestra) return;
+    const hoy = TemasFecha.hoyGuatemala();
+    if (cumpleanosMaestra.hoy.mes !== hoy.mes) return; // datos de otro mes
+
+    // Una misma alumna puede estar en dos grupos: se junta en una sola mención.
+    const gruposPorNombre = new Map();
+    cumpleanosMaestra.grupos.forEach((g) => {
+      g.cumpleanos
+        .filter((a) => a.dia === hoy.dia)
+        .forEach((a) => {
+          if (!gruposPorNombre.has(a.nombre)) gruposPorNombre.set(a.nombre, []);
+          gruposPorNombre.get(a.nombre).push(g.nombre);
+        });
+    });
+    if (!gruposPorNombre.size) return;
+
+    const partes = [...gruposPorNombre].map(([nombre, grupos]) => `${nombre} (${grupos.join(", ")})`);
+    el("avisoCumpleHoyTitulo").textContent =
+      (partes.length === 1 ? "🎉 Hoy cumple: " : "🎉 Hoy cumplen: ") + partes.join(" · ");
+    el("avisoCumpleHoyTexto").textContent =
+      partes.length === 1 ? "¡No olvides felicitarla en clase! 💗" : "¡No olvides felicitarlas en clase! 💗";
+    aviso.hidden = false;
+  }
+
+  function renderListaCumpleanos() {
+    const cont = el("listaCumpleanosMaestra");
+    cont.innerHTML = "";
+    if (!cumpleanosMaestra) {
+      cont.innerHTML = '<p class="cumple-vacio">No se pudieron cargar los cumpleaños. Revisa tu conexión e inténtalo otra vez.</p>';
+      return;
+    }
+    const hoy = TemasFecha.hoyGuatemala();
+    const { anio, mes } = cumpleanosMaestra.hoy;
+    // Mes a partir de anio/mes, en UTC a propósito: solo se usa el nombre.
+    const nombreMes = new Intl.DateTimeFormat("es-GT", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(anio, mes - 1, 15)));
+    const mesCorto = nombreMes.slice(0, 3);
+    el("tituloCumpleanosMaestra").textContent = `🎂 Cumpleaños de ${nombreMes}`;
+
+    if (!cumpleanosMaestra.grupos.length) {
+      cont.innerHTML = '<p class="cumple-vacio">No tienes grupos asignados como maestra principal.</p>';
+      return;
+    }
+    const mismoMes = mes === hoy.mes;
+
+    cumpleanosMaestra.grupos.forEach((g) => {
+      const caja = document.createElement("div");
+      caja.className = "cumple-grupo";
+      const titulo = document.createElement("p");
+      titulo.className = "cumple-grupo-nombre";
+      titulo.textContent = g.nombre;
+      caja.appendChild(titulo);
+
+      if (!g.cumpleanos.length) {
+        const vacio = document.createElement("p");
+        vacio.className = "cumple-vacio";
+        vacio.textContent = "Nadie cumple años este mes.";
+        caja.appendChild(vacio);
+      }
+
+      g.cumpleanos.forEach((a) => {
+        const esHoy = mismoMes && a.dia === hoy.dia;
+        const yaPaso = mismoMes && a.dia < hoy.dia;
+        const fila = document.createElement("div");
+        fila.className = "cumple-fila" + (esHoy ? " hoy" : yaPaso ? " pasado" : "");
+
+        const dia = document.createElement("span");
+        dia.className = "cumple-fila-dia";
+        const num = document.createElement("b");
+        num.textContent = a.dia;
+        dia.append(num, mesCorto);
+
+        const nombre = document.createElement("span");
+        nombre.className = "cumple-fila-nombre";
+        nombre.textContent = a.nombre;
+
+        const estado = document.createElement("span");
+        estado.className = "cumple-fila-estado";
+        const faltan = a.dia - hoy.dia;
+        estado.textContent = esHoy ? "🎉 ¡HOY!" : yaPaso ? "✓ ya pasó" : faltan === 1 ? "mañana" : `en ${faltan} días`;
+
+        fila.append(dia, nombre, estado);
+        caja.appendChild(fila);
+      });
+
+      if (g.sinFecha) {
+        const sin = document.createElement("p");
+        sin.className = "cumple-sin-fecha";
+        sin.textContent = `⚠️ ${g.sinFecha} ${g.sinFecha === 1 ? "alumna no tiene" : "alumnas no tienen"} fecha de cumpleaños — avísale a Recepción.`;
+        caja.appendChild(sin);
+      }
+      cont.appendChild(caja);
+    });
+  }
+
+  el("btnCumpleanosMaestra").addEventListener("click", () => {
+    el("pantallaMenuPortalMaestra").hidden = true;
+    el("pantallaCumpleanosMaestra").hidden = false;
+    renderListaCumpleanos();
+    window.scrollTo(0, 0);
+    // Si cambió el día desde que se cargó, se vuelve a pedir.
+    if (fechaCargaCumpleanos !== claveHoyGuatemala()) cargarCumpleanosMaestra();
+  });
+
+  el("btnVolverCumpleanos").addEventListener("click", () => {
+    el("pantallaCumpleanosMaestra").hidden = true;
+    el("pantallaMenuPortalMaestra").hidden = false;
+  });
+
+  // Si la maestra deja la app abierta y vuelve otro día, se recarga para
+  // que el aviso de "hoy" y las marcas de la lista correspondan al día.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && clavePortalMaestra && fechaCargaCumpleanos !== claveHoyGuatemala()) {
+      cargarCumpleanosMaestra();
+    }
+  });
 
   // ==========================================
   // ANUNCIOS (recordatorios generales que Recepción manda a todas las
@@ -675,6 +997,7 @@ body{
       const datos = await llamarWorkerPortal({ accion: "maestraEntrar", clave });
       nombrePortalMaestra = datos.nombre || "Maestra";
       maestraIdPortal = datos.maestraId || "";
+      clavePortalMaestra = clave;
       guardarSesionMaestraCompartida(clave, maestraIdPortal, nombrePortalMaestra);
       el("inputClavePortalMaestra").value = "";
       mostrarMenuPortalMaestra();
@@ -775,7 +1098,8 @@ body{
     try {
       const datos = await llamarWorkerPortal({
         accion: "maestraRecuperarClave",
-        maestraId: maestraSeleccionadaRecuperarPortal.id,
+        // Por nombre: la lista ya no trae IDs (parche de seguridad).
+        nombre: maestraSeleccionadaRecuperarPortal.nombre,
       });
       msg.textContent =
         "✅ Te enviamos tu clave por WhatsApp al número terminado en " +
@@ -796,6 +1120,10 @@ body{
     borrarSesionMaestraCompartida();
     maestraIdPortal = "";
     nombrePortalMaestra = "";
+    clavePortalMaestra = "";
+    cumpleanosMaestra = null;
+    el("avisoCumpleHoy").hidden = true;
+    el("pantallaCumpleanosMaestra").hidden = true;
     el("inputClavePortalMaestra").value = "";
     mostrarErrorPortalMaestra("");
     el("pantallaMenuPortalMaestra").hidden = true;

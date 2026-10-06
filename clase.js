@@ -252,7 +252,8 @@ async function enviarRecuperarMaestra() {
   try {
     const datos = await llamarWorker({
       accion: "maestraRecuperarClave",
-      maestraId: maestraSeleccionadaRecuperar.id,
+      // Por nombre: la lista ya no trae IDs (parche de seguridad).
+      nombre: maestraSeleccionadaRecuperar.nombre,
     });
     msg.textContent =
       "✅ Te enviamos tu clave por WhatsApp al número terminado en " +
@@ -482,23 +483,87 @@ function renderDespedidaAlumnas(grupo) {
 
 function actualizarRelojGuatemala() {
   let texto;
+  let partes;
   try {
-    texto = new Date().toLocaleTimeString("es-GT", {
+    const formato = new Intl.DateTimeFormat("es-GT", {
       timeZone: "America/Guatemala",
       hour: "2-digit",
       minute: "2-digit",
     });
+    const ahora = new Date();
+    texto = formato.format(ahora); // ej. "04:59 p. m."
+    partes = formato.formatToParts(ahora);
   } catch (e) {
     return;
   }
+  // Reloj de Bienvenida / Clase / Cierre (debajo de "Marcar asistencia"):
+  // la hora en grande ("04:59") y el "p. m." aparte, más chico. Cada
+  // dígito va en su propia cajita de ancho fijo (ver .reloj-digito en
+  // clase.css): la letra Poppins no tiene números de ancho fijo (un "1"
+  // es mucho más angosto que un "4"), así que sin esto la hora cambiaría
+  // de ancho cada minuto.
+  const valor = (tipo) => (partes.find((p) => p.type === tipo) || {}).value || "";
+  const horaMinutos = `${valor("hour")}:${valor("minute")}`;
   ["relojBienvenida", "relojClase", "relojCierre"].forEach((id) => {
-    const elReloj = el(id);
-    if (elReloj) elReloj.textContent = texto;
+    const reloj = el(id);
+    if (!reloj) return;
+    reloj.title = texto; // ej. "04:59 p. m.", al pasar el mouse
+    const hora = reloj.querySelector(".reloj-guate-hora");
+    hora.textContent = "";
+    for (const caracter of horaMinutos) {
+      const caja = document.createElement("span");
+      caja.className = caracter === ":" ? "reloj-separador" : "reloj-digito";
+      caja.textContent = caracter;
+      hora.appendChild(caja);
+    }
+    reloj.querySelector(".reloj-guate-ampm").textContent = valor("dayPeriod");
   });
 }
 
+// Se actualiza justo al cambiar el minuto (antes era cada 15 s, y el
+// cambio de minuto podía verse hasta 15 s tarde): calcula cuánto falta
+// para el siguiente minuto y se programa para ese momento. Guatemala no
+// tiene horario de verano y su diferencia con UTC es de horas exactas,
+// así que el minuto cambia al mismo tiempo que en el reloj del sistema.
+function programarSiguienteMinutoReloj() {
+  const msHastaSiguienteMinuto = 60000 - (Date.now() % 60000) + 50;
+  setTimeout(() => {
+    actualizarRelojGuatemala();
+    programarSiguienteMinutoReloj();
+  }, msHastaSiguienteMinuto);
+}
+
 actualizarRelojGuatemala();
-setInterval(actualizarRelojGuatemala, 15000);
+programarSiguienteMinutoReloj();
+
+// Si la tablet estuvo dormida o la pestaña en segundo plano, el
+// navegador pudo retrasar el temporizador: al volver, se corrige ya.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") actualizarRelojGuatemala();
+});
+
+// ---------- fechas especiales (Día del Niño, Halloween, Navidad...) ----------
+
+// Las fechas y estilos viven en temas-fecha.js (compartido con el
+// Portal de Alumnas). Aquí solo se pinta, con menos partículas que en
+// el portal para no distraer durante la clase. Se revisa cada minuto
+// porque el panel puede quedarse abierto al cruzar la medianoche de
+// Guatemala; solo se vuelve a pintar si el tema cambió.
+let temaPanelActual;
+
+function actualizarTemaPanel() {
+  const tema = TemasFecha.temaDeHoy();
+  if (tema === temaPanelActual) return;
+  temaPanelActual = tema;
+  TemasFecha.aplicar(tema, {
+    contenedor: el("temaDecoracion"),
+    banner: el("temaBanner"),
+    particulas: 12,
+  });
+}
+
+actualizarTemaPanel();
+setInterval(actualizarTemaPanel, 60000);
 
 function iniciarAutoRefrescoBienvenida() {
   if (intervaloBienvenida) clearInterval(intervaloBienvenida);
@@ -795,21 +860,12 @@ function ejecutarComandoRemoto(comando) {
 
 // ---------- modo bienvenida ----------
 
-// Compara solo mes y día como texto (nunca con objetos Date/UTC, que
-// es justo lo que antes hacía que esto se corriera un día — de 6pm a
-// medianoche, hora de Guatemala, la fecha en UTC ya es "mañana").
-// "Hoy" se calcula en la zona horaria de Guatemala, no la del
-// dispositivo, para que coincida siempre con lo que muestra Airtable.
+// La regla vive en temas-fecha.js (compartida con el Portal de Alumnas
+// y el Portal de Maestras): compara solo mes y día de la fecha de
+// nacimiento, como texto (sin zona horaria), contra HOY en Guatemala, y
+// las nacidas el 29 de febrero celebran el 28 en años no bisiestos.
 function estaCumpleHoy(fechaIso) {
-  if (!fechaIso) return false;
-  const partes = fechaIso.toString().split("T")[0].split("-");
-  if (partes.length < 3) return false;
-  const [, mesCumple, diaCumple] = partes;
-
-  const hoyGuatemala = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Guatemala" });
-  const [, mesHoy, diaHoy] = hoyGuatemala.split("-");
-
-  return mesCumple === mesHoy && diaCumple === diaHoy;
+  return TemasFecha.esCumpleHoy(fechaIso);
 }
 
 function renderBienvenida() {
@@ -1229,6 +1285,68 @@ let mimeTypeGrabadoVideo = "";
 let segundosGrabadosVideo = 0;
 let timerGrabacionVideoIntervalo = null;
 let videosClaseActual = [];
+// true mientras la grabación está en pausa porque giraron el teléfono a
+// vertical (para reanudarla sola cuando vuelvan a horizontal, pero no
+// si la pausa vino de otro lado).
+let pausadoPorOrientacionVideo = false;
+
+// Los videos se graban en horizontal (16:9) para que se vea más del
+// salón. En celular/tablet el navegador entrega el video según cómo se
+// sostenga el aparato (en vertical llega 720×1280 aunque pidamos
+// 1280×720), así que se revisa el video que de verdad llega: si viene
+// más alto que ancho, se pide girar y no se deja grabar. En una laptop
+// la cámara siempre llega horizontal, así que nunca sale el aviso.
+function videoCamaraEsVertical() {
+  const preview = el("videoPreviewClase");
+  return !!(preview.videoWidth && preview.videoHeight > preview.videoWidth);
+}
+
+function actualizarOrientacionVideo() {
+  if (!streamCamaraVideo) {
+    el("videoAvisoGirar").hidden = true;
+    return;
+  }
+  const vertical = videoCamaraEsVertical();
+  el("videoAvisoGirar").hidden = !vertical;
+  el("btnIniciarGrabacionVideo").disabled = vertical;
+
+  // Si giran a vertical a media grabación (en iPhone no se puede bloquear
+  // la orientación), se pausa y sigue sola al volver a horizontal, para
+  // que el video guardado nunca tenga partes de lado.
+  if (!mediaRecorderVideo) return;
+  if (vertical && mediaRecorderVideo.state === "recording") {
+    mediaRecorderVideo.pause();
+    pausadoPorOrientacionVideo = true;
+    el("videoClaseTimer").textContent = `⏸ ${formatearMMSSVideo(segundosGrabadosVideo)} · en pausa`;
+  } else if (!vertical && pausadoPorOrientacionVideo && mediaRecorderVideo.state === "paused") {
+    mediaRecorderVideo.resume();
+    pausadoPorOrientacionVideo = false;
+    el("videoClaseTimer").textContent = `🔴 ${formatearMMSSVideo(segundosGrabadosVideo)}`;
+  }
+}
+
+// En Android, mientras graba, la vista previa pasa a pantalla completa y
+// se bloquea en horizontal (Chrome solo deja bloquear la orientación en
+// pantalla completa). En iPhone no existe esa opción: ahí basta el aviso
+// y la pausa de arriba. Si algo falla, se sigue grabando normal.
+function bloquearHorizontalAndroid() {
+  if (!/Android/i.test(navigator.userAgent)) return;
+  const bloque = document.querySelector(".bloque-video-clase");
+  if (!bloque || !bloque.requestFullscreen) return;
+  bloque
+    .requestFullscreen()
+    .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape"))
+    .catch(() => {});
+}
+
+function liberarHorizontalAndroid() {
+  try {
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  } catch (e) {}
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
+  }
+}
 
 function elegirMimeTypeVideo() {
   const candidatos = [
@@ -1256,7 +1374,13 @@ async function abrirCamaraVideo() {
   }
   try {
     streamCamaraVideo = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
+      // Horizontal 16:9 (1280×720), cámara trasera en celular/tablet.
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        aspectRatio: { ideal: 16 / 9 },
+      },
       audio: true,
     });
   } catch (e) {
@@ -1269,6 +1393,9 @@ async function abrirCamaraVideo() {
   preview.hidden = false;
   el("videoRevisarClase").hidden = true;
   el("btnAbrirCamaraVideo").hidden = true;
+  // Hasta saber si el video llega horizontal, Grabar queda desactivado
+  // (se libera en actualizarOrientacionVideo, al evento "resize").
+  el("btnIniciarGrabacionVideo").disabled = true;
   el("btnIniciarGrabacionVideo").hidden = false;
   el("btnDetenerGrabacionVideo").hidden = true;
   el("videoClaseBotonesRevision").hidden = true;
@@ -1281,14 +1408,17 @@ function formatearMMSSVideo(segundos) {
 }
 
 function iniciarGrabacionVideo() {
-  if (!streamCamaraVideo) return;
+  if (!streamCamaraVideo || videoCamaraEsVertical()) return;
   mimeTypeGrabadoVideo = elegirMimeTypeVideo();
   chunksGrabacionVideo = [];
+  pausadoPorOrientacionVideo = false;
   try {
     mediaRecorderVideo = mimeTypeGrabadoVideo
       ? new MediaRecorder(streamCamaraVideo, {
           mimeType: mimeTypeGrabadoVideo,
-          videoBitsPerSecond: 1000000,
+          // 1.5 Mbps: nítido a 720p con el movimiento del baile, ~12 MB
+          // por minuto (5 min ≈ 60 MB; el Worker acepta hasta 250 MB).
+          videoBitsPerSecond: 1500000,
           audioBitsPerSecond: 96000,
         })
       : new MediaRecorder(streamCamaraVideo);
@@ -1303,6 +1433,9 @@ function iniciarGrabacionVideo() {
   };
   mediaRecorderVideo.onstop = () => {
     blobGrabadoVideo = new Blob(chunksGrabacionVideo, { type: mimeTypeGrabadoVideo });
+    pausadoPorOrientacionVideo = false;
+    liberarHorizontalAndroid();
+    el("videoAvisoGirar").hidden = true;
     if (streamCamaraVideo) {
       streamCamaraVideo.getTracks().forEach((t) => t.stop());
       streamCamaraVideo = null;
@@ -1318,6 +1451,7 @@ function iniciarGrabacionVideo() {
   };
 
   mediaRecorderVideo.start(1000);
+  bloquearHorizontalAndroid();
   segundosGrabadosVideo = 0;
   el("videoClaseTimer").hidden = false;
   el("videoClaseTimer").textContent = "🔴 00:00";
@@ -1325,6 +1459,8 @@ function iniciarGrabacionVideo() {
   el("btnDetenerGrabacionVideo").hidden = false;
 
   timerGrabacionVideoIntervalo = setInterval(() => {
+    // En pausa (teléfono en vertical) el reloj no avanza: cuenta solo lo grabado.
+    if (!mediaRecorderVideo || mediaRecorderVideo.state !== "recording") return;
     segundosGrabadosVideo += 1;
     el("videoClaseTimer").textContent = `🔴 ${formatearMMSSVideo(segundosGrabadosVideo)}`;
     if (segundosGrabadosVideo >= MAX_SEGUNDOS_VIDEO) {
@@ -1410,6 +1546,62 @@ async function subirVideoAlPortal() {
     btn.disabled = false;
     btn.textContent = original;
   }
+}
+
+// Audios del año agrupados por mes, el más nuevo primero. El Worker
+// manda "mes" ('YYYY-MM', hora de Guatemala) en cada audio; si no
+// viniera, se calcula aquí con la misma zona horaria. Queda abierto el
+// mes actual (o, si no tiene audios, el más reciente que sí tenga) y
+// los demás colapsados (<details>: se abren con un toque, sin JS extra).
+const NOMBRES_MES_AUDIOS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+function mesClaveGuatemala(fecha) {
+  const partes = {};
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guatemala", year: "numeric", month: "2-digit" })
+    .formatToParts(new Date(fecha))
+    .forEach((p) => {
+      partes[p.type] = p.value;
+    });
+  return `${partes.year}-${partes.month}`;
+}
+
+function agruparAudiosPorMes(audios) {
+  const porMes = new Map();
+  (audios || []).forEach((a) => {
+    const mes = a.mes || mesClaveGuatemala(a.fecha);
+    if (!porMes.has(mes)) porMes.set(mes, []);
+    porMes.get(mes).push(a);
+  });
+  const meses = [...porMes.entries()]
+    .sort((x, y) => y[0].localeCompare(x[0]))
+    .map(([mes, lista]) => ({
+      mes,
+      audios: lista.sort((x, y) => new Date(y.fecha) - new Date(x.fecha)),
+      abierto: false,
+    }));
+  // Se abre el mes actual; si este mes todavía no tiene audios, el más
+  // reciente que sí tenga (el primero, porque van del más nuevo al más viejo).
+  const actual = meses.find((m) => m.mes === mesClaveGuatemala(new Date()));
+  if (actual) actual.abierto = true;
+  else if (meses.length) meses[0].abierto = true;
+  return meses;
+}
+
+function crearBloqueMesAudios(mes, cantidad, abierto) {
+  const bloque = document.createElement("details");
+  bloque.className = "audios-mes";
+  bloque.open = !!abierto;
+  const resumen = document.createElement("summary");
+  resumen.className = "audios-mes-titulo";
+  const nombreMes = NOMBRES_MES_AUDIOS[Number(mes.split("-")[1]) - 1] || mes;
+  resumen.textContent = `📅 ${nombreMes} · ${cantidad} ${cantidad === 1 ? "audio" : "audios"}`;
+  const lista = document.createElement("div");
+  lista.className = "audios-mes-lista";
+  bloque.append(resumen, lista);
+  return { bloque, lista };
 }
 
 function formatearFechaHoraVideo(iso) {
@@ -1508,12 +1700,15 @@ function detenerCamaraVideo() {
     } catch (e) {}
   }
   mediaRecorderVideo = null;
+  pausadoPorOrientacionVideo = false;
+  liberarHorizontalAndroid();
   if (streamCamaraVideo) {
     streamCamaraVideo.getTracks().forEach((t) => t.stop());
     streamCamaraVideo = null;
   }
   blobGrabadoVideo = null;
   chunksGrabacionVideo = [];
+  el("videoAvisoGirar").hidden = true;
 
   const revisar = el("videoRevisarClase");
   if (revisar.src) URL.revokeObjectURL(revisar.src);
@@ -1530,6 +1725,12 @@ function detenerCamaraVideo() {
 }
 
 el("btnAbrirCamaraVideo").addEventListener("click", abrirCamaraVideo);
+// "resize" del <video> se dispara cuando cambia el tamaño del video que
+// llega de la cámara (p. ej. al girar el teléfono); el de la ventana es
+// respaldo para navegadores que tardan en avisar.
+el("videoPreviewClase").addEventListener("loadedmetadata", actualizarOrientacionVideo);
+el("videoPreviewClase").addEventListener("resize", actualizarOrientacionVideo);
+window.addEventListener("resize", () => setTimeout(actualizarOrientacionVideo, 300));
 el("btnIniciarGrabacionVideo").addEventListener("click", iniciarGrabacionVideo);
 el("btnDetenerGrabacionVideo").addEventListener("click", detenerGrabacionVideo);
 el("btnRegrabarVideo").addEventListener("click", regrabarVideo);
@@ -1623,52 +1824,56 @@ function renderAudiosClase(audios) {
   }
   titulo.hidden = false;
 
-  audiosClaseActual.forEach((a) => {
-    const fila = document.createElement("div");
-    fila.className = "video-clase-fila";
+  agruparAudiosPorMes(audiosClaseActual).forEach(({ mes, audios, abierto }) => {
+    const { bloque, lista } = crearBloqueMesAudios(mes, audios.length, abierto);
+    audios.forEach((a) => {
+      const fila = document.createElement("div");
+      fila.className = "video-clase-fila";
 
-    const info = document.createElement("span");
-    info.className = "video-clase-fila-info";
-    info.textContent = `🎵 ${formatearFechaHoraVideo(a.fecha)} · ${a.tamanoMB} MB`;
-    fila.appendChild(info);
+      const info = document.createElement("span");
+      info.className = "video-clase-fila-info";
+      info.textContent = `🎵 ${formatearFechaHoraVideo(a.fecha)} · ${a.tamanoMB} MB`;
+      fila.appendChild(info);
 
-    const botones = document.createElement("div");
-    botones.className = "video-clase-fila-botones";
+      const botones = document.createElement("div");
+      botones.className = "video-clase-fila-botones";
 
-    const escucharLink = document.createElement("a");
-    escucharLink.className = "video-clase-fila-boton-ver";
-    escucharLink.href = a.url;
-    escucharLink.target = "_blank";
-    escucharLink.rel = "noopener";
-    escucharLink.textContent = "▶ Escuchar";
-    botones.appendChild(escucharLink);
+      const escucharLink = document.createElement("a");
+      escucharLink.className = "video-clase-fila-boton-ver";
+      escucharLink.href = a.url;
+      escucharLink.target = "_blank";
+      escucharLink.rel = "noopener";
+      escucharLink.textContent = "▶ Escuchar";
+      botones.appendChild(escucharLink);
 
-    const descargarLink = document.createElement("a");
-    descargarLink.className = "video-clase-fila-boton-descargar";
-    descargarLink.href = a.urlDescarga;
-    descargarLink.textContent = "⬇ Descargar";
-    botones.appendChild(descargarLink);
+      const descargarLink = document.createElement("a");
+      descargarLink.className = "video-clase-fila-boton-descargar";
+      descargarLink.href = a.urlDescarga;
+      descargarLink.textContent = "⬇ Descargar";
+      botones.appendChild(descargarLink);
 
-    const eliminarBtn = document.createElement("button");
-    eliminarBtn.className = "video-clase-fila-boton-eliminar";
-    eliminarBtn.type = "button";
-    eliminarBtn.textContent = "🗑 Borrar";
-    eliminarBtn.addEventListener("click", () => {
-      if (eliminarBtn.dataset.confirmar === "1") {
-        eliminarAudioClase(a.clave);
-      } else {
-        eliminarBtn.dataset.confirmar = "1";
-        eliminarBtn.textContent = "¿Seguro? Toca de nuevo";
-        setTimeout(() => {
-          eliminarBtn.dataset.confirmar = "";
-          eliminarBtn.textContent = "🗑 Borrar";
-        }, 3000);
-      }
+      const eliminarBtn = document.createElement("button");
+      eliminarBtn.className = "video-clase-fila-boton-eliminar";
+      eliminarBtn.type = "button";
+      eliminarBtn.textContent = "🗑 Borrar";
+      eliminarBtn.addEventListener("click", () => {
+        if (eliminarBtn.dataset.confirmar === "1") {
+          eliminarAudioClase(a.clave);
+        } else {
+          eliminarBtn.dataset.confirmar = "1";
+          eliminarBtn.textContent = "¿Seguro? Toca de nuevo";
+          setTimeout(() => {
+            eliminarBtn.dataset.confirmar = "";
+            eliminarBtn.textContent = "🗑 Borrar";
+          }, 3000);
+        }
+      });
+      botones.appendChild(eliminarBtn);
+
+      fila.appendChild(botones);
+      lista.appendChild(fila);
     });
-    botones.appendChild(eliminarBtn);
-
-    fila.appendChild(botones);
-    cont.appendChild(fila);
+    cont.appendChild(bloque);
   });
 }
 

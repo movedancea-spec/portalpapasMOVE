@@ -19,7 +19,12 @@
 // botón "Solicitudes" del menú muestra un punto 🔴 si hay algo
 // pendiente.
 
-const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
+// En localhost (prueba local con `wrangler dev`) se habla con el
+// Worker local; en cualquier otro dominio, con el de producción. Así
+// nunca se sube por olvido una URL local.
+const WORKER_URL = ["localhost", "127.0.0.1"].includes(location.hostname)
+  ? "http://localhost:8787"
+  : "https://portalalumnas.movedancea.workers.dev";
 const TAMANO_MAX_ARCHIVO = 8 * 1024 * 1024; // 8 MB, igual que el portal de alumnas.
 
 let claveRecepcion = "";
@@ -49,8 +54,13 @@ const PANTALLAS = [
   "pantallaPagos",
   "pantallaCanalAsistencia",
   "pantallaCanalChat",
+  "pantallaEvalMaestras",
+  "pantallaEstadoPortal",
+  "pantallaVentaEntradas",
   "pantallaAnuncios",
   "pantallaAvisoImportante",
+  "pantallaExtranamos",
+  "pantallaFeriados",
   "pantallaShow",
 ];
 
@@ -285,6 +295,21 @@ el("btnMenuCanalChat").addEventListener("click", () => {
   cargarCanalChat();
 });
 
+el("btnMenuEvalMaestras").addEventListener("click", () => {
+  mostrarPantalla("pantallaEvalMaestras");
+  cargarEvalMaestras();
+});
+
+el("btnMenuEstadoPortal").addEventListener("click", () => {
+  mostrarPantalla("pantallaEstadoPortal");
+  cargarEstadoPortal();
+});
+
+el("btnMenuVentaEntradas").addEventListener("click", () => {
+  mostrarPantalla("pantallaVentaEntradas");
+  cargarVentaEntradas();
+});
+
 el("btnMenuAnuncios").addEventListener("click", () => {
   mostrarPantalla("pantallaAnuncios");
   cargarCanalAnuncios();
@@ -296,12 +321,28 @@ el("btnMenuAvisoImportante").addEventListener("click", () => {
   prepararFormularioAvisoImportante();
 });
 
+el("btnMenuExtranamos").addEventListener("click", () => {
+  mostrarPantalla("pantallaExtranamos");
+  cargarExtranamos();
+});
+
+el("btnMenuFeriados").addEventListener("click", () => {
+  mostrarPantalla("pantallaFeriados");
+  cargarFeriados();
+});
+
 el("btnMenuShow").addEventListener("click", () => {
   mostrarPantalla("pantallaShow");
   abrirShow();
 });
 
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverEstadoPortal").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverVentaEntradas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnGuardarMensajePortal").addEventListener("click", () => guardarEstadoPortal(estadoPortalActual.estado));
+el("btnActivarAccesoPrueba").addEventListener("click", activarAccesoPruebaPortal);
+el("btnQuitarAccesoPrueba").addEventListener("click", quitarAccesoPruebaPortal);
 el("btnVolverElegirGrupoChat").addEventListener("click", () => mostrarPantalla("pantallaRecepcion"));
 el("btnVolverAlumnas").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverIngresos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -310,6 +351,8 @@ el("btnVolverCanalAsistencia").addEventListener("click", () => mostrarPantalla("
 el("btnVolverCanalChat").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAnuncios").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverAvisoImportante").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverExtranamos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverFeriados").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverShow").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
@@ -725,13 +768,15 @@ async function elegirCanalAsistencia(canal, titulo) {
 
 // ==========================================
 // CANAL DE CHAT (interruptor GLOBAL — igual que el de asistencia, pero
-// para el aviso de mensaje nuevo del Chat de Maestras)
+// para el aviso de mensaje nuevo del Chat de Maestras — más un canal
+// propio opcional POR MAESTRA)
 // ==========================================
 // Decide si el aviso de "tienes un mensaje nuevo" del Chat de Maestras
 // se manda por WhatsApp (GREEN-API) o por el Portal (notificación
-// push) — para TODAS las maestras y familias al mismo tiempo. Se
-// guarda en la tabla CONFIGURACION GENERAL de Airtable (campo "CANAL
-// CHAT") y lo lee worker.js (chatEnviar) en cada mensaje.
+// push). El interruptor general vale para TODAS las familias y para
+// las maestras que no tengan canal propio. Se guarda en la tabla
+// CONFIGURACION GENERAL de Airtable (campo "CANAL CHAT") y lo lee
+// worker.js (chatEnviar) en cada mensaje.
 
 const OPCIONES_CANAL_CHAT = [
   {
@@ -763,6 +808,8 @@ async function cargarCanalChat() {
   } catch (e) {
     cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
   }
+
+  cargarCanalChatMaestras();
 }
 
 function renderCanalChat() {
@@ -776,7 +823,7 @@ function renderCanalChat() {
     tarjeta.type = "button";
     tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
     tarjeta.innerHTML = `
-      <span class="tarjeta-resultado-nombre">${op.titulo}${activo ? " — ✅ Activo ahora para todas" : ""}</span>
+      <span class="tarjeta-resultado-nombre">${op.titulo}${activo ? " — ✅ Activo ahora (general)" : ""}</span>
       <span class="tarjeta-resultado-detalle">${op.descripcion}</span>
     `;
     tarjeta.disabled = activo;
@@ -787,7 +834,7 @@ function renderCanalChat() {
 
 async function elegirCanalChat(canal, titulo) {
   const confirmado = window.confirm(
-    `¿Cambiar el canal de chat a ${titulo} para TODAS las maestras y familias? Este cambio aplica de inmediato, no se puede elegir por maestra ni por alumna.`
+    `¿Cambiar el canal de chat general a ${titulo}? Aplica de inmediato a TODAS las familias y a las maestras que siguen el general (las que tienen canal propio no cambian).`
   );
   if (!confirmado) return;
 
@@ -799,12 +846,548 @@ async function elegirCanalChat(canal, titulo) {
     await llamarWorker({ accion: "recepcionGuardarCanalChat", clave: claveRecepcion, canal });
     canalChatActual = canal;
     renderCanalChat();
-    mensajeEl.textContent = `✅ Listo — el aviso de mensaje nuevo del chat ahora llega por ${titulo} para todas.`;
+    // Las maestras que "siguen el general" cambian con esto — se vuelve
+    // a pintar su lista para que la etiqueta muestre el canal nuevo.
+    if (canalChatMaestras.length) renderCanalChatMaestras();
+    mensajeEl.textContent = `✅ Listo — el aviso de mensaje nuevo del chat ahora llega por ${titulo} para las familias y las maestras que siguen el general.`;
     mensajeEl.classList.add("mensaje-form-ok");
   } catch (e) {
     mensajeEl.textContent = e.message;
     mensajeEl.classList.add("mensaje-form-error");
   }
+}
+
+// ==========================================
+// CANAL DE CHAT POR MAESTRA
+// ==========================================
+// Cada maestra puede tener su propio canal para el aviso que le llega
+// A ELLA cuando una familia le escribe (campo "CANAL CHAT" de la tabla
+// MAESTRAS en Airtable). Vacío = "Seguir el general" (el interruptor
+// de arriba), que es como quedan todas al principio — así nadie cambia
+// de canal hasta que Recepción lo elija a propósito. El aviso que le
+// llega a las FAMILIAS no se toca aquí.
+
+const OPCIONES_CANAL_CHAT_MAESTRA = [
+  { valor: "", titulo: "Seguir el general" },
+  { valor: "WhatsApp", titulo: "📱 WhatsApp" },
+  { valor: "Portal", titulo: "🔔 Portal" },
+];
+
+let canalChatMaestras = [];
+
+async function cargarCanalChatMaestras() {
+  const cont = el("listaCanalChatMaestras");
+  const mensajeEl = el("mensajeCanalChatMaestras");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionListarCanalChatMaestras", clave: claveRecepcion });
+    canalChatMaestras = datos.maestras || [];
+    renderCanalChatMaestras();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function tituloCanalChat(valor) {
+  return valor === "Portal" ? "🔔 Portal" : "📱 WhatsApp";
+}
+
+function renderCanalChatMaestras() {
+  const cont = el("listaCanalChatMaestras");
+  cont.innerHTML = "";
+
+  if (!canalChatMaestras.length) {
+    cont.innerHTML = '<p class="lista-vacia">No hay maestras activas.</p>';
+    return;
+  }
+
+  canalChatMaestras.forEach((m) => {
+    // El canal que de verdad le va a llegar hoy (propio, o el general).
+    const canalEfectivo = m.canal || canalChatActual || "WhatsApp";
+
+    const fila = document.createElement("div");
+    fila.className = "tarjeta-resultado fila-canal-maestra";
+
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = m.nombre;
+
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent = m.canal
+      ? `Le llega por ${tituloCanalChat(canalEfectivo)} (canal propio)`
+      : `Le llega por ${tituloCanalChat(canalEfectivo)} (sigue el general)`;
+
+    fila.appendChild(nombre);
+    fila.appendChild(detalle);
+
+    // Avisos para que no quede en un canal por el que no le llega nada.
+    let alerta = "";
+    if (canalEfectivo === "Portal" && !m.tienePush) {
+      alerta = "⚠️ Todavía no activó las notificaciones en el Portal de Maestras — así NO le llega ningún aviso.";
+    } else if (canalEfectivo === "WhatsApp" && !m.tieneWhatsapp) {
+      alerta = "⚠️ No tiene WhatsApp registrado en Airtable — así NO le llega ningún aviso.";
+    }
+    if (alerta) {
+      const alertaEl = document.createElement("span");
+      alertaEl.className = "tarjeta-resultado-detalle alerta-canal-maestra";
+      alertaEl.textContent = alerta;
+      fila.appendChild(alertaEl);
+    }
+
+    const chips = document.createElement("div");
+    chips.className = "chips-contenedor chips-canal-maestra";
+    OPCIONES_CANAL_CHAT_MAESTRA.forEach((op) => {
+      const activo = (m.canal || "") === op.valor;
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip" + (activo ? " activo" : "");
+      chip.textContent = op.titulo;
+      chip.disabled = activo;
+      chip.addEventListener("click", () => elegirCanalChatMaestra(m, op.valor, op.titulo));
+      chips.appendChild(chip);
+    });
+    fila.appendChild(chips);
+
+    cont.appendChild(fila);
+  });
+}
+
+async function elegirCanalChatMaestra(maestra, canal, titulo) {
+  const texto = canal
+    ? `¿Cambiar el canal de chat de ${maestra.nombre} a ${titulo}? Solo cambia el aviso que le llega a ella; aplica de inmediato.`
+    : `¿Que ${maestra.nombre} vuelva a seguir el canal general (${tituloCanalChat(canalChatActual)})? Aplica de inmediato.`;
+  if (!window.confirm(texto)) return;
+
+  const mensajeEl = el("mensajeCanalChatMaestras");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    await llamarWorker({
+      accion: "recepcionGuardarCanalChatMaestra",
+      clave: claveRecepcion,
+      maestraId: maestra.id,
+      canal,
+    });
+    maestra.canal = canal;
+    renderCanalChatMaestras();
+    mensajeEl.textContent = canal
+      ? `✅ Listo — a ${maestra.nombre} ahora le llega el aviso por ${titulo}.`
+      : `✅ Listo — ${maestra.nombre} ahora sigue el canal general.`;
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ==========================================
+// EVALUACIÓN DE MAESTRAS (interruptor GLOBAL — las alumnas evalúan a
+// sus maestras)
+// ==========================================
+// Enciende/apaga el botón "⭐ Evaluar a mis maestras" del Portal de
+// Alumnas para TODAS a la vez. Se guarda en CONFIGURACION GENERAL
+// (campos "EVALUACION MAESTRAS ACTIVA" y "RONDA EVALUACION MAESTRAS").
+// El Worker sube la ronda en 1 cada vez que pasa de apagado a
+// encendido; por eso aquí solo mostramos el número que devuelve.
+
+let evalMaestrasActual = { activa: false, ronda: 0 };
+
+async function cargarEvalMaestras() {
+  const cont = el("opcionesEvalMaestras");
+  const mensajeEl = el("mensajeEvalMaestras");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerEvaluacionMaestras", clave: claveRecepcion });
+    evalMaestrasActual = { activa: !!datos.activa, ronda: datos.ronda || 0 };
+    renderEvalMaestras();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+
+  cargarListaEvaluacionesMaestras();
+}
+
+// ---------- todas las evaluaciones (con nombre de alumna) ----------
+// Solo Recepción ve quién evaluó; el Worker ordena por maestra → grupo →
+// ronda (la más nueva primero) → alumna, aquí solo se agrupa para mostrar.
+
+const ETIQUETAS_CRITERIOS_EVAL = [
+  ["puntualidad", "Puntualidad"],
+  ["explicaClaro", "Explica claro"],
+  ["paciencia", "Paciencia"],
+  ["motiva", "Motiva"],
+  ["ambiente", "Ambiente"],
+  ["atencionIndividual", "Atención individual"],
+  ["organizacionTiempo", "Organización del tiempo"],
+  ["disciplina", "Disciplina"],
+];
+
+const CARITA_POR_VALOR_EVAL = { 1: "😞", 3: "😐", 5: "😊" };
+
+let evaluacionesMaestrasTodas = [];
+
+async function cargarListaEvaluacionesMaestras() {
+  const cont = el("listaEvalMaestrasTodas");
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "recepcionListarEvaluacionesMaestras", clave: claveRecepcion });
+    evaluacionesMaestrasTodas = datos.evaluaciones || [];
+
+    const rondas = [...new Set(evaluacionesMaestrasTodas.map((e) => e.ronda))].sort((a, b) => b - a);
+    const select = el("selectRondaEvalMaestras");
+    const previa = select.value;
+    select.innerHTML = "";
+    const optTodas = document.createElement("option");
+    optTodas.value = "";
+    optTodas.textContent = "Todas las rondas";
+    select.appendChild(optTodas);
+    rondas.forEach((r) => {
+      const o = document.createElement("option");
+      o.value = String(r);
+      o.textContent = "Ronda " + r;
+      select.appendChild(o);
+    });
+    if (rondas.map(String).includes(previa)) select.value = previa;
+
+    renderListaEvaluacionesMaestras();
+  } catch (e) {
+    cont.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "lista-vacia";
+    p.textContent = e.message;
+    cont.appendChild(p);
+  }
+}
+
+el("selectRondaEvalMaestras").addEventListener("change", renderListaEvaluacionesMaestras);
+
+function renderListaEvaluacionesMaestras() {
+  const cont = el("listaEvalMaestrasTodas");
+  cont.innerHTML = "";
+  const filtro = el("selectRondaEvalMaestras").value;
+  const lista = evaluacionesMaestrasTodas.filter((e) => !filtro || String(e.ronda) === filtro);
+
+  if (!lista.length) {
+    const p = document.createElement("p");
+    p.className = "lista-vacia";
+    p.textContent = "Todavía no hay evaluaciones.";
+    cont.appendChild(p);
+    return;
+  }
+
+  let maestraActual = null;
+  let grupoActual = null;
+  lista.forEach((ev) => {
+    if (ev.maestra !== maestraActual) {
+      maestraActual = ev.maestra;
+      grupoActual = null;
+      const h = document.createElement("p");
+      h.className = "eval-rec-maestra";
+      h.textContent = "👩‍🏫 " + ev.maestra;
+      cont.appendChild(h);
+    }
+    if (ev.grupo !== grupoActual) {
+      grupoActual = ev.grupo;
+      const h = document.createElement("p");
+      h.className = "eval-rec-grupo";
+      h.textContent = "💃 " + ev.grupo;
+      cont.appendChild(h);
+    }
+
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "eval-rec-tarjeta";
+
+    const cab = document.createElement("div");
+    cab.className = "eval-rec-cabecera";
+    const nombre = document.createElement("span");
+    nombre.className = "eval-rec-alumna";
+    nombre.textContent = ev.alumna;
+    const meta = document.createElement("span");
+    meta.className = "eval-rec-meta";
+    meta.textContent = `Ronda ${ev.ronda} · ${"★".repeat(ev.general)}${"☆".repeat(5 - ev.general)}`;
+    cab.append(nombre, meta);
+
+    const criterios = document.createElement("p");
+    criterios.className = "eval-rec-criterios";
+    criterios.textContent = ETIQUETAS_CRITERIOS_EVAL.map(
+      ([k, etiqueta]) => `${etiqueta} ${CARITA_POR_VALOR_EVAL[ev.criterios[k]] || "—"}`
+    ).join(" · ");
+
+    tarjeta.append(cab, criterios);
+    if (ev.comentario) {
+      const c = document.createElement("p");
+      c.className = "eval-rec-comentario";
+      c.textContent = "“" + ev.comentario + "”";
+      tarjeta.appendChild(c);
+    }
+    cont.appendChild(tarjeta);
+  });
+}
+
+function renderEvalMaestras() {
+  const cont = el("opcionesEvalMaestras");
+  cont.innerHTML = "";
+  const { activa, ronda } = evalMaestrasActual;
+
+  const tarjeta = document.createElement("button");
+  tarjeta.type = "button";
+  tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activa ? " activo" : "");
+  const nombre = document.createElement("span");
+  nombre.className = "tarjeta-resultado-nombre";
+  nombre.textContent = activa
+    ? `⭐ Evaluación ENCENDIDA — ronda ${ronda}`
+    : "⭐ Evaluación apagada";
+  const detalle = document.createElement("span");
+  detalle.className = "tarjeta-resultado-detalle";
+  detalle.textContent = activa
+    ? "Toca aquí para APAGARLA. El botón desaparece del Portal de las alumnas."
+    : ronda > 0
+      ? `Toca aquí para ENCENDERLA. Se abrirá la ronda ${ronda + 1}: podrán evaluar otra vez a cada maestra.`
+      : "Toca aquí para ENCENDERLA. Se abrirá la ronda 1.";
+  tarjeta.append(nombre, detalle);
+  tarjeta.addEventListener("click", () => cambiarEvalMaestras(!activa));
+  cont.appendChild(tarjeta);
+}
+
+async function cambiarEvalMaestras(activar) {
+  const pregunta = activar
+    ? `¿Encender la evaluación de maestras? Se abre la ronda ${evalMaestrasActual.ronda + 1} para TODAS las alumnas.`
+    : "¿Apagar la evaluación de maestras? El botón desaparece del Portal de las alumnas.";
+  if (!window.confirm(pregunta)) return;
+
+  const mensajeEl = el("mensajeEvalMaestras");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const datos = await llamarWorker({
+      accion: "recepcionGuardarEvaluacionMaestras",
+      clave: claveRecepcion,
+      activa: activar,
+    });
+    evalMaestrasActual = { activa: !!datos.activa, ronda: datos.ronda || 0 };
+    renderEvalMaestras();
+    mensajeEl.textContent = activar
+      ? `✅ Listo — ronda ${datos.ronda} abierta. Las alumnas ya ven el botón.`
+      : "✅ Listo — la evaluación quedó apagada.";
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ==========================================
+// VENTA DE ENTRADAS (botón "🎟️ Caja de entradas (solo personal)")
+// ==========================================
+// Dos opciones, solo una activa. Se guarda en CONFIGURACION GENERAL
+// (campo "VENTA ENTRADAS RECEPCION", casilla), igual que la evaluación
+// de maestras. La pantalla de bienvenida de recepción (repo
+// move-recepcion2-sin-biometrico) lo lee cada minuto con la acción
+// pública ventaEntradasVisible y muestra u oculta el botón.
+
+const OPCIONES_VENTA_ENTRADAS = [
+  { activa: true, titulo: "🟢 Venta de entradas: Encendida", detalle: "El botón \"🎟️ Caja de entradas (solo personal)\" aparece en la pantalla de bienvenida (en alrededor de un minuto)." },
+  { activa: false, titulo: "⚪ Venta de entradas: Apagada", detalle: "El botón no se muestra. Úsalo fuera de temporada de venta." },
+];
+
+let ventaEntradasActual = null; // true / false, o null mientras carga
+
+async function cargarVentaEntradas() {
+  const cont = el("opcionesVentaEntradas");
+  const mensajeEl = el("mensajeVentaEntradas");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerVentaEntradas", clave: claveRecepcion });
+    ventaEntradasActual = !!datos.activa;
+    renderVentaEntradas();
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderVentaEntradas() {
+  const cont = el("opcionesVentaEntradas");
+  cont.innerHTML = "";
+  OPCIONES_VENTA_ENTRADAS.forEach((op) => {
+    const activo = ventaEntradasActual === op.activa;
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
+    tarjeta.setAttribute("aria-pressed", activo ? "true" : "false");
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = op.titulo + (activo ? " — ASÍ ESTÁ AHORA" : "");
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent = op.detalle;
+    tarjeta.append(nombre, detalle);
+    if (!activo) tarjeta.addEventListener("click", () => guardarVentaEntradas(op.activa));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function guardarVentaEntradas(activa) {
+  const pregunta = activa
+    ? "¿Encender la venta de entradas? El botón \"🎟️ Caja de entradas (solo personal)\" aparecerá en la pantalla de bienvenida."
+    : "¿Apagar la venta de entradas? El botón desaparecerá de la pantalla de bienvenida.";
+  if (!window.confirm(pregunta)) return;
+
+  const mensajeEl = el("mensajeVentaEntradas");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+  try {
+    const datos = await llamarWorker({ accion: "recepcionGuardarVentaEntradas", clave: claveRecepcion, activa });
+    ventaEntradasActual = !!datos.activa;
+    renderVentaEntradas();
+    mensajeEl.textContent = ventaEntradasActual
+      ? "✅ Listo — el botón aparecerá en la pantalla de bienvenida en alrededor de un minuto."
+      : "✅ Listo — el botón desaparecerá de la pantalla de bienvenida en alrededor de un minuto.";
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ==========================================
+// ESTADO DEL PORTAL DE ALUMNAS (modo mantenimiento)
+// ==========================================
+// Tres opciones, solo una activa. Se guarda en CONFIGURACION GENERAL
+// (campos "ESTADO PORTAL ALUMNAS" y "MENSAJE PORTAL ALUMNAS"), igual
+// que la evaluación de maestras. El Worker bloquea el portal de
+// alumnas mientras no esté "Activo".
+
+const OPCIONES_ESTADO_PORTAL = [
+  { valor: "Activo", titulo: "🟢 Portal activo (normal)", detalle: "Las alumnas entran y usan el portal como siempre." },
+  { valor: "Mantenimiento", titulo: "🔧 Portal en mantenimiento", detalle: "Nadie entra. Ven: \"Estamos dando mantenimiento al portal\"." },
+  { valor: "Mejoras", titulo: "✨ Haciendo mejoras / agregando algo nuevo", detalle: "Nadie entra. Ven: \"¡Estamos preparando algo nuevo para ti!\"." },
+];
+const LLAVE_ACCESO_PRUEBA_PORTAL = "move_acceso_prueba_portal";
+
+let estadoPortalActual = { estado: "Activo", mensaje: "" };
+
+async function cargarEstadoPortal() {
+  const cont = el("opcionesEstadoPortal");
+  const mensajeEl = el("mensajeEstadoPortal");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  renderAccesoPruebaPortal();
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerEstadoPortal", clave: claveRecepcion });
+    estadoPortalActual = { estado: datos.estado || "Activo", mensaje: datos.mensaje || "" };
+    el("inputMensajePortal").value = estadoPortalActual.mensaje;
+    renderEstadoPortal();
+    if (datos.forzado) {
+      mensajeEl.textContent = "⚠️ Entorno de prueba: el estado está forzado con ESTADO_PORTAL_FORZADO y no se guarda.";
+    }
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderEstadoPortal() {
+  const cont = el("opcionesEstadoPortal");
+  cont.innerHTML = "";
+  OPCIONES_ESTADO_PORTAL.forEach((op) => {
+    const activo = estadoPortalActual.estado === op.valor;
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
+    tarjeta.setAttribute("aria-pressed", activo ? "true" : "false");
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = op.titulo + (activo ? " — ACTIVO AHORA" : "");
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent = op.detalle;
+    tarjeta.append(nombre, detalle);
+    if (!activo) tarjeta.addEventListener("click", () => guardarEstadoPortal(op.valor, true));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function guardarEstadoPortal(estado, confirmar) {
+  if (confirmar) {
+    const pregunta =
+      estado === "Activo"
+        ? "¿Volver a abrir el portal? Las alumnas podrán entrar de nuevo."
+        : "¿Cerrar el portal de alumnas? Nadie podrá entrar (ni quien ya tenía sesión abierta) hasta que lo vuelvas a activar.";
+    if (!window.confirm(pregunta)) return;
+  }
+  const mensajeEl = el("mensajeEstadoPortal");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+  try {
+    const datos = await llamarWorker({
+      accion: "recepcionGuardarEstadoPortal",
+      clave: claveRecepcion,
+      estado,
+      mensaje: el("inputMensajePortal").value.trim(),
+    });
+    estadoPortalActual = { estado: datos.estado, mensaje: datos.mensaje || "" };
+    renderEstadoPortal();
+    mensajeEl.textContent =
+      datos.estado === "Activo"
+        ? "✅ Listo — el portal está activo."
+        : "✅ Listo — el portal quedó cerrado. Se aplica en unos segundos.";
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+function renderAccesoPruebaPortal() {
+  let guardado = null;
+  try {
+    guardado = JSON.parse(localStorage.getItem(LLAVE_ACCESO_PRUEBA_PORTAL) || "null");
+  } catch (e) {}
+  const vigente = guardado && Date.now() < Number(guardado.expira);
+  el("textoAccesoPruebaPortal").textContent = vigente
+    ? `✅ Este navegador tiene acceso de prueba hasta las ${new Date(Number(guardado.expira)).toLocaleString("es-GT", {
+        timeZone: "America/Guatemala",
+        hour: "numeric",
+        minute: "2-digit",
+        day: "numeric",
+        month: "short",
+      })}.`
+    : "Este navegador no tiene acceso de prueba.";
+  el("btnQuitarAccesoPrueba").hidden = !vigente;
+}
+
+async function activarAccesoPruebaPortal() {
+  const mensajeEl = el("mensajeEstadoPortal");
+  mensajeEl.className = "mensaje-form";
+  try {
+    const datos = await llamarWorker({ accion: "recepcionGenerarAccesoPruebaPortal", clave: claveRecepcion });
+    localStorage.setItem(LLAVE_ACCESO_PRUEBA_PORTAL, JSON.stringify({ ficha: datos.ficha, expira: datos.expira }));
+    mensajeEl.textContent = "✅ Acceso de prueba activado. Abre el portal en este mismo navegador.";
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+  renderAccesoPruebaPortal();
+}
+
+function quitarAccesoPruebaPortal() {
+  try {
+    localStorage.removeItem(LLAVE_ACCESO_PRUEBA_PORTAL);
+  } catch (e) {}
+  renderAccesoPruebaPortal();
+  el("mensajeEstadoPortal").textContent = "Acceso de prueba quitado de este navegador.";
 }
 
 // ==========================================
@@ -1066,6 +1649,276 @@ el("btnPublicarAvisoImportante").addEventListener("click", async () => {
     btn.textContent = "📋 Publicar aviso";
   }
 });
+
+// ==========================================
+// LAS EXTRAÑAMOS
+// Alumnas activas y monitoreadas (mismo criterio que el aviso semanal
+// de WhatsApp: ESTADO=ACTIVA + CLASES SEMANA puesto) que llevan 5 días
+// hábiles o más sin ninguna clase. A propósito NO es un reporte de
+// cobranza/bajas — es para que Recepción les escriba como gesto de
+// comunidad, así que el tono es cálido en vez de administrativo.
+// ==========================================
+
+function formatearFechaCortaExtranamos(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("es-GT", {
+      timeZone: "America/Guatemala",
+      day: "numeric",
+      month: "short",
+    });
+  } catch (e) {
+    return "";
+  }
+}
+
+async function cargarExtranamos() {
+  const cont = el("listaExtranamos");
+  const mensajeError = el("mensajeErrorExtranamos");
+  mensajeError.textContent = "";
+  el("mensajeProbarInasistencias").textContent = "";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionAlumnasSinAsistencia", clave: claveRecepcion });
+    renderExtranamos(datos.alumnas || []);
+  } catch (e) {
+    cont.innerHTML = "";
+    mensajeError.textContent = e.message;
+  }
+}
+
+function renderExtranamos(alumnas) {
+  const cont = el("listaExtranamos");
+  cont.innerHTML = "";
+
+  if (!alumnas.length) {
+    cont.innerHTML = '<p class="lista-vacia">¡Nadie lleva 5 días hábiles o más sin venir! 💗</p>';
+    return;
+  }
+
+  alumnas.forEach((a) => {
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "tarjeta-resultado";
+    tarjeta.style.cursor = "default";
+
+    const nombre = document.createElement("span");
+    nombre.className = "tarjeta-resultado-nombre";
+    nombre.textContent = a.nombre;
+    tarjeta.appendChild(nombre);
+
+    const grupos = document.createElement("span");
+    grupos.className = "tarjeta-resultado-detalle";
+    grupos.textContent = a.grupos && a.grupos.length ? a.grupos.join(", ") : "(sin grupo)";
+    tarjeta.appendChild(grupos);
+
+    const detalle = document.createElement("span");
+    detalle.className = "tarjeta-resultado-detalle";
+    detalle.textContent =
+      `Última clase: hace ${a.diasHabiles} día${a.diasHabiles === 1 ? "" : "s"} hábil${a.diasHabiles === 1 ? "" : "es"}` +
+      (a.ultimaFecha ? ` (${formatearFechaCortaExtranamos(a.ultimaFecha)})` : "");
+    tarjeta.appendChild(detalle);
+
+    cont.appendChild(tarjeta);
+  });
+}
+
+el("btnProbarInasistencias").addEventListener("click", async () => {
+  const btn = el("btnProbarInasistencias");
+  const mensajeEl = el("mensajeProbarInasistencias");
+  btn.disabled = true;
+  btn.textContent = "Revisando...";
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionProbarInasistenciasSemanales", clave: claveRecepcion });
+    const faltantes = datos.faltantes || [];
+
+    if (datos.error) {
+      mensajeEl.textContent = "⚠️ Encontró un error: " + datos.error;
+      mensajeEl.classList.add("mensaje-form-error");
+    } else if (!faltantes.length) {
+      mensajeEl.textContent = "✅ Revisado: nadie de las monitoreadas faltó TODA la semana (no se manda WhatsApp).";
+      mensajeEl.classList.add("mensaje-form-ok");
+    } else if (datos.enviado) {
+      mensajeEl.textContent = `✅ Se encontraron ${faltantes.length} alumna(s) sin ninguna clase esta semana y el WhatsApp SÍ se mandó a Recepción: ${faltantes.map((f) => f.nombre).join(", ")}.`;
+      mensajeEl.classList.add("mensaje-form-ok");
+    } else {
+      mensajeEl.textContent = `⚠️ Se encontraron ${faltantes.length} alumna(s), pero el WhatsApp NO se pudo mandar: ${datos.error || "error desconocido"}.`;
+      mensajeEl.classList.add("mensaje-form-error");
+    }
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔔 Probar aviso de inasistencias semanal ahora";
+  }
+});
+
+el("btnProbarRacha").addEventListener("click", async () => {
+  const confirmado = window.confirm(
+    "Esto SÍ puede mandar notificaciones push reales a las alumnas con racha ≥ 2 semanas que todavía no hayan sido notificadas esta semana (aunque lo corras varias veces, a cada una solo le llega una vez por semana). ¿Continuar?"
+  );
+  if (!confirmado) return;
+
+  const btn = el("btnProbarRacha");
+  const mensajeEl = el("mensajeProbarRacha");
+  btn.disabled = true;
+  btn.textContent = "Revisando...";
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionProbarNotificacionRacha", clave: claveRecepcion });
+    const notificadas = datos.notificadas || [];
+    const omitidas = datos.omitidas || [];
+
+    if (datos.error) {
+      mensajeEl.textContent = "⚠️ Encontró un error: " + datos.error;
+      mensajeEl.classList.add("mensaje-form-error");
+    } else if (!notificadas.length && !omitidas.length) {
+      mensajeEl.textContent = "✅ Revisado: ninguna alumna tiene racha de 2 semanas o más ahorita.";
+      mensajeEl.classList.add("mensaje-form-ok");
+    } else {
+      const partes = [];
+      if (notificadas.length) {
+        partes.push(`✅ Se mandó push a ${notificadas.length}: ${notificadas.map((n) => `${n.nombre} (${n.racha} sem.)`).join(", ")}.`);
+      }
+      if (omitidas.length) {
+        partes.push(`ℹ️ ${omitidas.length} ya estaban notificadas esta semana (no se les volvió a mandar): ${omitidas.map((n) => n.nombre).join(", ")}.`);
+      }
+      mensajeEl.textContent = partes.join(" ");
+      mensajeEl.classList.add("mensaje-form-ok");
+    }
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔥 Probar push de racha semanal ahora";
+  }
+});
+
+// ==========================================
+// DÍAS FERIADOS
+// Fechas en las que la academia no tuvo clase — una semana que
+// contenga alguna de estas fechas no le rompe la racha de asistencia
+// a ninguna alumna en el Portal. Se mantienen aquí, sin ir a Airtable
+// directo.
+// ==========================================
+
+function formatearFechaFeriado(fechaIso) {
+  if (!fechaIso) return "";
+  try {
+    return new Date(`${fechaIso}T12:00:00`).toLocaleDateString("es-GT", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch (e) {
+    return fechaIso;
+  }
+}
+
+async function cargarFeriados() {
+  const cont = el("listaFeriados");
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+
+  try {
+    const datos = await llamarWorker({ accion: "recepcionListarFeriados", clave: claveRecepcion });
+    renderFeriados(datos.feriados || []);
+  } catch (e) {
+    cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
+  }
+}
+
+function renderFeriados(feriados) {
+  const cont = el("listaFeriados");
+  cont.innerHTML = "";
+
+  if (!feriados.length) {
+    cont.innerHTML = '<p class="lista-vacia">Todavía no has agregado ningún feriado.</p>';
+    return;
+  }
+
+  feriados.forEach((f) => {
+    const fila = document.createElement("div");
+    fila.className = "tarjeta-resultado";
+    fila.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;cursor:default;";
+
+    const texto = document.createElement("div");
+    texto.innerHTML =
+      `<span class="tarjeta-resultado-nombre">${f.nombre}</span><br>` +
+      `<span class="tarjeta-resultado-detalle">${formatearFechaFeriado(f.fecha)}</span>`;
+    fila.appendChild(texto);
+
+    const btnBorrar = document.createElement("button");
+    btnBorrar.type = "button";
+    btnBorrar.className = "btn-enlace";
+    btnBorrar.textContent = "Borrar";
+    btnBorrar.addEventListener("click", () => eliminarFeriado(f.id, f.nombre));
+    fila.appendChild(btnBorrar);
+
+    cont.appendChild(fila);
+  });
+}
+
+el("btnAgregarFeriado").addEventListener("click", async () => {
+  const fecha = el("inputFeriadoFecha").value;
+  const nombre = el("inputFeriadoNombre").value.trim();
+  const mensajeEl = el("mensajeFeriado");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  if (!fecha) {
+    mensajeEl.textContent = "Elige una fecha.";
+    mensajeEl.classList.add("mensaje-form-error");
+    return;
+  }
+  if (!nombre) {
+    mensajeEl.textContent = "Escribe el nombre del feriado.";
+    mensajeEl.classList.add("mensaje-form-error");
+    return;
+  }
+
+  const btn = el("btnAgregarFeriado");
+  btn.disabled = true;
+  btn.textContent = "Agregando...";
+
+  try {
+    await llamarWorker({ accion: "recepcionAgregarFeriado", clave: claveRecepcion, fecha, nombre });
+    el("inputFeriadoFecha").value = "";
+    el("inputFeriadoNombre").value = "";
+    mensajeEl.textContent = "✅ Feriado agregado.";
+    mensajeEl.classList.add("mensaje-form-ok");
+    cargarFeriados();
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "+ Agregar feriado";
+  }
+});
+
+async function eliminarFeriado(id, nombre) {
+  const confirmado = window.confirm(`¿Borrar "${nombre}" de la lista de feriados?`);
+  if (!confirmado) return;
+
+  const mensajeEl = el("mensajeFeriado");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+
+  try {
+    await llamarWorker({ accion: "recepcionEliminarFeriado", clave: claveRecepcion, id });
+    cargarFeriados();
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
 
 // ==========================================
 // ALUMNAS
@@ -2004,6 +2857,9 @@ async function subirComprobantePago(archivo) {
     const base64 = await leerArchivoBase64(archivo);
     await llamarWorker({
       accion: "subirComprobante",
+      // La clave deja pasar la subida aunque el Portal de Alumnas esté
+      // en mantenimiento (esta acción también la usa el portal).
+      clave: claveRecepcion,
       pagoId: pagoEditandoId,
       archivoBase64: base64,
       nombreArchivo: archivo.name,

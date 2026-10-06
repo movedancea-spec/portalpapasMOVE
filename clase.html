@@ -8,9 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="clase.css" />
+<link rel="stylesheet" href="temas-fecha.css?v=emojis-rapidos-v2" />
+<link rel="stylesheet" href="clase.css?v=video-horizontal-v1" />
 </head>
 <body>
+
+<!-- Decoración de fechas especiales (ver temas-fecha.js): detrás de la
+     tarjeta y sin recibir toques, para no tapar nada del panel. -->
+<div id="temaDecoracion" class="tema-decoracion" aria-hidden="true"></div>
 
 <div class="container">
 
@@ -50,7 +55,12 @@
 
   <!-- ============ PANTALLA 2: PANEL DE CLASE ============ -->
   <section id="pantallaPanel" class="pantalla" hidden>
-    <p class="nombre-grupo" id="nombreGrupoPanel"></p>
+    <!-- El letrero de fecha especial va en la misma fila que el nombre del
+         grupo, para no empujar hacia abajo el resto del panel. -->
+    <div class="fila-nombre-grupo">
+      <p class="nombre-grupo" id="nombreGrupoPanel"></p>
+      <p class="tema-banner" id="temaBanner" hidden></p>
+    </div>
 
     <div class="tabs-panel">
       <button class="tab-btn activo" id="tabBienvenida" type="button">👋 Bienvenida</button>
@@ -65,7 +75,7 @@
 
     <!-- ---- Modo Bienvenida ---- -->
     <div id="modoBienvenida" class="modo">
-      <div class="reloj-guate">🕐 <span id="relojBienvenida">--:--</span> (Guatemala)</div>
+      <div class="reloj-guate" id="relojBienvenida" aria-label="Hora de Guatemala"><span class="reloj-guate-hora">--:--</span><span class="reloj-guate-detalle">🕐 <span class="reloj-guate-ampm"></span> · Guatemala</span></div>
 
       <div class="bienvenida-saludo">
         <p class="bienvenida-saludo-titulo" id="bienvenidaSaludoTitulo">¡Hola! 👋</p>
@@ -95,7 +105,7 @@
 
     <!-- ---- Modo Clase (cronómetro + ruleta + calificación interna) ---- -->
     <div id="modoClase" class="modo" hidden>
-      <div class="reloj-guate">🕐 <span id="relojClase">--:--</span> (Guatemala)</div>
+      <div class="reloj-guate" id="relojClase" aria-label="Hora de Guatemala"><span class="reloj-guate-hora">--:--</span><span class="reloj-guate-detalle">🕐 <span class="reloj-guate-ampm"></span> · Guatemala</span></div>
 
       <div class="visualizador-musica" id="visualizadorMusica" hidden>
         <div class="visualizador-anillos">
@@ -145,8 +155,16 @@
     <div id="modoVideo" class="modo" hidden>
       <p class="pago-titulo">🎥 Video para el portal de alumnas</p>
       <div class="bloque-video-clase">
-        <video id="videoPreviewClase" class="video-preview-clase" autoplay muted playsinline hidden></video>
-        <video id="videoRevisarClase" class="video-preview-clase" controls playsinline hidden></video>
+        <div class="video-marco-clase">
+          <video id="videoPreviewClase" class="video-preview-clase" autoplay muted playsinline hidden></video>
+          <video id="videoRevisarClase" class="video-preview-clase" controls playsinline hidden></video>
+          <!-- Sale encima de la vista previa si el video llega en vertical
+               (ver actualizarOrientacionVideo en clase.js). -->
+          <div class="video-aviso-girar" id="videoAvisoGirar" hidden>
+            <span class="video-aviso-girar-icono">📱↻</span>
+            Gira tu teléfono para grabar en horizontal
+          </div>
+        </div>
 
         <div class="video-clase-timer" id="videoClaseTimer" hidden>🔴 00:00</div>
 
@@ -228,7 +246,7 @@
 
     <!-- ---- Modo Cierre ---- -->
     <div id="modoCierre" class="modo" hidden>
-      <div class="reloj-guate">🕐 <span id="relojCierre">--:--</span> (Guatemala)</div>
+      <div class="reloj-guate" id="relojCierre" aria-label="Hora de Guatemala"><span class="reloj-guate-hora">--:--</span><span class="reloj-guate-detalle">🕐 <span class="reloj-guate-ampm"></span> · Guatemala</span></div>
 
       <div class="cierre-despedida">
         <p class="cierre-despedida-titulo">🎉 ¡Gracias por venir hoy!</p>
@@ -265,7 +283,8 @@
 </div>
 
 <script src="sesionmaestra.js"></script>
-<script src="clase.js"></script>
+<script src="temas-fecha.js?v=emojis-rapidos-v2"></script>
+<script src="clase.js?v=video-horizontal-v1"></script>
 <script>
   // Registra el Service Worker y le pide revisar actualizaciones cada vez
   // que se vuelve a esta pantalla (al abrir la app, o al volver a ella

@@ -66,155 +66,8 @@ pointer-events:none;
 50%{ transform:translateY(-25px) translateX(15px); }
 }
 
-/*=====================================
-DECORACIÓN DE TEMPORADA (cumpleaños / halloween / navidad)
-=====================================*/
-
-.tema-decoracion{
-position:fixed;
-inset:0;
-overflow:hidden;
-pointer-events:none;
-z-index:15;
-}
-
-.tema-particula{
-position:absolute;
-top:0;
-line-height:1;
-user-select:none;
-will-change:transform, opacity;
-}
-
-.tema-particula.cae{
-animation-name:temaCae;
-animation-timing-function:linear;
-animation-iteration-count:infinite;
-}
-
-.tema-particula.sube{
-top:auto;
-bottom:0;
-animation-name:temaSube;
-animation-timing-function:linear;
-animation-iteration-count:infinite;
-}
-
-.tema-particula.flota{
-top:50%;
-animation-name:temaFlota;
-animation-timing-function:ease-in-out;
-animation-iteration-count:infinite;
-animation-direction:alternate;
-}
-
-@keyframes temaCae{
-0%{ transform:translateY(-10vh) rotate(0deg); opacity:0; }
-10%{ opacity:.9; }
-90%{ opacity:.9; }
-100%{ transform:translateY(110vh) rotate(360deg); opacity:0; }
-}
-
-@keyframes temaSube{
-0%{ transform:translateY(10vh) rotate(0deg); opacity:0; }
-10%{ opacity:.9; }
-90%{ opacity:.9; }
-100%{ transform:translateY(-110vh) rotate(-15deg); opacity:0; }
-}
-
-@keyframes temaFlota{
-0%{ transform:translate(0,0) rotate(0deg); opacity:.75; }
-100%{ transform:translate(18px,-24px) rotate(10deg); opacity:1; }
-}
-
-.tema-banner{
-display:inline-block;
-margin:0 0 14px;
-padding:8px 18px;
-border-radius:999px;
-font-weight:800;
-font-size:clamp(13px,3.6vw,16px);
-color:#fff;
-}
-
-.tema-banner.back-to-dance{
-background:linear-gradient(90deg,#4cc9f0,#7c3aed);
-}
-
-.tema-banner.carino{
-background:linear-gradient(90deg,#ff6b9d,#e0245e);
-}
-
-.tema-banner.mujer{
-background:linear-gradient(90deg,#9b5de5,#7c3aed);
-}
-
-.tema-banner.danza{
-background:linear-gradient(90deg,#ff72b7,#ffd166);
-}
-
-.tema-banner.madre{
-background:linear-gradient(90deg,#ff9ed2,#ff6b9d);
-}
-
-.tema-banner.padre{
-background:linear-gradient(90deg,#4cc9f0,#2563eb);
-}
-
-.tema-banner.independencia{
-background:linear-gradient(90deg,#0d6efd,#1e3a8a);
-}
-
-.tema-banner.nino{
-background:linear-gradient(90deg,#ff9ed2,#ffd166,#4cc9f0);
-background-size:300% 300%;
-animation:bannerRainbow 4s ease infinite;
-}
-
-.tema-banner.halloween{
-background:linear-gradient(90deg,#ff8a3d,#7c3aed);
-}
-
-.tema-banner.show{
-background:linear-gradient(90deg,#ffd166,#ff72b7);
-}
-
-.tema-banner.navidad{
-background:linear-gradient(90deg,#e53950,#1f9d63);
-}
-
-.tema-banner.cumple{
-background:linear-gradient(90deg,#ff72b7,#ffd166,#06d6a0,#4cc9f0);
-background-size:300% 300%;
-animation:bannerRainbow 4s ease infinite;
-}
-
-@keyframes bannerRainbow{
-0%{ background-position:0% 50%; }
-50%{ background-position:100% 50%; }
-100%{ background-position:0% 50%; }
-}
-
-/* Cada tema define de qué color se pone el brillo de la tarjeta
-   principal mientras esté activo (variable --tema-color), y una sola
-   regla usa esa variable — así no hay que repetir el box-shadow
-   completo para cada uno de los 12 temas. */
-body.tema-back-to-dance{ --tema-color:124,58,237; }
-body.tema-carino{ --tema-color:224,36,94; }
-body.tema-mujer{ --tema-color:155,93,229; }
-body.tema-danza{ --tema-color:255,114,183; }
-body.tema-madre{ --tema-color:255,107,157; }
-body.tema-padre{ --tema-color:37,99,235; }
-body.tema-independencia{ --tema-color:13,110,253; }
-body.tema-nino{ --tema-color:255,159,28; }
-body.tema-halloween{ --tema-color:124,58,237; }
-body.tema-show{ --tema-color:255,209,102; }
-body.tema-navidad{ --tema-color:31,157,99; }
-body.tema-cumple{ --tema-color:255,183,0; }
-
-body[class*="tema-"] .container{
-box-shadow:0 20px 60px rgba(var(--tema-color),.20),0 6px 15px rgba(0,0,0,.05);
-}
+/* Decoración de temporada (fechas especiales): vive en temas-fecha.css,
+   compartido con el Panel de Clase y el Biométrico. */
 
 .container{
 width:92%;
@@ -495,6 +348,144 @@ font-size:clamp(20px,5.5vw,26px);
 font-weight:800;
 color:#ef4b9b;
 margin-bottom:18px;
+}
+
+/*=====================================
+SALUDO SEMANAL + RACHA DE ASISTENCIA (estilo Duolingo)
+=====================================*/
+
+.bloque-saludo-semanal{
+background:linear-gradient(135deg,#fff0f6,#fff8f0);
+border:2px solid #ffd8ea;
+border-radius:20px;
+padding:clamp(14px,4vw,18px);
+margin-bottom:18px;
+box-shadow:0 10px 26px rgba(239,75,155,.14);
+}
+
+.texto-saludo-semanal{
+font-size:clamp(14.5px,4vw,16.5px);
+font-weight:700;
+color:#a15277;
+margin:0;
+line-height:1.4;
+}
+
+.bloque-racha{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:4px;
+background:linear-gradient(135deg,#fff4e8,#fff0f6);
+border:2px solid #ffdfb0;
+border-radius:20px;
+padding:clamp(14px,4vw,18px);
+margin-bottom:18px;
+box-shadow:0 10px 26px rgba(255,159,28,.16);
+}
+
+.racha-numero-fila{
+display:flex;
+align-items:center;
+justify-content:center;
+gap:8px;
+}
+
+.racha-fuego{
+font-size:clamp(26px,7vw,34px);
+line-height:1;
+}
+
+.racha-numero{
+font-size:clamp(30px,8vw,40px);
+font-weight:900;
+color:#ef4b9b;
+line-height:1;
+}
+
+.racha-explicacion{
+font-size:clamp(12px,3.3vw,13.5px);
+font-weight:700;
+color:#a15277;
+text-align:center;
+margin:0;
+}
+
+/*=====================================
+RECONOCIMIENTOS DE MAESTRA A ALUMNA
+(pantalla "Mis reconocimientos", agrupada por año y mes)
+=====================================*/
+
+.reconocimientos-anio-titulo{
+font-size:clamp(16px,4.3vw,18px);
+font-weight:900;
+color:#ef4b9b;
+margin:18px 0 10px;
+text-align:left;
+}
+
+.reconocimientos-anio-titulo:first-child{
+margin-top:0;
+}
+
+.reconocimientos-mes-titulo{
+font-size:clamp(12.5px,3.5vw,14px);
+font-weight:800;
+color:#8a63e8;
+margin:12px 0 8px;
+text-align:left;
+text-transform:capitalize;
+}
+
+.lista-reconocimientos{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.tarjeta-reconocimiento{
+background:#faf7ff;
+border:1px solid #e6d9ff;
+border-radius:14px;
+padding:12px 14px;
+text-align:left;
+}
+
+.tarjeta-reconocimiento-cabecera{
+display:flex;
+justify-content:space-between;
+align-items:baseline;
+gap:8px;
+margin-bottom:4px;
+}
+
+.tarjeta-reconocimiento-maestra{
+font-weight:700;
+font-size:13.5px;
+color:#6b4fa0;
+}
+
+.tarjeta-reconocimiento-fecha{
+font-size:11px;
+font-weight:600;
+color:#9a8bc2;
+white-space:nowrap;
+}
+
+.tarjeta-reconocimiento-mensaje{
+font-size:13.5px;
+color:#444;
+margin:0;
+white-space:pre-line;
+overflow-wrap:anywhere;
+}
+
+.tarjeta-reconocimiento-grupo{
+font-size:11px;
+font-weight:600;
+color:#a889e8;
+margin-top:4px;
 }
 
 /*=====================================
@@ -1401,4 +1392,118 @@ margin:16px 0 8px !important; font-weight:800; color:#a51d5d; font-size:14px;
 .historial-recogida-lista{ display:flex; flex-direction:column; gap:6px; }
 .historial-recogida-fila{
 padding:8px 10px; border-radius:10px; background:#fff; font-size:13px; color:#644b58;
+}
+
+/*=====================================
+EVALUAR A MIS MAESTRAS
+=====================================*/
+
+.eval-pregunta{
+margin-bottom:18px;
+}
+
+.eval-titulo{
+font-size:clamp(15px,4vw,17px);
+font-weight:800;
+color:#ef4b9b;
+}
+
+.eval-ayuda{
+font-size:clamp(12px,3.3vw,14px);
+color:#999;
+font-weight:600;
+margin-bottom:8px;
+}
+
+.eval-caritas{
+display:flex;
+gap:8px;
+}
+
+.eval-carita{
+flex:1;
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:2px;
+border:2px solid #ffe3f0;
+border-radius:14px;
+padding:10px 4px;
+background:white;
+font-family:inherit;
+font-size:clamp(12px,3.3vw,14px);
+font-weight:700;
+color:#777;
+cursor:pointer;
+transition:.15s;
+}
+
+.eval-carita-emoji{
+font-size:clamp(26px,8vw,34px);
+line-height:1.1;
+}
+
+.eval-carita:active{ transform:scale(.96); }
+
+.eval-carita.activo{
+border-color:#ef4b9b;
+background:rgba(239,75,155,.10);
+color:#ef4b9b;
+}
+
+.eval-estrellas{
+display:flex;
+gap:6px;
+justify-content:center;
+margin-top:6px;
+}
+
+.eval-estrella{
+border:none;
+background:none;
+font-size:clamp(34px,10vw,44px);
+line-height:1;
+color:#ffd8ea;
+cursor:pointer;
+transition:.15s;
+}
+
+.eval-estrella.activo{ color:#f5b301; }
+
+.eval-comentario{
+width:100%;
+margin-top:6px;
+}
+
+/* Audios de mis clases: agrupados por mes. El mes actual abierto y los
+   anteriores colapsados (<details>), se abren con un toque. */
+.audios-mes{
+margin-bottom:8px;
+}
+.audios-mes-titulo{
+cursor:pointer;
+list-style:none;
+padding:8px 12px;
+border-radius:12px;
+background:#fff0f7;
+color:#ef4b9b;
+border:2px solid #ffd1e6;
+font-weight:700;
+font-size:clamp(12.5px,3.5vw,14px);
+}
+.audios-mes-titulo::-webkit-details-marker{ display:none; }
+.audios-mes-titulo::after{ content:"▾"; float:right; transition:transform .2s; }
+.audios-mes:not([open]) .audios-mes-titulo::after{ transform:rotate(-90deg); }
+.audios-mes[open] .audios-mes-titulo{ margin-bottom:8px; }
+/* Botones de cada audio y título del mes con alto mínimo de 44 px,
+   para tocarlos fácil con el dedo en el teléfono. */
+.audios-mes-titulo{ min-height:44px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.audios-mes-titulo::after{ margin-left:auto; }
+.audios-mes .video-portal-boton-ver,
+.audios-mes .video-portal-boton-descargar{
+min-height:44px;
+display:inline-flex;
+align-items:center;
+padding-left:14px;
+padding-right:14px;
 }

@@ -15,6 +15,12 @@
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
+// Apagado para la venta en vivo del sábado: el botón de borrar estaba
+// en cada turno no completado (incluidos los reales ya asignados) y
+// con un toque de más se borraba de verdad. Volver a poner en true
+// después de la venta si se necesita limpiar registros de prueba.
+const PERMITIR_BORRAR_TURNOS = false;
+
 let claveAdmin = "";
 let panelActual = null; // último panel cargado, para poder filtrar la lista sin volver a pedirlo
 let pollPanelTimer = null;
@@ -210,6 +216,8 @@ const BADGE_POR_ESTADO_INDIVIDUAL = {
   "Pagado": "badge-completado",
   "Vencido": "badge-vencido",
   "Cancelado": "badge-cancelado",
+  // Pagó, pero sus butacas ya las tenía otra persona — se resuelve a mano.
+  "Pagado - conflicto": "badge-vencido",
 };
 
 function pintarListaComprasIndividuales(compras) {
@@ -272,7 +280,10 @@ function pintarListaTurnos(turnos) {
 
   const filtrados = filtro
     ? turnos.filter(
-        (t) => (t.nombre || "").toLowerCase().includes(filtro) || (t.whatsapp || "").includes(filtro)
+        (t) =>
+          (t.nombre || "").toLowerCase().includes(filtro) ||
+          (t.whatsapp || "").includes(filtro) ||
+          (t.codigo || "").toLowerCase().includes(filtro)
       )
     : turnos;
 
@@ -319,7 +330,7 @@ function pintarListaTurnos(turnos) {
     // Borrar turno — completo, uno por uno, con confirmación. No se
     // deja borrar un turno que ya completó su compra (entradas
     // vendidas de verdad), para no perder ese registro por error.
-    if (t.estado !== "Completado") {
+    if (PERMITIR_BORRAR_TURNOS && t.estado !== "Completado") {
       const btnBorrar = document.createElement("button");
       btnBorrar.type = "button";
       btnBorrar.className = "btn-borrar-turno";

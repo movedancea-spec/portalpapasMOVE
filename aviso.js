@@ -188,7 +188,8 @@ async function enviarRecuperarMaestra() {
   try {
     const datos = await llamarWorker({
       accion: "maestraRecuperarClave",
-      maestraId: maestraSeleccionadaRecuperar.id,
+      // Por nombre: la lista ya no trae IDs (parche de seguridad).
+      nombre: maestraSeleccionadaRecuperar.nombre,
     });
     msg.textContent =
       "✅ Te enviamos tu clave por WhatsApp al número terminado en " +

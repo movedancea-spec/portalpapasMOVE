@@ -8,7 +8,12 @@
 // cada alumna se define desde la tabla "CONFIGURACION PORTAL
 // ALUMNAS" en Airtable, no está escrito a mano aquí.
 
-const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
+// En localhost (prueba local con `wrangler dev`) se habla con el
+// Worker local; en cualquier otro dominio, con el de producción. Así
+// nunca se sube por olvido una URL local.
+const WORKER_URL = ["localhost", "127.0.0.1"].includes(location.hostname)
+  ? "http://localhost:8787"
+  : "https://portalalumnas.movedancea.workers.dev";
 
 // Llave pública VAPID (no es secreta — se usa del lado del navegador
 // para suscribirse a notificaciones push). Con esta MISMA suscripción
@@ -129,141 +134,29 @@ function el(id) {
   return document.getElementById(id);
 }
 
-// ---------- decoración de temporada (un tema por mes, todo el año) ----------
+// ---------- decoración de temporada (fechas especiales) ----------
 
-const EMOJIS_TEMA = {
-  "back-to-dance": ["📚", "🩰", "🎒", "✨", "👟"],
-  carino: ["💕", "❤️", "💌", "🌹", "💗"],
-  mujer: ["💜", "🌷", "✨", "👑", "💪"],
-  danza: ["💃", "🕺", "🎶", "✨", "👯"],
-  madre: ["💐", "🌸", "💖", "🌷", "👩‍👧"],
-  padre: ["👔", "💙", "🎩", "⭐", "👨‍👧"],
-  independencia: ["🇬🇹", "🎆", "🔥", "💙", "🤍"],
-  nino: ["🎈", "🧸", "🎨", "🎠", "🍭"],
-  halloween: ["🎃", "👻", "🕸️", "🦇", "🕷️"],
-  show: ["🎭", "🌟", "✨", "🎬", "👑"],
-  navidad: ["❄️", "🎄", "🎅", "⛄", "🎁"],
-  cumple: ["🎈", "🎉", "🎊", "🍰", "✨"],
-};
-
-// Cómo se mueven las partículas de cada tema: "cae" (bajan, como
-// confeti o nieve), "sube" (suben, como globos) o "flota" (se
-// mecen en su lugar, como fantasmas).
-const ESTILO_PARTICULA = {
-  "back-to-dance": "sube",
-  carino: "cae",
-  mujer: "flota",
-  danza: "flota",
-  madre: "cae",
-  padre: "cae",
-  independencia: "cae",
-  nino: "sube",
-  halloween: "flota",
-  show: "cae",
-  navidad: "cae",
-  cumple: "sube",
-};
-
-const BANNER_TEXTO = {
-  "back-to-dance": "✨ ¡Bienvenidas de vuelta a MOVE!",
-  carino: "💕 ¡Feliz Día del Cariño!",
-  mujer: "💜 ¡Feliz Día de la Mujer!",
-  danza: "💃 ¡Feliz Mes de la Danza!",
-  madre: "💐 ¡Feliz Día de la Madre!",
-  padre: "💙 ¡Feliz Día del Padre!",
-  independencia: "🇬🇹 ¡Feliz Independencia, Guatemala!",
-  nino: "🎈 ¡Feliz Día del Niño!",
-  halloween: "🎃 ¡Feliz Halloween!",
-  show: "🌟 ¡Se viene nuestro Show de Fin de Año! 🌟",
-  navidad: "🎄 ¡Feliz Navidad!",
-};
-
-// Un tema por mes, todo el año. Julio y agosto se quedan sin tema
-// especial (portal normal). Para probar cualquiera sin esperar al mes
-// correcto, se puede abrir la página con ?temaPrueba=nombreDelTema al
-// final del link (por ejemplo ?temaPrueba=danza o ?temaPrueba=cumple)
-// — solo para pruebas, quítalo del link cuando termines de revisar.
-const TEMA_POR_MES = {
-  1: "back-to-dance",
-  2: "carino",
-  3: "mujer",
-  4: "danza",
-  5: "madre",
-  6: "padre",
-  9: "independencia",
-  10: "halloween",
-  11: "show",
-  12: "navidad",
-};
-
-// Excepciones de un solo día dentro de un mes (formato "mes-día"),
-// que interrumpen por ese único día el tema del mes completo. Por
-// ahora solo el 1 de octubre (Día del Niño) interrumpe a Halloween;
-// el resto de octubre sigue siendo Halloween normal.
-const TEMA_POR_DIA_ESPECIFICO = {
-  "10-1": "nino",
-};
+// Las fechas, emojis y letreros viven en temas-fecha.js (compartido con
+// el Panel de Clase y el Biométrico). "Hoy" se calcula en hora de
+// Guatemala, no la del dispositivo. Para probar un tema sin esperar a
+// su fecha: ?temaPrueba=nombreDelTema al final del link.
 
 function obtenerTemaDelDia() {
-  const forzado = new URLSearchParams(window.location.search).get("temaPrueba");
-  if (forzado && EMOJIS_TEMA[forzado]) return forzado;
-
-  const hoy = new Date();
-  const mes = hoy.getMonth() + 1; // 1-12
-  const claveDia = `${mes}-${hoy.getDate()}`;
-
-  return TEMA_POR_DIA_ESPECIFICO[claveDia] || TEMA_POR_MES[mes] || null;
+  return TemasFecha.temaDeHoy();
 }
 
 // Compara solo mes y día (ignora el año) contra la fecha "AAAA-MM-DD"
-// que manda el campo CUMPLEAÑOS.
+// que manda el campo CUMPLEAÑOS, usando el día de hoy en Guatemala.
 function esHoyElCumpleanos(fechaISO) {
-  if (!fechaISO) return false;
-  const partes = fechaISO.split("-");
-  if (partes.length !== 3) return false;
-  const hoy = new Date();
-  return Number(partes[1]) === hoy.getMonth() + 1 && Number(partes[2]) === hoy.getDate();
-}
-
-function limpiarDecoracion() {
-  Object.keys(EMOJIS_TEMA).forEach((t) => document.body.classList.remove("tema-" + t));
-  el("temaDecoracion").innerHTML = "";
-  const banner = el("temaBanner");
-  banner.hidden = true;
-  banner.className = "tema-banner";
+  return TemasFecha.esCumpleHoy(fechaISO);
 }
 
 function aplicarDecoracion(tema, nombre) {
-  limpiarDecoracion();
-  if (!tema) return;
-
-  document.body.classList.add("tema-" + tema);
-
-  const emojis = EMOJIS_TEMA[tema] || [];
-  const cont = el("temaDecoracion");
-  const estilo = ESTILO_PARTICULA[tema] || "cae";
-
-  for (let i = 0; i < 18; i++) {
-    const span = document.createElement("span");
-    span.className = "tema-particula " + estilo;
-    span.textContent = emojis[i % emojis.length];
-    span.style.left = Math.random() * 96 + "%";
-    span.style.fontSize = 1.2 + Math.random() * 1.3 + "rem";
-    span.style.animationDuration = 6 + Math.random() * 8 + "s";
-    span.style.animationDelay = Math.random() * 8 + "s";
-    if (estilo === "flota") {
-      span.style.top = Math.random() * 85 + "%";
-    }
-    cont.appendChild(span);
-  }
-
-  const banner = el("temaBanner");
-  banner.className = "tema-banner " + tema;
-  banner.textContent =
-    tema === "cumple"
-      ? "🎉 ¡Feliz cumpleaños, " + (nombre || "") + "! 🎉"
-      : BANNER_TEXTO[tema] || "";
-  banner.hidden = false;
+  TemasFecha.aplicar(tema, {
+    contenedor: el("temaDecoracion"),
+    banner: el("temaBanner"),
+    nombre,
+  });
 }
 
 function mostrarPantalla(id) {
@@ -276,10 +169,13 @@ function mostrarPantalla(id) {
     "pantallaHistorialPagos",
     "pantallaMensajesAnuncios",
     "pantallaMensajesMaestra",
+    "pantallaReconocimientos",
     "pantallaAvisosEntradas",
     "pantallaInfoImportante",
     "pantallaSelectorMaestra",
     "pantallaChat",
+    "pantallaEvalMaestras",
+    "pantallaEvalForm",
   ];
   pantallas.forEach((p) => {
     el(p).hidden = p !== id;
@@ -297,13 +193,116 @@ function mostrarError(msg) {
   el("mensajeError").textContent = msg || "";
 }
 
+// ==========================================
+// MODO MANTENIMIENTO
+// ==========================================
+// Recepción puede cerrar el portal ("Mantenimiento" o "Mejoras"). El
+// Worker responde 503 con { mantenimiento: true } a CUALQUIER acción
+// del portal, así que basta con revisarlo aquí: tanto al abrir la
+// página como en la siguiente acción de quien ya tenía sesión, se
+// tapa todo con la pantalla de aviso.
+//
+// Acceso de prueba: Recepción (ya autenticada, mismo dominio) guarda
+// una ficha firmada por el Worker en localStorage; se manda en cada
+// llamada y el Worker la verifica. Vence sola a las 12 horas.
+const LLAVE_ACCESO_PRUEBA_PORTAL = "move_acceso_prueba_portal";
+
+function leerAccesoPruebaPortal() {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(LLAVE_ACCESO_PRUEBA_PORTAL) || "null");
+    if (!guardado || !guardado.ficha || Date.now() > Number(guardado.expira)) {
+      localStorage.removeItem(LLAVE_ACCESO_PRUEBA_PORTAL);
+      return "";
+    }
+    return guardado.ficha;
+  } catch (e) {
+    return "";
+  }
+}
+
+const TEXTOS_MANTENIMIENTO = {
+  Mantenimiento: {
+    icono: "🔧",
+    titulo: "Estamos dando mantenimiento al portal 🔧",
+    texto: "Vuelve a intentarlo en un ratito 💕",
+  },
+  Mejoras: {
+    icono: "✨",
+    titulo: "¡Estamos preparando algo nuevo para ti! ✨",
+    texto: "El portal regresa muy pronto 💃",
+  },
+};
+
+function mostrarAvisoMantenimiento(estado, mensaje) {
+  const t = TEXTOS_MANTENIMIENTO[estado] || TEXTOS_MANTENIMIENTO.Mantenimiento;
+  let capa = document.getElementById("avisoMantenimientoPortal");
+  if (!capa) {
+    const estilo = document.createElement("style");
+    estilo.textContent = `
+      #avisoMantenimientoPortal{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+        padding:24px 16px;background:linear-gradient(160deg,#fff0f7 0%,#ffd6ea 55%,#ffc2df 100%);
+        font-family:"Poppins",system-ui,sans-serif;text-align:center;overflow-y:auto}
+      #avisoMantenimientoPortal .aviso-mant-caja{max-width:420px;width:100%;background:#fff;border-radius:24px;
+        padding:32px 24px;box-shadow:0 12px 40px rgba(239,75,155,.25)}
+      #avisoMantenimientoPortal img{width:96px;height:auto;margin:0 auto 12px;display:block}
+      #avisoMantenimientoPortal .aviso-mant-marca{margin:0 0 18px;font-weight:700;letter-spacing:.08em;color:#ef4b9b;font-size:.8rem}
+      #avisoMantenimientoPortal .aviso-mant-icono{font-size:3rem;margin:0 0 8px}
+      #avisoMantenimientoPortal h1{font-size:1.3rem;line-height:1.35;margin:0 0 10px;color:#2b2b2b}
+      #avisoMantenimientoPortal .aviso-mant-texto{margin:0 0 14px;color:#555;font-size:1rem}
+      #avisoMantenimientoPortal .aviso-mant-extra{margin:0 0 18px;padding:10px 14px;border-radius:14px;
+        background:#fff0f7;color:#e0245e;font-weight:600}
+      #avisoMantenimientoPortal button{border:0;border-radius:999px;padding:14px 28px;font:inherit;font-weight:700;
+        color:#fff;background:linear-gradient(90deg,#ff6b9d,#e0245e);cursor:pointer;width:100%}`;
+    document.head.appendChild(estilo);
+    capa = document.createElement("div");
+    capa.id = "avisoMantenimientoPortal";
+    capa.setAttribute("role", "alert");
+    document.body.appendChild(capa);
+  }
+  capa.innerHTML = "";
+  const caja = document.createElement("div");
+  caja.className = "aviso-mant-caja";
+  const logo = document.createElement("img");
+  logo.src = "logo.png";
+  logo.alt = "Move Dance Academy";
+  const marca = document.createElement("p");
+  marca.className = "aviso-mant-marca";
+  marca.textContent = "MOVE DANCE ACADEMY";
+  const icono = document.createElement("p");
+  icono.className = "aviso-mant-icono";
+  icono.textContent = t.icono;
+  const titulo = document.createElement("h1");
+  titulo.textContent = t.titulo;
+  const texto = document.createElement("p");
+  texto.className = "aviso-mant-texto";
+  texto.textContent = t.texto;
+  caja.append(logo, marca, icono, titulo, texto);
+  if (mensaje) {
+    const extra = document.createElement("p");
+    extra.className = "aviso-mant-extra";
+    extra.textContent = mensaje;
+    caja.appendChild(extra);
+  }
+  const boton = document.createElement("button");
+  boton.type = "button";
+  boton.textContent = "Intentar de nuevo";
+  boton.addEventListener("click", () => window.location.reload());
+  caja.appendChild(boton);
+  capa.appendChild(caja);
+}
+
 async function llamarWorker(payload) {
+  const accesoPrueba = leerAccesoPruebaPortal();
   const res = await fetch(WORKER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(accesoPrueba ? { ...payload, accesoPruebaPortal: accesoPrueba } : payload),
   });
   const datos = await res.json();
+  if (datos.mantenimiento) {
+    mostrarAvisoMantenimiento(datos.estado, datos.mensaje);
+    throw new Error(datos.error || "El portal no está disponible en este momento.");
+  }
   if (!datos.success) {
     throw new Error(datos.error || "Ocurrió un error inesperado.");
   }
@@ -492,6 +491,10 @@ function mostrarPerfilDesdeDatos(datos) {
   // perfil. Ver sección "NOTIFICACIONES PUSH" más abajo.
   actualizarBloqueNotificacionesPush();
 
+  // Igual, en segundo plano: el botón de evaluar maestras solo aparece
+  // si Recepción tiene la evaluación encendida.
+  actualizarBotonEvaluarMaestras();
+
   // Los Mensajes de Recepción y los Avisos de la maestra ya NO se
   // muestran solos al entrar — quedan detrás de sus propios botones
   // ("📢 Mensajes de Recepción" / "👩‍🏫 Mensajes de tu maestra"), cada
@@ -504,6 +507,223 @@ function mostrarPerfilDesdeDatos(datos) {
   // El panel de ingresos del mes se arma plegado (no pide datos al
   // Worker hasta que lo abran) — ver sección más abajo.
   cargarAsistenciaMes();
+
+  // Saludo de bienvenida + racha: igual que las notificaciones push y
+  // el botón de evaluar, en segundo plano (sin "await") para no
+  // retrasar que se vea el perfil. Los reconocimientos ya NO se piden
+  // aquí — viven detrás de su propio botón "💗 Mis reconocimientos"
+  // (ver sección más abajo), igual que Mensajes de Recepción/maestra.
+  cargarResumenAsistencia();
+}
+
+// ==========================================
+// SALUDO SEMANAL + RACHA DE ASISTENCIA (estilo Duolingo)
+// Piden juntos en una sola llamada al Worker (obtenerResumenAsistencia)
+// porque las dos vistas salen del mismo historial de asistencia. La
+// racha se calcula en semanas (lunes a sábado, hora Guatemala)
+// consecutivas con al menos una clase — ver el comentario de la
+// regla completa junto a obtenerResumenAsistencia en el Worker.
+//
+// El saludo se elige al azar entre varias variantes cada vez que entra
+// al portal (una lista si ya vino esta semana, otra si todavía no),
+// para que no se sienta repetitivo.
+// ==========================================
+const SALUDOS_CON_CLASE = [
+  (nombre, n, s) => `¡Hola ${nombre}! Esta semana ya llevas ${n} clase${s} 💪 ¡Sigue así!`,
+  (nombre, n, s) => `¡${nombre}, qué constancia! Ya son ${n} clase${s} esta semana 🌟`,
+  (nombre, n, s) => `Esta semana llevas ${n} clase${s}, ${nombre} — se nota tu esfuerzo 💗`,
+  (nombre, n, s) => `¡${n} clase${s} esta semana, ${nombre}! Así se hace 🩰`,
+  (nombre, n, s) => `¡Vas increíble, ${nombre}! ${n} clase${s} esta semana y contando 🔥`,
+];
+
+const SALUDOS_SIN_CLASE = [
+  (nombre) => `¡Hola ${nombre}! Te esperamos esta semana 🩰`,
+  (nombre) => `${nombre}, esta semana te extrañamos en clase — ¡nos vemos pronto! 💗`,
+  (nombre) => `¡Hola ${nombre}! Todavía hay tiempo esta semana para venir a bailar 💃`,
+  (nombre) => `${nombre}, te esperamos con los brazos abiertos esta semana 🌸`,
+  (nombre) => `¡Hola ${nombre}! Esta semana es perfecta para venir a movernos juntas ✨`,
+];
+
+function elegirSaludoSemanal(primerNombre, clasesSemana) {
+  if (clasesSemana > 0) {
+    const plantilla = SALUDOS_CON_CLASE[Math.floor(Math.random() * SALUDOS_CON_CLASE.length)];
+    return plantilla(primerNombre, clasesSemana, clasesSemana === 1 ? "" : "s");
+  }
+  const plantilla = SALUDOS_SIN_CLASE[Math.floor(Math.random() * SALUDOS_SIN_CLASE.length)];
+  return plantilla(primerNombre);
+}
+
+async function cargarResumenAsistencia() {
+  const bloque = el("bloqueSaludoSemanal");
+  if (!alumnaSeleccionada) {
+    bloque.hidden = true;
+    return;
+  }
+  const alumnaDeEstaConsulta = alumnaSeleccionada.id;
+  const primerNombre = (alumnaSeleccionada.nombre || "").split(" ")[0] || alumnaSeleccionada.nombre || "";
+
+  try {
+    const datos = await llamarWorker({
+      accion: "obtenerResumenAsistencia",
+      alumnaId: alumnaDeEstaConsulta,
+    });
+    // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
+    if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
+
+    el("textoSaludoSemanal").textContent = elegirSaludoSemanal(primerNombre, datos.clasesSemana);
+    bloque.hidden = false;
+
+    const bloqueRacha = el("bloqueRacha");
+    if (datos.racha > 0) {
+      el("rachaNumero").textContent = datos.racha;
+      el("rachaExplicacion").textContent =
+        datos.racha === 1
+          ? "semana seguida de asistencia, sin faltar ninguna"
+          : "semanas seguidas de asistencia, sin faltar ninguna";
+      bloqueRacha.hidden = false;
+    } else {
+      bloqueRacha.hidden = true;
+    }
+  } catch (e) {
+    bloque.hidden = true;
+  }
+}
+
+// ==========================================
+// RECONOCIMIENTOS DE MAESTRA A ALUMNA
+// Viven detrás del botón "💗 Mis reconocimientos" (igual que Mensajes
+// de Recepción/maestra) — TODO el historial, agrupado por año (el
+// actual arriba) y dentro de cada año por mes (el más reciente
+// arriba). El Worker borra solo, cada día, los reconocimientos de un
+// año que ya cerró (ver limpiarReconocimientosAnioAnterior en
+// worker.js), así que en la práctica aquí casi siempre se ve un solo
+// año — pero el agrupado queda listo por si algún borrado se atrasa.
+// ==========================================
+el("btnMisReconocimientos").addEventListener("click", abrirReconocimientos);
+el("btnAtrasReconocimientos").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
+
+const MESES_RECONOCIMIENTOS = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+function formatearFechaReconocimiento(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("es-GT", {
+      timeZone: "America/Guatemala",
+      day: "numeric",
+      month: "short",
+    });
+  } catch (e) {
+    return "";
+  }
+}
+
+// Año y mes (1-12) del calendario de Guatemala para una fecha ISO —
+// para agrupar, no basta con new Date(iso).getFullYear()/getMonth()
+// porque esos usan la hora local del navegador, no la de Guatemala.
+function anioMesGuatemala(iso) {
+  const partes = new Date(iso).toLocaleDateString("en-CA", {
+    timeZone: "America/Guatemala",
+    year: "numeric",
+    month: "numeric",
+  });
+  const [anio, mes] = partes.split("-").map(Number);
+  return { anio, mes };
+}
+
+function crearTarjetaReconocimiento(r) {
+  const caja = document.createElement("div");
+  caja.className = "tarjeta-reconocimiento";
+
+  const cabecera = document.createElement("div");
+  cabecera.className = "tarjeta-reconocimiento-cabecera";
+
+  const maestra = document.createElement("span");
+  maestra.className = "tarjeta-reconocimiento-maestra";
+  maestra.textContent = "👩‍🏫 " + (r.maestra || "Tu maestra");
+  cabecera.appendChild(maestra);
+
+  const fecha = document.createElement("span");
+  fecha.className = "tarjeta-reconocimiento-fecha";
+  fecha.textContent = formatearFechaReconocimiento(r.fecha);
+  cabecera.appendChild(fecha);
+
+  caja.appendChild(cabecera);
+
+  const mensaje = document.createElement("p");
+  mensaje.className = "tarjeta-reconocimiento-mensaje";
+  mensaje.textContent = r.mensaje;
+  caja.appendChild(mensaje);
+
+  if (r.grupo) {
+    const grupo = document.createElement("p");
+    grupo.className = "tarjeta-reconocimiento-grupo";
+    grupo.textContent = r.grupo;
+    caja.appendChild(grupo);
+  }
+
+  return caja;
+}
+
+function renderReconocimientosAgrupados(reconocimientos) {
+  const cont = el("listaReconocimientos");
+  cont.innerHTML = "";
+
+  if (!reconocimientos.length) {
+    cont.innerHTML = '<p class="lista-alumnas-aviso">Todavía no tienes reconocimientos de tus maestras.</p>';
+    return;
+  }
+
+  // Ya vienen del Worker más recientes primero; solo hay que partirlos
+  // en grupos consecutivos por año y luego por mes, sin volver a ordenar.
+  const porAnio = new Map();
+  reconocimientos.forEach((r) => {
+    const { anio, mes } = anioMesGuatemala(r.fecha);
+    if (!porAnio.has(anio)) porAnio.set(anio, new Map());
+    const porMes = porAnio.get(anio);
+    if (!porMes.has(mes)) porMes.set(mes, []);
+    porMes.get(mes).push(r);
+  });
+
+  porAnio.forEach((porMes, anio) => {
+    const tituloAnio = document.createElement("p");
+    tituloAnio.className = "reconocimientos-anio-titulo";
+    tituloAnio.textContent = String(anio);
+    cont.appendChild(tituloAnio);
+
+    porMes.forEach((delMes, mes) => {
+      const tituloMes = document.createElement("p");
+      tituloMes.className = "reconocimientos-mes-titulo";
+      tituloMes.textContent = MESES_RECONOCIMIENTOS[mes - 1] || "";
+      cont.appendChild(tituloMes);
+
+      const lista = document.createElement("div");
+      lista.className = "lista-reconocimientos";
+      delMes.forEach((r) => lista.appendChild(crearTarjetaReconocimiento(r)));
+      cont.appendChild(lista);
+    });
+  });
+}
+
+async function abrirReconocimientos() {
+  mostrarPantalla("pantallaReconocimientos");
+  const cont = el("listaReconocimientos");
+  cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
+
+  if (!alumnaSeleccionada || !alumnaSeleccionada.id) {
+    cont.innerHTML = "";
+    return;
+  }
+
+  try {
+    const datos = await llamarWorker({ accion: "reconocimientosDeAlumna", alumnaId: alumnaSeleccionada.id });
+    renderReconocimientosAgrupados(datos.reconocimientos || []);
+  } catch (e) {
+    cont.innerHTML = "";
+    mostrarError(e.message);
+  }
 }
 
 // ==========================================
@@ -1465,8 +1685,7 @@ function renderBotonCodigoRecogida(datos) {
         accion: "generarCodigoRecogida",
         alumnaId: alumnaSeleccionada.id,
       };
-      if (modoFamilia) payload.claveFamiliar = claveFamiliarActual;
-      else payload.clave = claveActual;
+      Object.assign(payload, credencialesAlumna());
 
       if (fotoRecogidaSeleccionada) {
         payload.fotoBase64 = await leerArchivoBase64(fotoRecogidaSeleccionada);
@@ -1565,6 +1784,62 @@ function renderBotonObjetivosMensuales(objetivosMensuales) {
 // clases" — SOLO si al menos una de sus clases tiene algún video
 // subido desde el Panel de Clase. Agrupa los videos por clase, igual
 // que el objetivo mensual.
+// Audios del año agrupados por mes, el más nuevo primero. El Worker
+// manda "mes" ('YYYY-MM', hora de Guatemala) en cada audio; si no
+// viniera, se calcula aquí con la misma zona horaria. Queda abierto el
+// mes actual (o, si no tiene audios, el más reciente que sí tenga) y
+// los demás colapsados (<details>: se abren con un toque, sin JS extra).
+const NOMBRES_MES_AUDIOS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+function mesClaveGuatemala(fecha) {
+  const partes = {};
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guatemala", year: "numeric", month: "2-digit" })
+    .formatToParts(new Date(fecha))
+    .forEach((p) => {
+      partes[p.type] = p.value;
+    });
+  return `${partes.year}-${partes.month}`;
+}
+
+function agruparAudiosPorMes(audios) {
+  const porMes = new Map();
+  (audios || []).forEach((a) => {
+    const mes = a.mes || mesClaveGuatemala(a.fecha);
+    if (!porMes.has(mes)) porMes.set(mes, []);
+    porMes.get(mes).push(a);
+  });
+  const meses = [...porMes.entries()]
+    .sort((x, y) => y[0].localeCompare(x[0]))
+    .map(([mes, lista]) => ({
+      mes,
+      audios: lista.sort((x, y) => new Date(y.fecha) - new Date(x.fecha)),
+      abierto: false,
+    }));
+  // Se abre el mes actual; si este mes todavía no tiene audios, el más
+  // reciente que sí tenga (el primero, porque van del más nuevo al más viejo).
+  const actual = meses.find((m) => m.mes === mesClaveGuatemala(new Date()));
+  if (actual) actual.abierto = true;
+  else if (meses.length) meses[0].abierto = true;
+  return meses;
+}
+
+function crearBloqueMesAudios(mes, cantidad, abierto) {
+  const bloque = document.createElement("details");
+  bloque.className = "audios-mes";
+  bloque.open = !!abierto;
+  const resumen = document.createElement("summary");
+  resumen.className = "audios-mes-titulo";
+  const nombreMes = NOMBRES_MES_AUDIOS[Number(mes.split("-")[1]) - 1] || mes;
+  resumen.textContent = `📅 ${nombreMes} · ${cantidad} ${cantidad === 1 ? "audio" : "audios"}`;
+  const lista = document.createElement("div");
+  lista.className = "videos-clase-grupo-lista";
+  bloque.append(resumen, lista);
+  return { bloque, lista };
+}
+
 function formatearFechaHoraVideoPortal(iso) {
   if (!iso) return "";
   try {
@@ -1675,40 +1950,40 @@ function renderBotonAudiosClase(audiosPorClase) {
     titulo.textContent = grupo.clase ? `🎵 ${grupo.clase}` : "🎵 Audios";
     bloqueGrupo.appendChild(titulo);
 
-    const lista = document.createElement("div");
-    lista.className = "videos-clase-grupo-lista";
+    agruparAudiosPorMes(grupo.audios).forEach(({ mes, audios, abierto }) => {
+      const { bloque, lista } = crearBloqueMesAudios(mes, audios.length, abierto);
+      audios.forEach((a) => {
+        const fila = document.createElement("div");
+        fila.className = "video-portal-fila";
 
-    grupo.audios.forEach((a) => {
-      const fila = document.createElement("div");
-      fila.className = "video-portal-fila";
+        const info = document.createElement("span");
+        info.className = "video-portal-fila-info";
+        info.textContent = `🎵 ${formatearFechaHoraVideoPortal(a.fecha)} · ${a.tamanoMB} MB`;
+        fila.appendChild(info);
 
-      const info = document.createElement("span");
-      info.className = "video-portal-fila-info";
-      info.textContent = `🎵 ${formatearFechaHoraVideoPortal(a.fecha)} · ${a.tamanoMB} MB`;
-      fila.appendChild(info);
+        const botones = document.createElement("div");
+        botones.className = "video-portal-fila-botones";
 
-      const botones = document.createElement("div");
-      botones.className = "video-portal-fila-botones";
+        const escucharLink = document.createElement("a");
+        escucharLink.className = "video-portal-boton-ver";
+        escucharLink.href = a.url;
+        escucharLink.target = "_blank";
+        escucharLink.rel = "noopener";
+        escucharLink.textContent = "▶ Escuchar";
+        botones.appendChild(escucharLink);
 
-      const escucharLink = document.createElement("a");
-      escucharLink.className = "video-portal-boton-ver";
-      escucharLink.href = a.url;
-      escucharLink.target = "_blank";
-      escucharLink.rel = "noopener";
-      escucharLink.textContent = "▶ Escuchar";
-      botones.appendChild(escucharLink);
+        const descargarLink = document.createElement("a");
+        descargarLink.className = "video-portal-boton-descargar";
+        descargarLink.href = a.urlDescarga;
+        descargarLink.textContent = "⬇ Descargar";
+        botones.appendChild(descargarLink);
 
-      const descargarLink = document.createElement("a");
-      descargarLink.className = "video-portal-boton-descargar";
-      descargarLink.href = a.urlDescarga;
-      descargarLink.textContent = "⬇ Descargar";
-      botones.appendChild(descargarLink);
-
-      fila.appendChild(botones);
-      lista.appendChild(fila);
+        fila.appendChild(botones);
+        lista.appendChild(fila);
+      });
+      bloqueGrupo.appendChild(bloque);
     });
 
-    bloqueGrupo.appendChild(lista);
     panel.appendChild(bloqueGrupo);
   });
 }
@@ -3370,6 +3645,13 @@ function renderListaMaestrasChat(maestras) {
   });
 }
 
+// Clave con la que se entró (de la alumna o la familiar), para las
+// acciones del Worker que confirman que quien pregunta es su familia
+// (código de recogida, maestras de la alumna, evaluación de maestras).
+function credencialesAlumna() {
+  return modoFamilia ? { claveFamiliar: claveFamiliarActual } : { clave: claveActual };
+}
+
 async function abrirSelectorMaestra() {
   mostrarPantalla("pantallaSelectorMaestra");
   el("listaMaestrasChat").innerHTML = '<p class="lista-alumnas-aviso">Cargando maestras...</p>';
@@ -3377,6 +3659,7 @@ async function abrirSelectorMaestra() {
     const datos = await llamarWorker({
       accion: "maestrasDeAlumna",
       alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
     });
     renderListaMaestrasChat(datos.maestras || []);
   } catch (e) {
@@ -3640,6 +3923,182 @@ el("chatInput").addEventListener("keydown", (e) => {
     enviarMensajeChat();
   }
 });
+
+// ==========================================
+// EVALUAR A MIS MAESTRAS (las alumnas evalúan a sus maestras)
+// ==========================================
+// Recepción enciende/apaga esto con un interruptor global; cada vez que
+// lo enciende se abre una RONDA nueva. El Worker decide qué maestras le
+// faltan a esta alumna en la ronda en curso (una evaluación por maestra
+// por ronda), y también valida todo otra vez al guardar — esta pantalla
+// solo es la cara bonita.
+
+const CRITERIOS_EVAL_MAESTRAS = [
+  { clave: "puntualidad", titulo: "Puntualidad", ayuda: "¿Llega a tiempo a la clase?" },
+  { clave: "explicaClaro", titulo: "Explica claro", ayuda: "¿Se entienden los pasos y las correcciones?" },
+  { clave: "paciencia", titulo: "Paciencia", ayuda: "¿Cómo trata a las alumnas cuando algo no sale?" },
+  { clave: "motiva", titulo: "Motiva", ayuda: "¿Hace que quieras seguir intentando?" },
+  { clave: "ambiente", titulo: "Ambiente de la clase", ayuda: "¿Se siente divertida, segura y cómoda?" },
+  { clave: "atencionIndividual", titulo: "Atención individual", ayuda: "¿Se nota que te pone cuidado a ti?" },
+  { clave: "organizacionTiempo", titulo: "Organización del tiempo", ayuda: "¿La clase se siente bien aprovechada?" },
+  { clave: "disciplina", titulo: "Disciplina y control del grupo", ayuda: "¿Mantiene el orden sin ser dura de más?" },
+];
+
+// Caritas → 1/3/5, para que se puedan comparar en Airtable con la
+// calificación general de 1 a 5 estrellas.
+const CARITAS_EVAL = [
+  { valor: 1, emoji: "😞", texto: "Mal" },
+  { valor: 3, emoji: "😐", texto: "Regular" },
+  { valor: 5, emoji: "😊", texto: "Bien" },
+];
+
+let maestraEnEvaluacion = null;
+let respuestasEval = {};
+
+async function actualizarBotonEvaluarMaestras() {
+  const btn = el("btnEvaluarMaestras");
+  btn.hidden = true;
+  if (!alumnaSeleccionada) return;
+  const alumnaDeEstaConsulta = alumnaSeleccionada.id;
+  try {
+    const datos = await llamarWorker({
+      accion: "evaluacionMaestrasEstado",
+      alumnaId: alumnaDeEstaConsulta,
+      ...credencialesAlumna(),
+    });
+    // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
+    if (alumnaSeleccionada && alumnaSeleccionada.id === alumnaDeEstaConsulta) {
+      btn.hidden = !datos.activa;
+    }
+  } catch (e) {
+    btn.hidden = true;
+  }
+}
+
+async function abrirEvalMaestras() {
+  mostrarPantalla("pantallaEvalMaestras");
+  const cont = el("listaEvalMaestras");
+  cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando maestras...</p>';
+  try {
+    const datos = await llamarWorker({
+      accion: "evaluacionMaestrasEstado",
+      alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
+    });
+    cont.innerHTML = "";
+    if (!datos.activa) {
+      cont.innerHTML = '<p class="lista-alumnas-aviso">La evaluación ya no está disponible.</p>';
+      el("btnEvaluarMaestras").hidden = true;
+      return;
+    }
+    if (!datos.maestras.length) {
+      cont.innerHTML = '<p class="lista-alumnas-aviso">¡Listo! Ya evaluaste a todas tus maestras 💗 ¡Gracias!</p>';
+      return;
+    }
+    datos.maestras.forEach((m) => {
+      const btn = document.createElement("button");
+      btn.textContent = m.nombre;
+      btn.addEventListener("click", () => abrirFormEval(m));
+      cont.appendChild(btn);
+    });
+  } catch (e) {
+    cont.innerHTML = "";
+    mostrarError(e.message);
+  }
+}
+
+function abrirFormEval(maestra) {
+  maestraEnEvaluacion = maestra;
+  respuestasEval = {};
+  el("evalFormTitulo").textContent = "⭐ " + maestra.nombre;
+  el("evalComentario").value = "";
+
+  const cont = el("evalCriterios");
+  cont.innerHTML = "";
+  CRITERIOS_EVAL_MAESTRAS.forEach((c) => {
+    const bloque = document.createElement("div");
+    bloque.className = "eval-pregunta";
+    const titulo = document.createElement("p");
+    titulo.className = "eval-titulo";
+    titulo.textContent = c.titulo;
+    const ayuda = document.createElement("p");
+    ayuda.className = "eval-ayuda";
+    ayuda.textContent = c.ayuda;
+    const fila = document.createElement("div");
+    fila.className = "eval-caritas";
+    CARITAS_EVAL.forEach((car) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "eval-carita";
+      b.innerHTML = `<span class="eval-carita-emoji">${car.emoji}</span><span>${car.texto}</span>`;
+      b.addEventListener("click", () => {
+        respuestasEval[c.clave] = car.valor;
+        fila.querySelectorAll(".eval-carita").forEach((x) => x.classList.remove("activo"));
+        b.classList.add("activo");
+      });
+      fila.appendChild(b);
+    });
+    bloque.append(titulo, ayuda, fila);
+    cont.appendChild(bloque);
+  });
+
+  const estrellas = el("evalGeneral");
+  estrellas.innerHTML = "";
+  for (let n = 1; n <= 5; n++) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "eval-estrella";
+    b.textContent = "★";
+    b.setAttribute("aria-label", n + " de 5 estrellas");
+    b.addEventListener("click", () => {
+      respuestasEval.general = n;
+      estrellas.querySelectorAll(".eval-estrella").forEach((x, i) => {
+        x.classList.toggle("activo", i < n);
+      });
+    });
+    estrellas.appendChild(b);
+  }
+
+  mostrarPantalla("pantallaEvalForm");
+  window.scrollTo({ top: 0 });
+}
+
+async function enviarEvaluacionMaestra() {
+  const faltan = CRITERIOS_EVAL_MAESTRAS.some((c) => !respuestasEval[c.clave]) || !respuestasEval.general;
+  if (faltan) {
+    mostrarError("Falta contestar todas las preguntas y elegir la calificación general ⭐");
+    return;
+  }
+  const btn = el("btnEnviarEvaluacion");
+  btn.disabled = true;
+  btn.textContent = "Enviando...";
+  try {
+    const criterios = {};
+    CRITERIOS_EVAL_MAESTRAS.forEach((c) => {
+      criterios[c.clave] = respuestasEval[c.clave];
+    });
+    await llamarWorker({
+      accion: "guardarEvaluacionMaestra",
+      alumnaId: alumnaSeleccionada.id,
+      maestraId: maestraEnEvaluacion.id,
+      criterios,
+      general: respuestasEval.general,
+      comentario: el("evalComentario").value.trim(),
+    });
+    maestraEnEvaluacion = null;
+    abrirEvalMaestras();
+  } catch (e) {
+    mostrarError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Enviar evaluación";
+  }
+}
+
+el("btnEvaluarMaestras").addEventListener("click", abrirEvalMaestras);
+el("btnAtrasEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
+el("btnAtrasEvalForm").addEventListener("click", abrirEvalMaestras);
+el("btnEnviarEvaluacion").addEventListener("click", enviarEvaluacionMaestra);
 
 // ---------- arranque ----------
 iniciar();

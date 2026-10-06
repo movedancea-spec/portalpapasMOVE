@@ -1,0 +1,107 @@
+/* ===================================================
+   MOVE — MIS EVALUACIONES (Portal de Maestras)
+   Se apoya en aviso.css (logo, contenedor, botones, login).
+=================================================== */
+
+.mis-eval-ronda{
+font-size:clamp(18px,5vw,22px);
+font-weight:800;
+color:#ef4b9b;
+margin:22px 0 2px;
+}
+
+.mis-eval-resumen{
+font-size:clamp(13px,3.6vw,15px);
+font-weight:700;
+color:#777;
+margin-bottom:12px;
+}
+
+.mis-eval-promedios{
+border:2px solid #ffe3f0;
+background:white;
+border-radius:14px;
+padding:12px 14px;
+margin-bottom:12px;
+}
+
+.mis-eval-prom-fila{
+display:flex;
+align-items:center;
+gap:8px;
+margin:6px 0;
+font-size:clamp(12px,3.4vw,14px);
+color:#555;
+font-weight:600;
+}
+
+.mis-eval-prom-nombre{ flex:0 0 42%; }
+
+.mis-eval-barra{
+flex:1;
+height:8px;
+border-radius:8px;
+background:#ffe3f0;
+overflow:hidden;
+}
+
+.mis-eval-barra-relleno{
+display:block;
+height:100%;
+background:linear-gradient(90deg,#ff72b7,#ef4b9b);
+}
+
+.mis-eval-prom-valor{
+flex:0 0 28px;
+text-align:right;
+font-weight:800;
+color:#ef4b9b;
+}
+
+.mis-eval-tarjeta{
+border:2px solid #ffe3f0;
+background:white;
+border-radius:14px;
+padding:10px 14px;
+margin-bottom:8px;
+}
+
+.mis-eval-cabecera{
+display:flex;
+justify-content:space-between;
+gap:8px;
+flex-wrap:wrap;
+}
+
+.mis-eval-estrellas{
+color:#f5b301;
+font-weight:800;
+}
+
+.mis-eval-grupo{
+color:#999;
+font-weight:700;
+font-size:clamp(12px,3.3vw,13px);
+}
+
+.mis-eval-criterios{
+font-size:clamp(12px,3.3vw,13px);
+color:#888;
+margin-top:6px;
+line-height:1.5;
+}
+
+.mis-eval-comentario{
+font-size:clamp(13px,3.5vw,14px);
+color:#555;
+margin-top:6px;
+font-style:italic;
+}
+
+.lista-vacia{
+color:#999;
+font-size:clamp(13px,3.5vw,15px);
+font-weight:600;
+text-align:center;
+margin-top:20px;
+}

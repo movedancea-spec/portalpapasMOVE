@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=show1" />
+<link rel="stylesheet" href="recepcion.css?v=alumnas-show-v1" />
 </head>
 <body>
 
@@ -65,6 +65,18 @@
         <span class="btn-menu-icono">💬</span>
         <span class="btn-menu-texto">Canal de chat</span>
       </button>
+      <button class="btn-menu" id="btnMenuEvalMaestras" type="button">
+        <span class="btn-menu-icono">⭐</span>
+        <span class="btn-menu-texto">Evaluación de maestras</span>
+      </button>
+      <button class="btn-menu" id="btnMenuEstadoPortal" type="button">
+        <span class="btn-menu-icono">🚦</span>
+        <span class="btn-menu-texto">Estado del portal de alumnas</span>
+      </button>
+      <button class="btn-menu" id="btnMenuVentaEntradas" type="button">
+        <span class="btn-menu-icono">🎟️</span>
+        <span class="btn-menu-texto">Venta de entradas</span>
+      </button>
       <button class="btn-menu" id="btnMenuAnuncios" type="button">
         <span class="btn-menu-icono">📢</span>
         <span class="btn-menu-texto">Anuncios</span>
@@ -72,6 +84,14 @@
       <button class="btn-menu" id="btnMenuAvisoImportante" type="button">
         <span class="btn-menu-icono">📋</span>
         <span class="btn-menu-texto">Información importante</span>
+      </button>
+      <button class="btn-menu" id="btnMenuExtranamos" type="button">
+        <span class="btn-menu-icono">💗</span>
+        <span class="btn-menu-texto">Las extrañamos</span>
+      </button>
+      <button class="btn-menu" id="btnMenuFeriados" type="button">
+        <span class="btn-menu-icono">📅</span>
+        <span class="btn-menu-texto">Días feriados</span>
       </button>
       <button class="btn-menu" id="btnMenuShow" type="button">
         <span class="btn-menu-icono">🎭</span>
@@ -254,22 +274,111 @@
     <p class="mensaje-form" id="mensajeCanalAsistencia"></p>
   </section>
 
-  <!-- ============ PANTALLA: CANAL DE CHAT (interruptor global) ============ -->
+  <!-- ============ PANTALLA: CANAL DE CHAT (interruptor global + uno por maestra) ============ -->
   <section id="pantallaCanalChat" class="pantalla" hidden>
     <div class="barra-superior">
       <button class="btn-volver" id="btnVolverCanalChat" type="button">← Menú</button>
       <span class="barra-titulo">💬 Canal de chat</span>
     </div>
 
-    <p class="subtitulo">¿Por dónde le llega a TODAS las maestras y familias el aviso de mensaje nuevo del Chat de Maestras?</p>
+    <p class="subtitulo">General: ¿por dónde le llega a las familias (y a las maestras sin canal propio) el aviso de mensaje nuevo del Chat de Maestras?</p>
     <p class="pista-campo">
-      Esto es un solo interruptor para toda la academia — no se elige por maestra ni por alumna. El cambio aplica de inmediato.
+      Es un solo interruptor para todas las familias — no se elige por alumna. Las maestras lo siguen también, salvo las que tengan su propio canal elegido abajo. El cambio aplica de inmediato.
     </p>
 
     <div id="opcionesCanalChat" class="lista-resultados">
       <p class="lista-vacia">Cargando...</p>
     </div>
     <p class="mensaje-form" id="mensajeCanalChat"></p>
+
+    <p class="subtitulo subtitulo-seccion-canal">Maestras: canal propio de cada una</p>
+    <p class="pista-campo">
+      Solo cambia el aviso que le llega A LA MAESTRA cuando una familia le escribe. "Seguir el general" usa el interruptor de arriba.
+    </p>
+
+    <div id="listaCanalChatMaestras" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+    <p class="mensaje-form" id="mensajeCanalChatMaestras"></p>
+  </section>
+
+  <!-- ============ PANTALLA: ESTADO DEL PORTAL DE ALUMNAS (modo mantenimiento) ============ -->
+  <section id="pantallaEstadoPortal" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverEstadoPortal" type="button">← Menú</button>
+      <span class="barra-titulo">🚦 Estado del portal de alumnas</span>
+    </div>
+
+    <p class="subtitulo">¿Pueden entrar las alumnas al portal?</p>
+    <p class="pista-campo">
+      Si eliges mantenimiento o mejoras, ninguna alumna puede entrar ni ver datos del portal (ni quien ya tenía sesión abierta). Recepción y el Portal de Maestras siguen funcionando. El cambio se aplica en unos segundos.
+    </p>
+
+    <div id="opcionesEstadoPortal" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+
+    <p class="etiqueta-campo">Mensaje extra u hora de regreso (opcional)</p>
+    <input type="text" id="inputMensajePortal" class="input-texto" maxlength="200" placeholder="Ej. Regresamos a las 4:00 pm" autocomplete="off" />
+    <button class="btn-grande btn-siguiente" id="btnGuardarMensajePortal" type="button">Guardar mensaje</button>
+    <p class="mensaje-form" id="mensajeEstadoPortal"></p>
+
+    <div class="separador-lista"></div>
+
+    <p class="subtitulo">🧪 Acceso de prueba (solo administración)</p>
+    <p class="pista-campo">
+      Deja entrar al portal a ESTE navegador aunque esté en mantenimiento, para probar cambios. Vence solo a las 12 horas. Actívalo en el mismo navegador donde vas a abrir el portal.
+    </p>
+    <p class="pista-campo" id="textoAccesoPruebaPortal"></p>
+    <button class="btn-grande btn-siguiente" id="btnActivarAccesoPrueba" type="button">Activar acceso de prueba en este navegador</button>
+    <button class="btn-enlace" id="btnQuitarAccesoPrueba" type="button">Quitar acceso de prueba</button>
+  </section>
+
+  <!-- ============ PANTALLA: EVALUACIÓN DE MAESTRAS (interruptor global) ============ -->
+  <!-- ============ PANTALLA: VENTA DE ENTRADAS (botón de la caja) ============ -->
+  <section id="pantallaVentaEntradas" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverVentaEntradas" type="button">← Menú</button>
+      <span class="barra-titulo">🎟️ Venta de entradas</span>
+    </div>
+
+    <p class="subtitulo">¿Mostrar el botón "🎟️ Caja de entradas (solo personal)" en la pantalla de bienvenida de recepción?</p>
+    <p class="pista-campo">
+      Enciéndelo solo en temporada de venta de entradas del Show. La pantalla de bienvenida lo revisa cada minuto, así que el botón aparece o desaparece solo, sin recargar. El botón solo abre la caja: la caja sigue pidiendo su propia clave. Esto no abre ni pausa la venta en línea (eso se maneja en el panel de entradas).
+    </p>
+
+    <div id="opcionesVentaEntradas" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+    <p class="mensaje-form" id="mensajeVentaEntradas"></p>
+  </section>
+
+  <section id="pantallaEvalMaestras" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverEvalMaestras" type="button">← Menú</button>
+      <span class="barra-titulo">⭐ Evaluación de maestras</span>
+    </div>
+
+    <p class="subtitulo">¿Pueden las alumnas evaluar a sus maestras ahora?</p>
+    <p class="pista-campo">
+      Es un solo interruptor para toda la academia. Cada vez que lo ENCIENDES se abre una ronda nueva: cada alumna puede evaluar una vez a cada una de sus maestras. Al apagarlo, el botón desaparece del Portal de las alumnas. Los resultados se ven en Airtable, tabla "EVALUACIONES MAESTRAS POR ALUMNAS".
+    </p>
+
+    <div id="opcionesEvalMaestras" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
+    <p class="mensaje-form" id="mensajeEvalMaestras"></p>
+
+    <div class="separador-lista"></div>
+
+    <p class="subtitulo">Todas las evaluaciones recibidas</p>
+    <p class="pista-campo">
+      Ordenadas por maestra y por grupo, con el nombre de la alumna. Solo Recepción ve los nombres — la maestra ve sus evaluaciones sin saber quién las hizo.
+    </p>
+    <select id="selectRondaEvalMaestras" class="input-select"></select>
+    <div id="listaEvalMaestrasTodas" class="lista-resultados">
+      <p class="lista-vacia">Cargando...</p>
+    </div>
   </section>
 
   <!-- ============ PANTALLA: ANUNCIOS (canal + escribir) ============ -->
@@ -336,6 +445,50 @@
 
     <button class="btn-grande btn-siguiente" id="btnPublicarAvisoImportante" type="button">📋 Publicar aviso</button>
     <p class="mensaje-form" id="mensajeAvisoImportante"></p>
+  </section>
+
+  <!-- ============ PANTALLA: LAS EXTRAÑAMOS ============ -->
+  <section id="pantallaExtranamos" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverExtranamos" type="button">← Menú</button>
+      <span class="barra-titulo">💗 Las extrañamos</span>
+    </div>
+
+    <p class="pista-campo">
+      Alumnas activas que llevan 5 días hábiles o más sin venir a clase — un buen momento para escribirles y preguntar cómo están. Esto no es un reporte de cobranza ni de bajas.
+    </p>
+
+    <div id="listaExtranamos" class="lista-resultados"></div>
+    <p class="mensaje-error" id="mensajeErrorExtranamos"></p>
+
+    <button class="btn-enlace" id="btnProbarInasistencias" type="button">🔔 Probar aviso de inasistencias semanal ahora</button>
+    <p class="mensaje-form" id="mensajeProbarInasistencias"></p>
+
+    <button class="btn-enlace" id="btnProbarRacha" type="button">🔥 Probar push de racha semanal ahora</button>
+    <p class="mensaje-form" id="mensajeProbarRacha"></p>
+  </section>
+
+  <!-- ============ PANTALLA: DÍAS FERIADOS ============ -->
+  <section id="pantallaFeriados" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverFeriados" type="button">← Menú</button>
+      <span class="barra-titulo">📅 Días feriados</span>
+    </div>
+
+    <p class="pista-campo">
+      Fechas en las que la academia no tuvo clase — esas semanas no le rompen la racha de asistencia a ninguna alumna en el Portal, aunque no haya venido.
+    </p>
+
+    <p class="etiqueta-campo">Fecha</p>
+    <input type="date" id="inputFeriadoFecha" class="input-texto" />
+
+    <p class="etiqueta-campo">Nombre del feriado</p>
+    <input type="text" id="inputFeriadoNombre" class="input-texto" placeholder="Ej. Independencia" autocomplete="off" />
+
+    <button class="btn-grande btn-siguiente" id="btnAgregarFeriado" type="button">+ Agregar feriado</button>
+    <p class="mensaje-form" id="mensajeFeriado"></p>
+
+    <div id="listaFeriados" class="lista-resultados" style="margin-top:16px;"></div>
   </section>
 
   <!-- ============ PANTALLA: ALUMNAS SHOW ============ -->
@@ -418,6 +571,6 @@
 
 </div>
 
-<script src="recepcion.js?v=show1"></script>
+<script src="recepcion.js?v=alumnas-show-v1"></script>
 </body>
 </html>

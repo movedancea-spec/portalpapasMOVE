@@ -65,11 +65,19 @@ function mostrarPantalla(id) {
 }
 
 async function llamarWorker(payload) {
-  const resp = await fetch(WORKER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  let resp;
+  try {
+    resp = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    // Sin conexión o el Worker no respondió: el texto del navegador
+    // ("Failed to fetch", "Load failed") no le dice nada al comprador.
+    console.error("No se pudo contactar al Worker:", e);
+    throw new Error("No pudimos conectar, revisa tu internet e intenta de nuevo en un momento.");
+  }
   const datos = await resp.json().catch(() => ({}));
   if (!resp.ok || !datos.success) {
     throw new Error(datos.error || "Ocurrió un error. Intenta de nuevo.");

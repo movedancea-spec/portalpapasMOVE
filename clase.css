@@ -350,6 +350,30 @@ text-align:center;
 margin-bottom:12px;
 }
 
+/* Nombre del grupo + letrero de fecha especial en la misma fila. El
+   letrero es más bajito que el nombre, así que no agrega altura y el
+   resto del panel queda exactamente donde estaba. Solo en pantallas
+   muy angostas, si no caben los dos, el letrero baja a otra línea. */
+.fila-nombre-grupo{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+align-items:center;
+gap:6px 10px;
+margin-bottom:12px;
+}
+
+.fila-nombre-grupo .nombre-grupo{
+margin-bottom:0;
+}
+
+.fila-nombre-grupo .tema-banner{
+margin:0;
+padding:4px 12px;
+font-size:clamp(11px,2.8vw,13px);
+white-space:nowrap;
+}
+
 .tabs-panel{
 display:flex;
 flex-wrap:wrap;
@@ -524,19 +548,59 @@ padding:2px 0;
 RELOJ (Bienvenida / Clase / Cierre)
 =====================================*/
 
+/* Reloj de la hora de Guatemala (Bienvenida / Clase / Cierre), justo
+   debajo de "Marcar asistencia". La hora va grande para verse de lejos
+   en el salón; el tamaño se adapta al ancho de la pantalla (vw) con
+   tope, así se ve grande en la pantalla del salón sin desbordarse en
+   una laptop ni en celular. El "a. m. · Guatemala" va al lado de la
+   hora (no debajo) para que el reloj ocupe poco alto y empuje lo menos
+   posible lo de abajo; si no cabe al lado, baja solo. */
 .reloj-guate{
-display:inline-block;
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+align-items:baseline;
+column-gap:12px;
 margin:0 auto 14px;
 padding:6px 16px;
-border-radius:999px;
+border-radius:22px;
 background:#fff0f6;
 border:2px solid #ffd8ea;
 color:#ef4b9b;
-font-size:clamp(13px,3.6vw,14.5px);
 font-weight:800;
 text-align:center;
 width:100%;
 box-sizing:border-box;
+line-height:1;
+}
+
+.reloj-guate-hora{
+font-size:clamp(44px,6.5vw,96px);
+font-variant-numeric:tabular-nums;
+white-space:nowrap;
+}
+
+.reloj-guate-detalle{
+font-size:clamp(12px,1.4vw,18px);
+color:#c2185b;
+white-space:nowrap;
+}
+
+/* Para que la hora no "baile" al cambiar de minuto: tabular-nums solo
+   funciona si la letra trae números de ancho fijo, y Poppins no los
+   trae (el "1" mide 0.39 y el "4" 0.69 del tamaño de letra). Por eso
+   cada dígito va en una cajita de 0.7 (un poco más que el más ancho),
+   con el número centrado: la hora mide siempre lo mismo. */
+.reloj-digito{
+display:inline-block;
+width:.7em;
+text-align:center;
+}
+
+.reloj-separador{
+display:inline-block;
+width:.32em;
+text-align:center;
 }
 
 /*=====================================
@@ -971,13 +1035,80 @@ background:rgba(255,255,255,.6);
 text-align:center;
 }
 
+/* Marco 16:9: la vista previa se ve igual que el video que se guarda
+   (horizontal, sin recortes — "contain", no "cover"). */
+.video-marco-clase{
+position:relative;
+margin-bottom:12px;
+}
+
+/* El ancho máximo sale de la altura disponible (75% de la pantalla) para
+   que el cuadro siempre sea 16:9 y no queden barras negras a los lados
+   cuando el teléfono está en horizontal. */
 .video-preview-clase{
+display:block;
 width:100%;
-max-height:60vh;
+max-width:calc(75vh * 16 / 9);
+margin:0 auto;
+aspect-ratio:16/9;
 border-radius:14px;
 background:#000;
 object-fit:contain;
-margin-bottom:12px;
+}
+
+.video-aviso-girar{
+position:absolute;
+inset:0;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:8px;
+padding:16px;
+border-radius:14px;
+background:rgba(0,0,0,.72);
+color:#fff;
+font-weight:800;
+font-size:clamp(16px,4.6vw,20px);
+line-height:1.3;
+text-align:center;
+}
+
+.video-aviso-girar[hidden]{ display:none; }
+
+.video-aviso-girar-icono{
+font-size:clamp(40px,12vw,56px);
+line-height:1;
+}
+
+.video-clase-botones .btn-grande:disabled{
+opacity:.45;
+cursor:not-allowed;
+}
+
+/* Android, mientras graba: el bloque del video pasa a pantalla completa
+   (ver bloquearHorizontalAndroid en clase.js). */
+.bloque-video-clase:fullscreen{
+display:flex;
+flex-direction:column;
+justify-content:center;
+gap:10px;
+margin:0;
+border:0;
+border-radius:0;
+background:#000;
+}
+
+.bloque-video-clase:fullscreen .video-marco-clase{
+flex:1;
+min-height:0;
+margin:0;
+}
+
+.bloque-video-clase:fullscreen .video-preview-clase{
+height:100%;
+max-width:none;
+border-radius:0;
 }
 
 .video-clase-timer{
@@ -1314,3 +1445,45 @@ transition:.15s;
 .chat-btn-enviar:active{
 transform:scale(.94);
 }
+
+/* Audios ya subidos: agrupados por mes (todo el año). El mes actual
+   abierto y los anteriores colapsados (<details>). */
+.audios-mes{
+margin-bottom:8px;
+}
+.audios-mes-titulo{
+cursor:pointer;
+list-style:none;
+padding:8px 12px;
+border-radius:12px;
+background:#fff0f7;
+color:#ef4b9b;
+border:2px solid #ffd1e6;
+font-weight:700;
+}
+.audios-mes-titulo::-webkit-details-marker{ display:none; }
+.audios-mes-titulo::after{ content:"▾"; float:right; transition:transform .2s; }
+.audios-mes:not([open]) .audios-mes-titulo::after{ transform:rotate(-90deg); }
+.audios-mes[open] .audios-mes-titulo{ margin-bottom:8px; }
+.audios-mes-lista{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+/* Botones de cada audio y título del mes con alto mínimo de 44 px,
+   para tocarlos fácil con el dedo. */
+.audios-mes-titulo{ min-height:44px; display:flex; align-items:center; gap:6px; }
+.audios-mes-titulo::after{ margin-left:auto; }
+.audios-mes .video-clase-fila-boton-ver,
+.audios-mes .video-clase-fila-boton-descargar,
+.audios-mes .video-clase-fila-boton-eliminar{
+min-height:44px;
+display:inline-flex;
+align-items:center;
+padding-left:14px;
+padding-right:14px;
+}
+.audios-mes .video-clase-fila-botones{ flex-wrap:wrap; }
+.audios-mes .video-clase-fila-boton-ver,
+.audios-mes .video-clase-fila-boton-descargar,
+.audios-mes .video-clase-fila-boton-eliminar{ white-space:nowrap; }
