@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=alumnas-show-v1" />
+<link rel="stylesheet" href="recepcion.css?v=no-activas-v1" />
 </head>
 <body>
 
@@ -529,8 +529,9 @@
     <!-- b) Asignación de alumnas -->
     <div id="vistaShowAsignar" hidden>
       <div id="cajaShowBuscarAlumna">
-        <p class="etiqueta-campo">Alumna (solo activas)</p>
+        <p class="etiqueta-campo">Alumna</p>
         <input type="text" id="inputShowBuscarAlumna" class="input-texto" placeholder="Escribe para buscar..." autocomplete="off" />
+        <p class="pista-campo">Sin escribir se ven las activas. Al escribir un nombre también salen las que ya no están activas.</p>
         <div id="listaShowAlumnas" class="lista-resultados"><p class="lista-vacia">Cargando...</p></div>
       </div>
 
@@ -571,6 +572,6 @@
 
 </div>
 
-<script src="recepcion.js?v=alumnas-show-v1"></script>
+<script src="recepcion.js?v=no-activas-v1"></script>
 </body>
 </html>

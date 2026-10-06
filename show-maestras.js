@@ -134,7 +134,14 @@ function tarjetaBaile(baile) {
     tarjeta.appendChild(crearEl("p", "show-vacio", "Sin alumnas asignadas todavía."));
   } else {
     const lista = crearEl("ol", "show-alumnas");
-    baile.alumnas.forEach((nombre) => lista.appendChild(crearEl("li", "", nombre)));
+    // alumnasDetalle trae el estado; si el Worker aún no lo manda, se usa
+    // la lista de nombres de siempre.
+    const detalle = baile.alumnasDetalle || baile.alumnas.map((nombre) => ({ nombre, estado: "" }));
+    detalle.forEach((a) => {
+      const item = crearEl("li", "", a.nombre);
+      if (a.estado) item.appendChild(crearEl("span", "show-estado-alumna", a.estado));
+      lista.appendChild(item);
+    });
     tarjeta.appendChild(lista);
   }
   return tarjeta;
