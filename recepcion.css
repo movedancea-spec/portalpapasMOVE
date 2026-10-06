@@ -1007,6 +1007,7 @@ margin-top:6px;
 }
 
 .show-acciones .btn-chico{ padding:7px 11px; font-size:12.5px; }
+.show-acciones .show-etiqueta{ align-self:center; }
 
 .show-btn-peligro{ border-color:#f5b5c8; color:#e0245e; }
 
@@ -1048,6 +1049,38 @@ padding:3px 10px;
 }
 
 #inputShowLinkModista{ font-size:12.5px; }
+
+.show-total-pagos{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:2px;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+border-radius:18px;
+padding:12px 16px;
+margin-bottom:14px;
+}
+.show-total-pagos span{ font-size:12.5px; font-weight:700; opacity:.9; }
+.show-total-pagos strong{ font-size:clamp(22px,6vw,28px); font-weight:800; }
+
+.show-checklist-grupo{
+margin:8px 0 0;
+font-size:11.5px;
+font-weight:800;
+letter-spacing:.04em;
+text-transform:uppercase;
+color:#ef4b9b;
+text-align:left;
+}
+.show-checklist-grupo:first-child{ margin-top:0; }
+
+.show-pago-concepto{
+font-size:13.5px;
+font-weight:600;
+color:#555;
+overflow-wrap:anywhere;
+}
 
 
 /*=====================================

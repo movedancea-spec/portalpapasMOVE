@@ -2938,6 +2938,7 @@ let showBaileEditandoId = "";
 let showPestanaActual = "Catalogo";
 
 function limpiarShow() {
+  pagosModista = null;
   showDatos = null;
   showAlumnas = null;
   showAlumnaElegida = null;
@@ -2977,10 +2978,11 @@ function cambiarPestanaShow(nombre) {
   document.querySelectorAll("[data-show-pestana]").forEach((chip) => {
     chip.classList.toggle("activo", chip.dataset.showPestana === nombre);
   });
-  ["Catalogo", "Asignar", "Resumen", "Modista"].forEach((n) => {
+  ["Catalogo", "Asignar", "Resumen", "Pagos", "Modista"].forEach((n) => {
     el("vistaShow" + n).hidden = n !== nombre;
   });
   if (nombre === "Asignar" && !showAlumnas) cargarAlumnasShow();
+  if (nombre === "Pagos") cargarPagosModista();
   if (nombre === "Modista") cargarLinkModista();
 }
 
@@ -2995,6 +2997,7 @@ async function recargarDatosShow() {
   renderSelectGruposBaile();
   renderCatalogoShow();
   renderResumenShow();
+  renderChecklistBailesPago();
   if (showAlumnaElegida) renderAlumnaShow();
 }
 
@@ -3139,12 +3142,17 @@ async function activarBaileShow(baile, activo, boton) {
 
 async function eliminarBaileShow(baile, boton) {
   const total = baile.alumnas.length;
+  const pagos = baile.pagosModista || 0;
+  const avisoPagos = pagos
+    ? `\n\nTiene ${pagos} pago${pagos === 1 ? "" : "s"} a la modista vinculado${pagos === 1 ? "" : "s"}: ` +
+      "esos pagos se quedan, solo dejan de mostrar este baile."
+    : "";
   const aviso =
-    total > 0
+    (total > 0
       ? `⚠️ "${baile.nombre}" tiene ${total} alumna${total === 1 ? "" : "s"} asignada${total === 1 ? "" : "s"}.\n\n` +
         "Si lo eliminas, también se borran esas asignaciones (y la modista deja de ver ese baile). " +
         "Si solo quieres ocultarlo, usa \"Desactivar\".\n\n¿Eliminarlo de todos modos?"
-      : `¿Eliminar el baile "${baile.nombre}"? Esto no se puede deshacer.`;
+      : `¿Eliminar el baile "${baile.nombre}"? Esto no se puede deshacer.`) + avisoPagos;
   if (!window.confirm(aviso)) return;
 
   boton.disabled = true;
@@ -3455,3 +3463,302 @@ el("btnRegenerarLinkModista").addEventListener("click", async () => {
     boton.disabled = false;
   }
 });
+
+// ---------- d) Pagos a la modista ----------
+// Recepción registra lo que se le paga a la modista (con su comprobante)
+// y ella lo ve en "Mis pagos" de su link. El comprobante se guarda en
+// Airtable, pero aquí nunca se usa su URL de Airtable: se le pide al
+// Worker (showComprobantePagoModista) y se abre como archivo temporal.
+
+let pagosModista = null; // [{id, fecha, monto, concepto, metodo, comprobante, bailes:[{id,nombre,grupoNombre}]}]
+let hoyGuatemalaPagos = "";
+let pagoModistaEditando = null;
+let archivoPagoModista = null;
+
+// La API de adjuntos de Airtable acepta hasta 5 MB por archivo.
+const MAX_BYTES_AIRTABLE = 5 * 1024 * 1024;
+const LADO_MAX_FOTO = 2000;
+
+// Fotos: se achican y se vuelven JPG en el navegador (de paso convierte
+// HEIC del iPad/iPhone). Una foto de 2000 px en JPG casi nunca pasa de
+// 1 MB, así que nunca llega al límite de Airtable. PDFs: no se pueden
+// achicar aquí, así que si pasan de 5 MB se avisa con un mensaje claro.
+async function prepararArchivoParaAirtable(archivo) {
+  const esPdf = archivo.type === "application/pdf" || /\.pdf$/i.test(archivo.name);
+  if (esPdf) {
+    if (archivo.size > MAX_BYTES_AIRTABLE) {
+      const mb = (archivo.size / 1024 / 1024).toFixed(1);
+      throw new Error(`El PDF pesa ${mb} MB y el máximo es 5 MB. Guárdalo más liviano o mándalo como foto.`);
+    }
+    return { base64: await leerArchivoBase64(archivo), nombre: archivo.name, tipo: "application/pdf" };
+  }
+  if (!archivo.type.startsWith("image/") && !/\.(heic|heif)$/i.test(archivo.name)) {
+    throw new Error("El archivo tiene que ser una foto o un PDF.");
+  }
+  for (const [lado, calidad] of [[LADO_MAX_FOTO, 0.85], [1600, 0.7], [1200, 0.6]]) {
+    const blob = await comprimirFoto(archivo, lado, calidad);
+    if (blob.size <= MAX_BYTES_AIRTABLE) {
+      const base64 = await leerArchivoBase64(blob);
+      return { base64, nombre: archivo.name.replace(/\.[^.]+$/, "") + ".jpg", tipo: "image/jpeg" };
+    }
+  }
+  throw new Error("La foto es demasiado pesada aun después de achicarla. Toma la foto otra vez.");
+}
+
+function comprimirFoto(archivo, ladoMax, calidad) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(archivo);
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, ladoMax / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.naturalWidth * escala);
+      canvas.height = Math.round(img.naturalHeight * escala);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("No se pudo preparar la foto."))),
+        "image/jpeg",
+        calidad
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo abrir la foto. Prueba con otra o mándala como PDF."));
+    };
+    img.src = url;
+  });
+}
+
+// "2026-10-01" → "1 oct 2026" (sin pasar por Date, para que la zona
+// horaria del dispositivo no la corra un día).
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+function formatoFechaCortaShow(fechaIso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaIso || "");
+  return m ? `${Number(m[3])} ${MESES_CORTOS[Number(m[2]) - 1]} ${m[1]}` : "Sin fecha";
+}
+
+async function cargarPagosModista() {
+  const cont = el("listaPagosModista");
+  if (!pagosModista) cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "showPagosModistaListar", clave: claveRecepcion });
+    pagosModista = datos.pagos;
+    hoyGuatemalaPagos = datos.hoy;
+    el("totalPagosModista").textContent = formatoQuetzales(datos.total);
+    el("inputPagoModistaFecha").max = datos.hoy;
+    if (!pagoModistaEditando && !el("inputPagoModistaFecha").value) el("inputPagoModistaFecha").value = datos.hoy;
+    renderPagosModista();
+    renderChecklistBailesPago();
+  } catch (e) {
+    cont.innerHTML = "";
+    cont.appendChild(crearEl("p", "lista-vacia", e.message));
+  }
+}
+
+// Casillas de bailes agrupadas por Grupo MOVE (incluye desactivados: un
+// pago puede ser de un baile que ya se ocultó).
+function renderChecklistBailesPago() {
+  const cont = el("checklistPagoModistaBailes");
+  if (!showDatos) return;
+  const marcados = new Set(
+    pagoModistaEditando
+      ? pagoModistaEditando.bailes.map((b) => b.id)
+      : [...cont.querySelectorAll("input:checked")].map((c) => c.value)
+  );
+  cont.innerHTML = "";
+  if (!showDatos.bailes.length) {
+    cont.appendChild(crearEl("p", "lista-vacia", "Todavía no hay bailes."));
+    return;
+  }
+  bailesPorGrupoShow().forEach((bailes, grupoNombre) => {
+    cont.appendChild(crearEl("p", "show-checklist-grupo", grupoNombre));
+    bailes.forEach((b) => {
+      const etiqueta = crearEl("label", "opcion-checkbox");
+      const casilla = document.createElement("input");
+      casilla.type = "checkbox";
+      casilla.value = b.id;
+      casilla.checked = marcados.has(b.id);
+      etiqueta.append(casilla, crearEl("span", "", b.nombre + (b.activo ? "" : " (desactivado)")));
+      cont.appendChild(etiqueta);
+    });
+  });
+}
+
+function renderPagosModista() {
+  const cont = el("listaPagosModista");
+  cont.innerHTML = "";
+  if (!pagosModista.length) {
+    cont.appendChild(crearEl("p", "lista-vacia", "Todavía no hay pagos registrados."));
+    return;
+  }
+  pagosModista.forEach((p) => {
+    const tarjeta = crearEl("div", "show-tarjeta");
+    const fila = crearEl("div", "show-tarjeta-fila");
+    fila.appendChild(crearEl("span", "show-tarjeta-nombre", formatoQuetzales(p.monto)));
+    fila.appendChild(crearEl("span", "show-etiqueta show-etiqueta-gris", formatoFechaCortaShow(p.fecha)));
+    tarjeta.appendChild(fila);
+    if (p.concepto) tarjeta.appendChild(crearEl("span", "show-pago-concepto", p.concepto));
+    const detalle = [p.metodo || "Sin método"];
+    if (p.bailes.length) detalle.push(p.bailes.map((b) => `${b.nombre} (${b.grupoNombre})`).join(", "));
+    tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", detalle.join(" · ")));
+
+    const acciones = crearEl("div", "show-acciones");
+    if (p.comprobante) {
+      const ver = crearEl("button", "btn-secundario btn-chico", p.comprobante === "pdf" ? "📄 Ver comprobante" : "🖼️ Ver comprobante");
+      ver.type = "button";
+      ver.addEventListener("click", () =>
+        abrirComprobanteShow({ accion: "showComprobantePagoModista", clave: claveRecepcion, pagoId: p.id }, "mensajePagoModista")
+      );
+      acciones.appendChild(ver);
+    } else {
+      acciones.appendChild(crearEl("span", "show-etiqueta show-etiqueta-pendiente", "Sin comprobante"));
+    }
+    const editar = crearEl("button", "btn-secundario btn-chico", "✏️ Editar");
+    editar.type = "button";
+    editar.addEventListener("click", () => editarPagoModista(p));
+    const eliminar = crearEl("button", "btn-secundario btn-chico show-btn-peligro", "🗑 Eliminar");
+    eliminar.type = "button";
+    eliminar.addEventListener("click", () => eliminarPagoModista(p, eliminar));
+    acciones.append(editar, eliminar);
+    tarjeta.appendChild(acciones);
+    cont.appendChild(tarjeta);
+  });
+}
+
+// El archivo viene del Worker como binario (no JSON). La ventana se abre
+// en el mismo clic, antes de esperar al Worker: si se abriera después,
+// Safari del iPad la bloquearía como ventana emergente.
+async function abrirComprobanteShow(datos, idMensaje) {
+  const ventana = window.open("", "_blank");
+  if (ventana) ventana.document.title = "Abriendo comprobante...";
+  try {
+    const resp = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datos),
+    });
+    const tipo = resp.headers.get("Content-Type") || "";
+    if (!resp.ok || tipo.includes("application/json")) {
+      const error = await resp.json().catch(() => ({}));
+      throw new Error(error.error || "No se pudo abrir el comprobante.");
+    }
+    const url = URL.createObjectURL(await resp.blob());
+    if (ventana) ventana.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    if (ventana) ventana.close();
+    mensajeShow(idMensaje, e.message, "error");
+  }
+}
+
+el("inputPagoModistaArchivo").addEventListener("change", () => {
+  const archivo = el("inputPagoModistaArchivo").files[0];
+  archivoPagoModista = archivo || null;
+  const nombre = el("nombrePagoModistaArchivo");
+  nombre.hidden = !archivo;
+  nombre.textContent = archivo ? `📎 ${archivo.name}` : "";
+});
+
+function limpiarFormularioPagoModista() {
+  pagoModistaEditando = null;
+  archivoPagoModista = null;
+  el("inputPagoModistaArchivo").value = "";
+  el("nombrePagoModistaArchivo").hidden = true;
+  el("pistaComprobanteActualPago").hidden = true;
+  el("tituloFormPagoModista").textContent = "Registrar pago";
+  el("btnGuardarPagoModista").textContent = "Registrar pago";
+  el("btnCancelarEdicionPagoModista").hidden = true;
+  el("inputPagoModistaFecha").value = hoyGuatemalaPagos;
+  el("inputPagoModistaMonto").value = "";
+  el("inputPagoModistaConcepto").value = "";
+  el("selectPagoModistaMetodo").value = "";
+  el("checklistPagoModistaBailes").querySelectorAll("input").forEach((c) => (c.checked = false));
+}
+
+function editarPagoModista(pago) {
+  limpiarFormularioPagoModista();
+  pagoModistaEditando = pago;
+  el("tituloFormPagoModista").textContent = "Editar pago";
+  el("btnGuardarPagoModista").textContent = "Guardar cambios";
+  el("btnCancelarEdicionPagoModista").hidden = false;
+  el("inputPagoModistaFecha").value = pago.fecha;
+  el("inputPagoModistaMonto").value = pago.monto;
+  el("inputPagoModistaConcepto").value = pago.concepto;
+  el("selectPagoModistaMetodo").value = pago.metodo;
+  el("pistaComprobanteActualPago").hidden = !pago.comprobante;
+  renderChecklistBailesPago();
+  mensajeShow("mensajePagoModista", "");
+  el("tituloFormPagoModista").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+el("btnCancelarEdicionPagoModista").addEventListener("click", () => {
+  limpiarFormularioPagoModista();
+  mensajeShow("mensajePagoModista", "");
+});
+
+el("btnGuardarPagoModista").addEventListener("click", async () => {
+  const fecha = el("inputPagoModistaFecha").value;
+  const monto = el("inputPagoModistaMonto").value;
+  const metodo = el("selectPagoModistaMetodo").value;
+  if (!fecha) return mensajeShow("mensajePagoModista", "Escribe la fecha del pago.", "error");
+  if (hoyGuatemalaPagos && fecha > hoyGuatemalaPagos) {
+    return mensajeShow("mensajePagoModista", "La fecha del pago no puede ser en el futuro.", "error");
+  }
+  if (monto === "" || Number(monto) <= 0) return mensajeShow("mensajePagoModista", "Escribe el monto.", "error");
+  if (!metodo) return mensajeShow("mensajePagoModista", "Escoge el método de pago.", "error");
+
+  const boton = el("btnGuardarPagoModista");
+  const textoOriginal = boton.textContent;
+  boton.disabled = true;
+  try {
+    let archivo = null;
+    if (archivoPagoModista) {
+      boton.textContent = "Preparando comprobante...";
+      archivo = await prepararArchivoParaAirtable(archivoPagoModista);
+    }
+    boton.textContent = "Guardando...";
+    const editando = Boolean(pagoModistaEditando);
+    const r = await llamarWorker({
+      accion: "showGuardarPagoModista",
+      clave: claveRecepcion,
+      pagoId: pagoModistaEditando ? pagoModistaEditando.id : undefined,
+      fecha,
+      monto: Number(monto),
+      concepto: el("inputPagoModistaConcepto").value.trim(),
+      metodo,
+      baileIds: [...el("checklistPagoModistaBailes").querySelectorAll("input:checked")].map((c) => c.value),
+      archivoBase64: archivo ? archivo.base64 : undefined,
+    });
+    limpiarFormularioPagoModista();
+    boton.textContent = "Registrar pago";
+    if (r.avisoComprobante) mensajeShow("mensajePagoModista", "⚠️ " + r.avisoComprobante, "error");
+    else mensajeShow("mensajePagoModista", editando ? "✅ Cambios guardados." : "✅ Pago registrado.", "ok");
+    await cargarPagosModista();
+    // El catálogo cuenta pagos por baile (aviso al eliminar un baile).
+    recargarDatosShow();
+  } catch (e) {
+    boton.textContent = textoOriginal;
+    mensajeShow("mensajePagoModista", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+async function eliminarPagoModista(pago, boton) {
+  const texto = `¿Eliminar el pago de ${formatoQuetzales(pago.monto)} del ${formatoFechaCortaShow(pago.fecha)}` +
+    (pago.concepto ? ` ("${pago.concepto}")` : "") + "?\n\nTambién se borra su comprobante y la modista deja de verlo. Esto no se puede deshacer.";
+  if (!window.confirm(texto)) return;
+  boton.disabled = true;
+  try {
+    await llamarWorker({ accion: "showEliminarPagoModista", clave: claveRecepcion, pagoId: pago.id });
+    if (pagoModistaEditando && pagoModistaEditando.id === pago.id) limpiarFormularioPagoModista();
+    mensajeShow("mensajePagoModista", "✅ Pago eliminado.", "ok");
+    await cargarPagosModista();
+    recargarDatosShow();
+  } catch (e) {
+    mensajeShow("mensajePagoModista", e.message, "error");
+    boton.disabled = false;
+  }
+}

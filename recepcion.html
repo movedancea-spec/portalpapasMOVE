@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=alumnas-show-v1" />
+<link rel="stylesheet" href="recepcion.css?v=pagos-modista-v1" />
 </head>
 <body>
 
@@ -504,6 +504,7 @@
       <button class="chip activo" type="button" data-show-pestana="Catalogo">💃 Bailes</button>
       <button class="chip" type="button" data-show-pestana="Asignar">🩰 Asignar alumnas</button>
       <button class="chip" type="button" data-show-pestana="Resumen">📊 Resumen</button>
+      <button class="chip" type="button" data-show-pestana="Pagos">💸 Pagos modista</button>
       <button class="chip" type="button" data-show-pestana="Modista">🧵 Link modista</button>
     </div>
     <p class="mensaje-form" id="mensajeShow"></p>
@@ -556,6 +557,44 @@
       <div id="listaShowResumen" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
     </div>
 
+    <!-- d) Pagos a la modista -->
+    <div id="vistaShowPagos" hidden>
+      <div class="show-total-pagos">
+        <span>Total pagado a la modista</span>
+        <strong id="totalPagosModista">—</strong>
+      </div>
+
+      <div class="caja-form-ingreso">
+        <p class="subtitulo" id="tituloFormPagoModista">Registrar pago</p>
+        <p class="etiqueta-campo">Fecha del pago</p>
+        <input type="date" id="inputPagoModistaFecha" class="input-texto" />
+        <p class="etiqueta-campo">Monto (Q)</p>
+        <input type="number" id="inputPagoModistaMonto" class="input-texto" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+        <p class="etiqueta-campo">Concepto / nota</p>
+        <input type="text" id="inputPagoModistaConcepto" class="input-texto" maxlength="200" placeholder="Ej. Anticipo trajes Teens" autocomplete="off" />
+        <p class="etiqueta-campo">Método de pago</p>
+        <select id="selectPagoModistaMetodo" class="input-select">
+          <option value="">Escoge el método...</option>
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Depósito">Depósito</option>
+        </select>
+        <p class="etiqueta-campo">Bailes (opcional)</p>
+        <div id="checklistPagoModistaBailes" class="checklist-contenedor"></div>
+        <p class="etiqueta-campo">Comprobante (foto o PDF)</p>
+        <label class="btn-secundario btn-ancho btn-subir-foto" for="inputPagoModistaArchivo">📷 Tomar foto o elegir archivo</label>
+        <input type="file" id="inputPagoModistaArchivo" accept="image/*,application/pdf" hidden />
+        <p class="alumna-elegida" id="nombrePagoModistaArchivo" hidden></p>
+        <p class="pista-campo" id="pistaComprobanteActualPago" hidden>Este pago ya tiene comprobante. Si eliges otro archivo, lo reemplaza.</p>
+        <button class="btn-grande btn-siguiente" id="btnGuardarPagoModista" type="button">Registrar pago</button>
+        <button class="btn-enlace" id="btnCancelarEdicionPagoModista" type="button" hidden>Cancelar edición</button>
+        <p class="mensaje-form" id="mensajePagoModista"></p>
+      </div>
+
+      <div class="separador-lista"></div>
+      <div id="listaPagosModista" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
+    </div>
+
     <!-- c) Link para la modista -->
     <div id="vistaShowModista" hidden>
       <p class="pista-campo">
@@ -571,6 +610,6 @@
 
 </div>
 
-<script src="recepcion.js?v=alumnas-show-v1"></script>
+<script src="recepcion.js?v=pagos-modista-v1"></script>
 </body>
 </html>

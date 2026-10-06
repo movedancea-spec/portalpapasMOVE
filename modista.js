@@ -12,10 +12,16 @@
 // manda al Worker (modistaShow), que es quien decide si es válido. El
 // Worker ya responde solo nombres y totales — sin precios, tallas ni
 // datos de contacto —, así que esta página no tiene nada que ocultar.
+//
+// "Mis pagos": lo que la academia le ha pagado, con su comprobante. El
+// comprobante también se pide con el token (modistaComprobante), así que
+// si Recepción regenera el link, el viejo deja de verlos.
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
 let gruposModista = [];
+let pagosModista = [];
+let totalPagado = 0;
 
 function el(id) {
   return document.getElementById(id);
@@ -58,6 +64,8 @@ async function cargar() {
       return;
     }
     gruposModista = datos.grupos || [];
+    pagosModista = datos.pagos || [];
+    totalPagado = datos.totalPagado || 0;
     el("textoActualizado").textContent = datos.actualizado ? `Actualizado: ${formatoFecha(datos.actualizado)}` : "";
     render();
   } catch (e) {
@@ -105,6 +113,79 @@ function render() {
     .forEach((b) => seccion.appendChild(tarjetaBaile(b, b.grupo)));
   if (!bailes.length) seccion.appendChild(crearEl("p", "show-vacio", "Todavía no hay bailes cargados."));
   vistaBaile.appendChild(seccion);
+
+  renderPagos();
+}
+
+function formatoQuetzales(monto) {
+  return "Q" + Number(monto || 0).toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// "2026-10-01" → "1 oct 2026" (sin pasar por Date, para que la zona
+// horaria del celular no la corra un día).
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+function formatoFechaCorta(fechaIso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaIso || "");
+  return m ? `${Number(m[3])} ${MESES_CORTOS[Number(m[2]) - 1]} ${m[1]}` : "Sin fecha";
+}
+
+// 3) Mis pagos: total recibido y cada pago, del más reciente al más viejo.
+function renderPagos() {
+  el("totalRecibido").textContent = formatoQuetzales(totalPagado);
+  const lista = el("listaPagos");
+  lista.innerHTML = "";
+  if (!pagosModista.length) {
+    lista.appendChild(crearEl("p", "show-vacio", "Todavía no hay pagos registrados."));
+    return;
+  }
+  pagosModista.forEach((p) => {
+    const tarjeta = crearEl("article", "show-baile pago");
+    const encabezado = crearEl("div", "show-baile-encabezado");
+    const titulos = crearEl("div", "show-baile-titulos");
+    titulos.appendChild(crearEl("h3", "show-baile-nombre", formatoQuetzales(p.monto)));
+    titulos.appendChild(crearEl("p", "show-baile-grupo", `${formatoFechaCorta(p.fecha)}${p.metodo ? " · " + p.metodo : ""}`));
+    encabezado.appendChild(titulos);
+    if (p.comprobante) {
+      const ver = crearEl("button", "btn-comprobante", p.comprobante === "pdf" ? "📄 Comprobante" : "🖼️ Comprobante");
+      ver.type = "button";
+      ver.addEventListener("click", () => verComprobante(p.id));
+      encabezado.appendChild(ver);
+    }
+    tarjeta.appendChild(encabezado);
+    if (p.concepto) tarjeta.appendChild(crearEl("p", "pago-concepto", p.concepto));
+    if (p.bailes.length) tarjeta.appendChild(crearEl("p", "pago-bailes", "Bailes: " + p.bailes.join(", ")));
+    lista.appendChild(tarjeta);
+  });
+}
+
+// El archivo llega del Worker como binario. La ventana se abre en el
+// mismo toque (antes de esperar al Worker) para que el celular no la
+// bloquee como ventana emergente.
+async function verComprobante(pagoId) {
+  const aviso = el("mensajePagos");
+  aviso.hidden = true;
+  const ventana = window.open("", "_blank");
+  if (ventana) ventana.document.title = "Abriendo comprobante...";
+  try {
+    const resp = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accion: "modistaComprobante", token: tokenDelLink(), pagoId }),
+    });
+    const tipo = resp.headers.get("Content-Type") || "";
+    if (!resp.ok || tipo.includes("application/json")) {
+      const error = await resp.json().catch(() => ({}));
+      throw new Error(error.error || "No se pudo abrir el comprobante.");
+    }
+    const url = URL.createObjectURL(await resp.blob());
+    if (ventana) ventana.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    if (ventana) ventana.close();
+    aviso.textContent = e.message;
+    aviso.hidden = false;
+  }
 }
 
 function tarjetaBaile(baile, grupo) {
@@ -137,6 +218,9 @@ document.querySelectorAll(".pestana").forEach((boton) => {
     });
     el("vistaGrupo").hidden = boton.dataset.vista !== "Grupo";
     el("vistaBaile").hidden = boton.dataset.vista !== "Baile";
+    el("vistaPagos").hidden = boton.dataset.vista !== "Pagos";
+    // El conteo de trajes no aplica a "Mis pagos" (y así no sale al imprimirlos).
+    el("resumenTrajes").hidden = boton.dataset.vista === "Pagos";
   });
 });
 

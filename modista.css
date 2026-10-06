@@ -50,6 +50,9 @@ gap:12px;
 margin:16px 0 4px;
 }
 
+/* display:flex le gana al atributo hidden: se oculta en "Mis pagos". */
+.resumen[hidden]{ display:none; }
+
 .resumen-dato{
 display:flex;
 flex-direction:column;
@@ -93,6 +96,54 @@ color:white;
 
 .btn-imprimir{ border-style:dashed; }
 
+.total-recibido{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:2px;
+margin:18px 0 14px;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+border-radius:18px;
+padding:14px 16px;
+}
+.total-recibido span{ font-size:13px; font-weight:700; opacity:.9; }
+.total-recibido strong{ font-size:clamp(26px,8vw,34px); font-weight:800; line-height:1.15; }
+
+.pago-concepto{
+margin:8px 0 0;
+font-size:14px;
+font-weight:600;
+color:#555;
+overflow-wrap:anywhere;
+}
+
+.pago-bailes{
+margin:4px 0 0;
+font-size:12.5px;
+font-weight:600;
+color:#a15277;
+}
+
+.btn-comprobante{
+flex-shrink:0;
+border:2px solid #ffd8ea;
+background:white;
+color:#ef4b9b;
+font-family:inherit;
+font-size:13px;
+font-weight:700;
+border-radius:999px;
+padding:7px 12px;
+cursor:pointer;
+}
+
+.mensaje-pagos{
+text-align:center;
+font-weight:700;
+color:#e0245e;
+}
+
 .caja-error{
 margin:24px auto;
 max-width:420px;
@@ -115,7 +166,8 @@ color:#a15277;
   body{ background:white; }
   .hoja{ max-width:none; padding:0; }
   .logo{ max-width:130px; }
-  .pestanas, .cargando{ display:none !important; }
+  .pestanas, .cargando, .btn-comprobante{ display:none !important; }
+  .total-recibido{ background:none; color:#ef4b9b; border:2px solid #ef4b9b; }
   .resumen-dato, .show-baile{ border-color:#ddd; }
   .show-grupo{ break-inside:auto; }
   .show-grupo-encabezado{ break-after:avoid; page-break-after:avoid; }

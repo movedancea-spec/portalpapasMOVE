@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="show-vista.css?v=show1" />
-<link rel="stylesheet" href="modista.css?v=show1" />
+<link rel="stylesheet" href="modista.css?v=pagos-modista-v1" />
 </head>
 <body>
 
@@ -27,7 +27,7 @@
   <div id="cajaError" class="caja-error" hidden></div>
 
   <div id="contenido" hidden>
-    <div class="resumen">
+    <div class="resumen" id="resumenTrajes">
       <div class="resumen-dato"><strong id="totalTrajes">0</strong><span>trajes en total</span></div>
       <div class="resumen-dato"><strong id="totalBailes">0</strong><span>bailes</span></div>
     </div>
@@ -35,16 +35,25 @@
     <div class="pestanas" role="tablist">
       <button class="pestana activa" type="button" role="tab" data-vista="Grupo" aria-selected="true">Por Grupo MOVE</button>
       <button class="pestana" type="button" role="tab" data-vista="Baile" aria-selected="false">Por baile</button>
+      <button class="pestana" type="button" role="tab" data-vista="Pagos" aria-selected="false">💸 Mis pagos</button>
       <button class="btn-imprimir" type="button" id="btnImprimir">🖨️ Imprimir</button>
     </div>
 
     <section id="vistaGrupo"></section>
     <section id="vistaBaile" hidden></section>
+    <section id="vistaPagos" hidden>
+      <div class="total-recibido">
+        <span>Total recibido</span>
+        <strong id="totalRecibido">Q0.00</strong>
+      </div>
+      <p class="mensaje-pagos" id="mensajePagos" hidden></p>
+      <div id="listaPagos"></div>
+    </section>
   </div>
 
   <p class="cargando" id="textoCargando">Cargando...</p>
 </main>
 
-<script src="modista.js?v=show1"></script>
+<script src="modista.js?v=pagos-modista-v1"></script>
 </body>
 </html>
