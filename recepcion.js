@@ -2939,6 +2939,7 @@ let showPestanaActual = "Catalogo";
 
 function limpiarShow() {
   pagosModista = null;
+  showResultadosBusqueda = null;
   showDatos = null;
   showAlumnas = null;
   showAlumnaElegida = null;
@@ -3169,6 +3170,15 @@ async function eliminarBaileShow(baile, boton) {
 
 // ---------- b) Asignación de alumnas ----------
 
+// Sin texto se muestran las ACTIVAS (se cargan una vez y se guardan en
+// showAlumnas). Al escribir, el Worker busca por nombre en TODAS las
+// alumnas (cualquier ESTADO): a veces se inscriben y se salen, pero igual
+// deben pagar su traje. Se busca en el Worker, no aquí, para no traer todo
+// el histórico de alumnas antiguas a la tablet.
+let showResultadosBusqueda = null; // { texto, alumnas, hayMas }
+let showBusquedaPendiente = null;
+let showNumeroBusqueda = 0;
+
 async function cargarAlumnasShow() {
   el("listaShowAlumnas").innerHTML = '<p class="lista-vacia">Cargando...</p>';
   try {
@@ -3181,8 +3191,31 @@ async function cargarAlumnasShow() {
   }
 }
 
-function sinAcentos(texto) {
-  return String(texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+async function buscarAlumnasShow() {
+  const texto = el("inputShowBuscarAlumna").value.trim();
+  if (!texto) {
+    showResultadosBusqueda = null;
+    renderListaAlumnasShow();
+    return;
+  }
+  // Si llegan respuestas fuera de orden, solo cuenta la de lo último escrito.
+  const numero = ++showNumeroBusqueda;
+  el("listaShowAlumnas").innerHTML = '<p class="lista-vacia">Buscando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "showListarAlumnas", clave: claveRecepcion, busqueda: texto });
+    if (numero !== showNumeroBusqueda) return;
+    showResultadosBusqueda = { texto, alumnas: datos.alumnas, hayMas: datos.hayMas };
+    renderListaAlumnasShow();
+  } catch (e) {
+    if (numero !== showNumeroBusqueda) return;
+    el("listaShowAlumnas").innerHTML = "";
+    el("listaShowAlumnas").appendChild(crearEl("p", "lista-vacia", e.message));
+  }
+}
+
+// Solo para las que NO están activas ("INACTIVA", "SIN ESTADO").
+function etiquetaEstadoAlumna(estado) {
+  return estado ? crearEl("span", "show-etiqueta show-etiqueta-estado", estado) : null;
 }
 
 function etiquetaShowAlumna(show) {
@@ -3193,11 +3226,11 @@ function etiquetaShowAlumna(show) {
 function renderListaAlumnasShow() {
   const cont = el("listaShowAlumnas");
   cont.innerHTML = "";
-  if (!showAlumnas) return;
-  const busqueda = sinAcentos(el("inputShowBuscarAlumna").value.trim());
-  const lista = showAlumnas.filter((a) => !busqueda || sinAcentos(a.nombre).includes(busqueda));
+  const buscando = Boolean(showResultadosBusqueda);
+  const lista = buscando ? showResultadosBusqueda.alumnas : showAlumnas;
+  if (!lista) return;
   if (!lista.length) {
-    cont.appendChild(crearEl("p", "lista-vacia", "No se encontró ninguna alumna activa con ese nombre."));
+    cont.appendChild(crearEl("p", "lista-vacia", buscando ? "No se encontró ninguna alumna con ese nombre." : "No hay alumnas activas."));
     return;
   }
   const bailesPorAlumna = contarBailesPorAlumna();
@@ -3206,13 +3239,20 @@ function renderListaAlumnasShow() {
     tarjeta.type = "button";
     const fila = crearEl("span", "show-tarjeta-fila");
     fila.appendChild(crearEl("span", "tarjeta-resultado-nombre", a.nombre));
-    fila.appendChild(etiquetaShowAlumna(a.show));
+    const etiquetas = crearEl("span", "show-etiquetas");
+    const estado = etiquetaEstadoAlumna(a.estado);
+    if (estado) etiquetas.appendChild(estado);
+    etiquetas.appendChild(etiquetaShowAlumna(a.show));
+    fila.appendChild(etiquetas);
     tarjeta.appendChild(fila);
     const n = bailesPorAlumna.get(a.id) || 0;
     tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", n ? `${n} baile${n === 1 ? "" : "s"}` : "Sin bailes"));
     tarjeta.addEventListener("click", () => elegirAlumnaShow(a));
     cont.appendChild(tarjeta);
   });
+  if (buscando && showResultadosBusqueda.hayMas) {
+    cont.appendChild(crearEl("p", "lista-vacia", "Hay más alumnas con ese nombre: escribe más letras para encontrarla."));
+  }
 }
 
 function contarBailesPorAlumna() {
@@ -3223,7 +3263,10 @@ function contarBailesPorAlumna() {
   return conteo;
 }
 
-el("inputShowBuscarAlumna").addEventListener("input", renderListaAlumnasShow);
+el("inputShowBuscarAlumna").addEventListener("input", () => {
+  clearTimeout(showBusquedaPendiente);
+  showBusquedaPendiente = setTimeout(buscarAlumnasShow, 300);
+});
 
 function elegirAlumnaShow(alumna) {
   showAlumnaElegida = alumna;
@@ -3276,7 +3319,10 @@ function renderAlumnaShow() {
   const a = showAlumnaElegida;
   const titulo = el("showAlumnaNombre");
   titulo.innerHTML = "";
-  titulo.append(crearEl("span", "", a.nombre + " "), etiquetaShowAlumna(a.show));
+  titulo.append(crearEl("span", "", a.nombre + " "));
+  const estado = etiquetaEstadoAlumna(a.estado);
+  if (estado) titulo.append(estado);
+  titulo.append(etiquetaShowAlumna(a.show));
 
   const cont = el("listaShowBailesActuales");
   cont.innerHTML = "";
@@ -3392,13 +3438,15 @@ function renderResumenShow() {
       fila.appendChild(crearEl("span", "show-tarjeta-nombre", b.nombre + (b.activo ? "" : " (desactivado)")));
       fila.appendChild(crearEl("span", "show-contador", String(b.alumnas.length)));
       tarjeta.appendChild(fila);
-      tarjeta.appendChild(
-        crearEl(
-          "span",
-          "tarjeta-resultado-detalle",
-          b.alumnas.length ? b.alumnas.map((a) => a.nombre).join(", ") : "Sin alumnas todavía"
-        )
-      );
+      const nombres = crearEl("span", "tarjeta-resultado-detalle");
+      if (!b.alumnas.length) nombres.textContent = "Sin alumnas todavía";
+      b.alumnas.forEach((a, i) => {
+        if (i) nombres.append(", ");
+        nombres.append(a.nombre);
+        const estado = etiquetaEstadoAlumna(a.estado);
+        if (estado) nombres.append(" ", estado);
+      });
+      tarjeta.appendChild(nombres);
       cont.appendChild(tarjeta);
     });
   });

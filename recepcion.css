@@ -1023,6 +1023,16 @@ white-space:nowrap;
 .show-etiqueta-no{ background:#fde8ee; color:#e0245e; }
 .show-etiqueta-pendiente{ background:#fff4dc; color:#b7791f; }
 .show-etiqueta-gris{ background:#f1f1f1; color:#888; }
+/* Alumna que ya no está ACTIVA: tiene que verse distinta a las de SHOW. */
+.show-etiqueta-estado{ background:#4a4a4a; color:white; }
+
+.show-etiquetas{
+display:flex;
+flex-wrap:wrap;
+justify-content:flex-end;
+gap:4px;
+flex-shrink:0;
+}
 
 .show-alumna-nombre{
 display:flex;
