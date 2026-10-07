@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=pagos-y-no-activas-v1" />
+<link rel="stylesheet" href="recepcion.css?v=vacation-camp-v1" />
 </head>
 <body>
 
@@ -96,6 +96,10 @@
       <button class="btn-menu" id="btnMenuShow" type="button">
         <span class="btn-menu-icono">🎭</span>
         <span class="btn-menu-texto">Alumnas Show</span>
+      </button>
+      <button class="btn-menu" id="btnMenuCampamento" type="button">
+        <span class="btn-menu-icono">🏕️</span>
+        <span class="btn-menu-texto">Curso de vacaciones</span>
       </button>
     </div>
 
@@ -609,8 +613,169 @@
     </div>
   </section>
 
+  <!-- ============ PANTALLA: CURSO DE VACACIONES ============ -->
+  <!-- Configuración de cada temporada (tabla CONFIG VACATION CAMP),
+       inscritas con sus pagos y código del kiosko, y asistencia de hoy.
+       Todo se guarda por el Worker con la clave de Recepción. -->
+  <section id="pantallaCampamento" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverCampamento" type="button">← Menú</button>
+      <span class="barra-titulo">🏕️ Curso de vacaciones</span>
+    </div>
+
+    <p class="etiqueta-campo">Temporada</p>
+    <select id="selectVcTemporada" class="input-select"></select>
+    <p class="pista-campo" id="pistaVcTemporada"></p>
+
+    <div class="show-total-pagos">
+      <span>Inscritas (sin contar canceladas)</span>
+      <strong id="contadorVc">—</strong>
+    </div>
+
+    <p class="etiqueta-campo">Inscripciones en la ficha pública</p>
+    <div id="opcionesVcEstado" class="lista-resultados"></div>
+
+    <div class="chips-contenedor show-pestanas">
+      <button class="chip activo" type="button" data-vc-pestana="Inscritas">👧 Inscritas</button>
+      <button class="chip" type="button" data-vc-pestana="Asistencia">🕘 Asistencia de hoy</button>
+      <button class="chip" type="button" data-vc-pestana="Config">⚙️ Configuración</button>
+      <button class="chip" type="button" data-vc-pestana="Nueva">➕ Temporada nueva</button>
+    </div>
+    <p class="mensaje-form" id="mensajeVc" role="status"></p>
+
+    <!-- a) Inscritas -->
+    <div id="vistaVcInscritas">
+      <p class="pista-campo">
+        Al marcar "Reserva pagada" se genera solo el código del kiosko. Una inscripción cancelada no cuenta para el cupo y su código deja de funcionar.
+      </p>
+      <div id="listaVcInscritas" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
+    </div>
+
+    <!-- b) Asistencia de hoy -->
+    <div id="vistaVcAsistencia" hidden>
+      <button class="btn-secundario btn-ancho" id="btnVcActualizarAsistencia" type="button">🔄 Actualizar</button>
+      <div id="listaVcAsistencia" class="show-lista"></div>
+    </div>
+
+    <!-- c) Configuración de la temporada -->
+    <div id="vistaVcConfig" hidden>
+      <div class="caja-form-ingreso">
+        <p class="etiqueta-campo">Nombre del curso</p>
+        <input type="text" id="inputVcNombre" class="input-texto" maxlength="150" autocomplete="off" />
+
+        <div class="vc-dos-columnas">
+          <div>
+            <p class="etiqueta-campo">Fecha de inicio</p>
+            <input type="date" id="inputVcInicio" class="input-texto" />
+          </div>
+          <div>
+            <p class="etiqueta-campo">Fecha de fin</p>
+            <input type="date" id="inputVcFin" class="input-texto" />
+          </div>
+        </div>
+
+        <p class="etiqueta-campo">Días sin curso</p>
+        <div id="listaVcDiasSinCurso" class="show-lista"></div>
+        <div class="vc-dos-columnas">
+          <div>
+            <input type="date" id="inputVcDiaSinCurso" class="input-texto" aria-label="Fecha sin curso" />
+          </div>
+          <div>
+            <input type="text" id="inputVcMotivoSinCurso" class="input-texto" maxlength="100" placeholder="Motivo (ej. Recital)" autocomplete="off" aria-label="Motivo" />
+          </div>
+        </div>
+        <button class="btn-secundario btn-ancho" id="btnVcAgregarDia" type="button">+ Agregar día sin curso</button>
+
+        <div class="vc-tres-columnas">
+          <div>
+            <p class="etiqueta-campo">Se recibe desde</p>
+            <input type="time" id="inputVcHoraRecepcion" class="input-texto" />
+          </div>
+          <div>
+            <p class="etiqueta-campo">Hora de inicio</p>
+            <input type="time" id="inputVcHoraInicio" class="input-texto" />
+          </div>
+          <div>
+            <p class="etiqueta-campo">Hora de fin</p>
+            <input type="time" id="inputVcHoraFin" class="input-texto" />
+          </div>
+        </div>
+
+        <div class="vc-dos-columnas">
+          <div>
+            <p class="etiqueta-campo">Edad mínima</p>
+            <input type="number" id="inputVcEdadMin" class="input-texto" min="0" max="99" step="1" inputmode="numeric" />
+          </div>
+          <div>
+            <p class="etiqueta-campo">Edad máxima</p>
+            <input type="number" id="inputVcEdadMax" class="input-texto" min="0" max="99" step="1" inputmode="numeric" />
+          </div>
+        </div>
+
+        <p class="etiqueta-campo">Precio del curso completo (Q)</p>
+        <input type="number" id="inputVcPrecioCompleto" class="input-texto" min="0" step="0.01" inputmode="decimal" />
+
+        <div class="vc-dos-columnas">
+          <div>
+            <p class="etiqueta-campo">Paquete parcial: semanas</p>
+            <input type="number" id="inputVcSemanasParcial" class="input-texto" min="1" step="1" inputmode="numeric" />
+          </div>
+          <div>
+            <p class="etiqueta-campo">Paquete parcial: precio (Q)</p>
+            <input type="number" id="inputVcPrecioParcial" class="input-texto" min="0" step="0.01" inputmode="decimal" />
+          </div>
+        </div>
+
+        <div class="vc-dos-columnas">
+          <div>
+            <p class="etiqueta-campo">Reserva (%)</p>
+            <input type="number" id="inputVcPorcentaje" class="input-texto" min="1" max="100" step="1" inputmode="numeric" />
+          </div>
+          <div>
+            <p class="etiqueta-campo">Cupo máximo</p>
+            <input type="number" id="inputVcCupo" class="input-texto" min="1" step="1" inputmode="numeric" />
+          </div>
+        </div>
+
+        <p class="etiqueta-campo">Actividades (se muestran en la ficha si no está vacío)</p>
+        <textarea id="inputVcActividades" class="input-textarea" rows="3"></textarea>
+
+        <p class="etiqueta-campo">Políticas</p>
+        <p class="pista-campo">Primera línea = título. Las líneas que empiezan con número ("1. ...") son políticas; las demás, nombres de grupo. Ojo: si cambias fechas, horario o cupo, revisa que el texto de las políticas también diga lo nuevo.</p>
+        <textarea id="inputVcPoliticas" class="input-textarea vc-textarea-grande" rows="12"></textarea>
+
+        <p class="etiqueta-campo">Mensaje después de inscribirse</p>
+        <textarea id="inputVcMensaje" class="input-textarea" rows="4"></textarea>
+
+        <button class="btn-grande btn-siguiente" id="btnVcGuardarConfig" type="button">Guardar configuración</button>
+        <p class="mensaje-form" id="mensajeVcConfig" role="status"></p>
+      </div>
+    </div>
+
+    <!-- d) Temporada nueva (copia de la elegida) -->
+    <div id="vistaVcNueva" hidden>
+      <div class="caja-form-ingreso">
+        <p class="pista-campo" id="pistaVcNueva"></p>
+        <p class="etiqueta-campo">Nombre de la temporada</p>
+        <input type="text" id="inputVcNuevaTemporada" class="input-texto" maxlength="50" placeholder="Ej. 2027" autocomplete="off" />
+        <div class="vc-dos-columnas">
+          <div>
+            <p class="etiqueta-campo">Fecha de inicio</p>
+            <input type="date" id="inputVcNuevaInicio" class="input-texto" />
+          </div>
+          <div>
+            <p class="etiqueta-campo">Fecha de fin</p>
+            <input type="date" id="inputVcNuevaFin" class="input-texto" />
+          </div>
+        </div>
+        <button class="btn-grande btn-siguiente" id="btnVcCrearTemporada" type="button">Crear temporada</button>
+        <p class="mensaje-form" id="mensajeVcNueva" role="status"></p>
+      </div>
+    </div>
+  </section>
+
 </div>
 
-<script src="recepcion.js?v=limite-5mb-v1"></script>
+<script src="recepcion.js?v=vacation-camp-v1"></script>
 </body>
 </html>

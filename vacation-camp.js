@@ -1,71 +1,29 @@
 // =====================================================================
-// MOVE — Ficha de inscripción Move Vacation Camp (formulario público)
+// MOVE — Ficha de inscripción del curso de vacaciones (formulario público)
 // =====================================================================
-// Página que llenan los papás sin entrar al Portal. Manda todo al
-// Worker (acción "inscribirVacationCamp"), que vuelve a revisar los
-// datos, calcula los montos y guarda la fila en la tabla
-// "VACATION CAMP 2026" de Airtable. Aquí nunca hay claves de Airtable.
+// Página que llenan los papás sin entrar al Portal. Ya no tiene nada
+// fijo del año: al abrir le pide al Worker ("vacationCampConfig") la
+// temporada activa de la tabla CONFIG VACATION CAMP — nombre, fechas,
+// horario, edades, precios, semanas, días sin curso, políticas y
+// mensaje — y con eso arma la ficha. Para cambiar algo de un año a otro
+// se edita en Recepción → Curso de vacaciones, no aquí.
+//
+// Al enviar ("inscribirVacationCamp") el Worker vuelve a revisar todo y
+// calcula los montos con la configuración; lo que se muestra aquí es
+// solo para que la familia lo vea. Aquí nunca hay claves de Airtable.
 
-// ---------------------------------------------------------------
-// TEXTO DE LAS POLÍTICAS — se edita aquí.
-// Reglas para que se vea bien: la primera línea es el título; una
-// línea que empieza con número ("1. ...") es una política; cualquier
-// otra línea es el nombre de un grupo (p. ej. "Pagos"). Las líneas
-// vacías se ignoran.
-// ---------------------------------------------------------------
-const POLITICAS_VACATION_CAMP = `
-POLÍTICAS DEL MOVE VACATION CAMP
+// En localhost (prueba con `wrangler dev`) se habla con el Worker local,
+// igual que en recepcion.js; en el sitio publicado, con el real.
+const WORKER_URL = ["localhost", "127.0.0.1"].includes(location.hostname)
+  ? "http://localhost:8787"
+  : "https://portalalumnas.movedancea.workers.dev";
 
-Fechas y horario
-1. El campamento se realiza del 2 de noviembre al 4 de diciembre, de 9:00 a.m. a 12:00 p.m.
-2. El 18, el 23 y el 25 de noviembre NO habrá campamento por el recital de la academia.
-3. Las alumnas se reciben de 8:45 a 9:00 a.m. para empezar las actividades puntualmente. Les pedimos recogerlas puntualmente a las 12:00 p.m.
-4. Las alumnas solo se entregan a la persona responsable o a quien ella autorice.
-5. No se reponen clases ni días perdidos.
+const TELEFONO_ACADEMIA = "3752-9984";
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const NOMBRES_DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
-Pagos
-6. Para reservar el lugar se debe pagar el 50% del total. El 50% restante se paga el primer día del campamento.
-7. Una vez realizado el pago, no se devuelve el dinero en caso de cancelación, ni el anticipo ni el pago completo.
-8. El cupo es limitado a 20 participantes.
-
-Qué deben traer
-9. Cada participante debe traer su propia lonchera.
-10. Cada participante debe traer una gabacha para pintar, una gabacha para cocinar y lo que la academia indique para actividades específicas.
-11. El precio incluye los materiales y todas las actividades. Todo lo que las niñas creen se lo llevan a casa.
-
-Responsabilidades
-12. Si una participante daña algo de las instalaciones o del equipo de la academia, la persona responsable deberá cubrir el costo de la reparación o reposición.
-13. La persona responsable confirma que la información médica proporcionada es verdadera y completa, y se compromete a avisar a la academia de cualquier cambio.
-`;
-
-// Precios solo para MOSTRAR la reserva y el saldo en pantalla. El
-// monto que se guarda lo calcula el Worker (si cambias un precio,
-// cámbialo también allá, en VACATION_CAMP_MODALIDADES).
-const PRECIOS = { completo: 2250, dosSemanas: 1350 };
-
-// Semanas de la modalidad "2 semanas". El número es lo que se manda
-// al Worker; el texto debe coincidir con VACATION_CAMP_SEMANAS allá.
-const SEMANAS = [
-  { numero: 1, texto: "Semana 1: 2–6 nov" },
-  { numero: 2, texto: "Semana 2: 9–13 nov" },
-  { numero: 3, texto: "Semana 3: 16–20 nov", nota: "El miércoles 18 no hay campamento por el recital." },
-  { numero: 4, texto: "Semana 4: 23–27 nov", nota: "El lunes 23 y el miércoles 25 no hay campamento por el recital." },
-  { numero: 5, texto: "Semana 5: 30 nov–4 dic" },
-];
-
-// La edad se calcula al primer día del campamento.
-const INICIO_CAMPAMENTO = { anio: 2026, mes: 11, dia: 2 };
-const EDAD_MINIMA = 6;
-const EDAD_MAXIMA = 12;
-
-// Solo al probar en la computadora (localhost) se puede apuntar a un
-// Worker local con ?worker=http://localhost:8787. En el sitio
-// publicado siempre se usa el Worker real.
-const WORKER_URL =
-  (location.hostname === "localhost" || location.hostname === "127.0.0.1") &&
-  new URLSearchParams(location.search).get("worker")
-    ? new URLSearchParams(location.search).get("worker")
-    : "https://portalalumnas.movedancea.workers.dev";
+// Temporada que mandó el Worker (null hasta que carga).
+let temporada = null;
 
 const el = (id) => document.getElementById(id);
 
@@ -82,15 +40,50 @@ async function llamarWorker(payload) {
   return datos;
 }
 
-const formatoQ = (n) => "Q" + n.toLocaleString("en-US");
+// ---------------------------------------------------------------
+// FORMATOS
+// ---------------------------------------------------------------
+const formatoQ = (n) => "Q" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
+
+// 'AAAA-MM-DD' → "2 de noviembre" (sin pasar por Date, para que la
+// zona horaria del celular no corra el día).
+function fechaLarga(iso) {
+  const [, mes, dia] = iso.split("-").map(Number);
+  return `${dia} de ${MESES[mes - 1]}`;
+}
+
+function diaSemana(iso) {
+  const [anio, mes, dia] = iso.split("-").map(Number);
+  return new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay();
+}
+
+// "09:00" → "9:00 a.m."; "12:00" → "12:00 p.m."
+function horaBonita(hhmm) {
+  const [h, m] = String(hhmm || "").split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm || "";
+  const sufijo = h < 12 ? "a.m." : "p.m.";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${sufijo}`;
+}
+
+// Mismo redondeo que el Worker, para que lo que se ve sea lo que se guarda.
+function montos(total) {
+  const reserva = Math.round(total * temporada.porcentajeReserva * 100) / 100;
+  return { reserva, saldo: Math.round((total - reserva) * 100) / 100 };
+}
+
+const porcentajeTexto = () => Math.round(temporada.porcentajeReserva * 100);
 
 // ---------------------------------------------------------------
-// POLÍTICAS: se arman desde el texto de arriba con textContent (no
-// innerHTML), así cualquier carácter del texto se muestra tal cual.
+// POLÍTICAS: vienen como texto de la configuración. La primera línea
+// es el título; una línea que empieza con número ("1. ...") es una
+// política; cualquier otra línea es el nombre de un grupo. Se arman con
+// textContent (no innerHTML), así cualquier carácter se muestra tal cual.
 // ---------------------------------------------------------------
-function pintarPoliticas() {
+function pintarPoliticas(texto) {
   const contenedor = el("textoPoliticas");
-  const lineas = POLITICAS_VACATION_CAMP.split("\n").map((l) => l.trim()).filter(Boolean);
+  contenedor.innerHTML = "";
+  const lineas = String(texto || "").split("\n").map((l) => l.trim()).filter(Boolean);
   let lista = null;
 
   lineas.forEach((linea, i) => {
@@ -121,29 +114,30 @@ function pintarPoliticas() {
 }
 
 // ---------------------------------------------------------------
-// EDAD: solo avisa, nunca bloquea el envío.
+// EDAD: se calcula al primer día del curso. Solo avisa, nunca bloquea.
 // ---------------------------------------------------------------
 function edadAlInicio(fechaIso) {
   const [anio, mes, dia] = fechaIso.split("-").map(Number);
-  const c = INICIO_CAMPAMENTO;
-  let edad = c.anio - anio;
-  if (c.mes < mes || (c.mes === mes && c.dia < dia)) edad--;
+  const [aI, mI, dI] = temporada.inicio.split("-").map(Number);
+  let edad = aI - anio;
+  if (mI < mes || (mI === mes && dI < dia)) edad--;
   return edad;
 }
 
 function actualizarPistaEdad() {
   const pista = el("pistaEdad");
   const fecha = el("inputNacimiento").value;
-  if (!fecha) {
+  if (!fecha || !temporada) {
     pista.textContent = "";
     return;
   }
   const edad = edadAlInicio(fecha);
-  if (edad < EDAD_MINIMA || edad > EDAD_MAXIMA) {
-    pista.textContent = `Ojo: al empezar el campamento tendrá ${edad} años, y el campamento es para niñas de ${EDAD_MINIMA} a ${EDAD_MAXIMA}. Puedes enviar la ficha igual; te contactaremos.`;
+  const { edadMinima: min, edadMaxima: max } = temporada;
+  if ((min !== null && edad < min) || (max !== null && edad > max)) {
+    pista.textContent = `Ojo: al empezar el curso tendrá ${edad} años, y el curso es para niñas de ${min} a ${max}. Puedes enviar la ficha igual; te contactaremos.`;
     pista.className = "pista-campo mensaje-form-error";
   } else {
-    pista.textContent = `Al empezar el campamento tendrá ${edad} años. 🎉`;
+    pista.textContent = `Al empezar el curso tendrá ${edad} años. 🎉`;
     pista.className = "pista-campo mensaje-form-ok";
   }
 }
@@ -156,9 +150,22 @@ const valorRadio = (nombre) => {
   return marcado ? marcado.value : "";
 };
 
+// "el lunes 23 y el miércoles 25"
+function listaDeDias(dias) {
+  const textos = dias.map((d) => `el ${NOMBRES_DIA[diaSemana(d.fecha)]} ${Number(d.fecha.slice(8))}`);
+  return textos.length > 1 ? textos.slice(0, -1).join(", ") + " y " + textos[textos.length - 1] : textos[0];
+}
+
+function notaSemana(semana) {
+  if (!semana.sinCurso.length) return "";
+  const motivos = [...new Set(semana.sinCurso.map((d) => d.motivo).filter(Boolean))];
+  return `No hay curso ${listaDeDias(semana.sinCurso)}` + (motivos.length ? ` (${motivos.join(", ")}).` : ".");
+}
+
 function pintarSemanas() {
   const lista = el("listaSemanas");
-  SEMANAS.forEach((s) => {
+  lista.innerHTML = "";
+  temporada.semanas.forEach((s) => {
     const label = document.createElement("label");
     label.className = "opcion opcion-semana";
     const input = document.createElement("input");
@@ -168,11 +175,12 @@ function pintarSemanas() {
     const span = document.createElement("span");
     span.textContent = s.texto;
     label.append(input, " ", span);
-    if (s.nota) {
-      const nota = document.createElement("span");
-      nota.className = "nota-semana";
-      nota.textContent = "⚠️ " + s.nota;
-      label.appendChild(nota);
+    const nota = notaSemana(s);
+    if (nota) {
+      const spanNota = document.createElement("span");
+      spanNota.className = "nota-semana";
+      spanNota.textContent = "⚠️ " + nota;
+      label.appendChild(spanNota);
     }
     lista.appendChild(label);
   });
@@ -181,28 +189,104 @@ function pintarSemanas() {
 const semanasMarcadas = () =>
   [...document.querySelectorAll('input[name="semana"]:checked')].map((i) => Number(i.value));
 
-// Con 2 semanas marcadas se apagan las demás, para que nunca se
-// puedan elegir más de 2.
+// Al llegar al número de semanas del paquete se apagan las demás, para
+// que nunca se puedan elegir de más.
 function actualizarSemanas() {
+  const cuantas = temporada.semanasParcial;
   const marcadas = semanasMarcadas();
   document.querySelectorAll('input[name="semana"]').forEach((i) => {
-    i.disabled = !i.checked && marcadas.length >= 2;
+    i.disabled = !i.checked && marcadas.length >= cuantas;
   });
   const pista = el("pistaSemanas");
-  pista.textContent = marcadas.length === 2 ? "¡Listo! Elegiste 2 semanas. 🎉" : `Elegiste ${marcadas.length} de 2.`;
-  pista.className = marcadas.length === 2 ? "pista-campo mensaje-form-ok" : "pista-campo";
+  const listo = marcadas.length === cuantas;
+  pista.textContent = listo
+    ? `¡Listo! Elegiste ${cuantas} ${cuantas === 1 ? "semana" : "semanas"}. 🎉`
+    : `Elegiste ${marcadas.length} de ${cuantas}.`;
+  pista.className = listo ? "pista-campo mensaje-form-ok" : "pista-campo";
+}
+
+function totalDeModalidad(modalidad) {
+  if (modalidad === "completo") return temporada.precioCompleto;
+  if (modalidad === "parcial") return temporada.precioParcial;
+  return 0;
 }
 
 function actualizarModalidad() {
   const modalidad = valorRadio("modalidad");
-  el("campoSemanas").hidden = modalidad !== "dosSemanas";
-  if (modalidad === "dosSemanas") actualizarSemanas();
+  el("campoSemanas").hidden = modalidad !== "parcial";
+  if (modalidad === "parcial") actualizarSemanas();
 
-  const total = PRECIOS[modalidad];
+  const total = totalDeModalidad(modalidad);
   el("resumenPago").hidden = !total;
   if (total) {
-    el("montoReserva").textContent = formatoQ(total / 2);
-    el("montoSaldo").textContent = formatoQ(total - total / 2);
+    const { reserva, saldo } = montos(total);
+    el("montoReserva").textContent = formatoQ(reserva);
+    el("montoSaldo").textContent = formatoQ(saldo);
+  }
+}
+
+// ---------------------------------------------------------------
+// ARMAR LA FICHA CON LA CONFIGURACIÓN
+// ---------------------------------------------------------------
+function mostrarSolo(id) {
+  ["pantallaCargando", "pantallaCerrado", "pantallaFormulario", "pantallaListo"].forEach((p) => {
+    el(p).hidden = p !== id;
+  });
+}
+
+function mostrarCerrado(texto) {
+  el("textoCerrado").textContent = texto;
+  mostrarSolo("pantallaCerrado");
+}
+
+function pintarFicha() {
+  const t = temporada;
+  el("tituloFicha").textContent = `Ficha de inscripción — ${t.nombre}`;
+  document.title = `MOVE — Ficha de inscripción ${t.nombre}`;
+
+  // horaBonita ya termina en punto ("12:00 p.m."), así que no se le agrega otro.
+  el("subtituloFicha").textContent =
+    `Del ${fechaLarga(t.inicio)} al ${fechaLarga(t.fin)}, de ${horaBonita(t.horaInicio)} a ${horaBonita(t.horaFin)} ` +
+    `Para niñas de ${t.edadMinima} a ${t.edadMaxima} años. Los campos con * son obligatorios. 🌴`;
+
+  el("seccionActividades").hidden = !t.actividades;
+  el("textoActividades").textContent = t.actividades || "";
+
+  const semanasTexto = t.semanasParcial === 1 ? "1 semana" : `${t.semanasParcial} semanas`;
+  el("textoModalidadCompleto").textContent = `Campamento completo — ${formatoQ(t.precioCompleto)}`;
+  el("textoModalidadParcial").textContent = `Mínimo ${semanasTexto} — ${formatoQ(t.precioParcial)}`;
+  el("etiquetaSemanas").textContent =
+    t.semanasParcial === 1
+      ? "¿Qué semana va a asistir? * (elige 1)"
+      : `¿Qué ${t.semanasParcial} semanas va a asistir? * (elige exactamente ${t.semanasParcial})`;
+
+  const pct = porcentajeTexto();
+  el("etiquetaReserva").textContent = `Reserva (${pct}%)`;
+  el("etiquetaSaldo").textContent = `Saldo (${100 - pct}%) — el primer día`;
+
+  pintarSemanas();
+  pintarPoliticas(t.politicas);
+  el("textoListo").textContent = t.mensajeConfirmacion;
+  mostrarSolo("pantallaFormulario");
+}
+
+async function cargarTemporada() {
+  try {
+    const datos = await llamarWorker({ accion: "vacationCampConfig" });
+    temporada = datos.temporada;
+  } catch (e) {
+    el("textoCargando").textContent = `No se pudo cargar la ficha. Recarga la página o escríbenos al ${TELEFONO_ACADEMIA}.`;
+    return;
+  }
+
+  if (!temporada) {
+    mostrarCerrado(`Por ahora no hay inscripciones abiertas para el curso de vacaciones. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
+  } else if (!temporada.abierta) {
+    mostrarCerrado(`Las inscripciones para el ${temporada.nombre} están cerradas por ahora. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
+  } else if (temporada.lleno) {
+    mostrarCerrado(`¡Gracias por tu interés! Ya se llenó el cupo del ${temporada.nombre}. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
+  } else {
+    pintarFicha();
   }
 }
 
@@ -234,7 +318,9 @@ function errorDelFormulario(d) {
   if (telR.slice(-8) === telE.slice(-8)) {
     return "El teléfono de emergencia debe ser distinto al de la persona responsable.";
   }
-  if (d.modalidad === "dosSemanas" && d.semanas.length !== 2) return "Elige exactamente 2 semanas.";
+  if (d.modalidad === "parcial" && d.semanas.length !== temporada.semanasParcial) {
+    return `Elige exactamente ${temporada.semanasParcial} ${temporada.semanasParcial === 1 ? "semana" : "semanas"}.`;
+  }
   if (!d.aceptoPoliticas) return "Para enviar, marca que leíste y aceptas las políticas del curso de vacaciones.";
   return "";
 }
@@ -263,7 +349,7 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
     restriccionesAlimentarias: el("inputRestricciones").value.trim(),
     otraInformacion: el("inputOtraInfo").value.trim(),
     modalidad,
-    semanas: modalidad === "dosSemanas" ? semanasMarcadas() : [],
+    semanas: modalidad === "parcial" ? semanasMarcadas() : [],
     aceptoPoliticas: el("chkAcepto").checked,
     nombreAcepta: el("inputNombreAcepta").value.trim(),
   };
@@ -281,9 +367,9 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
   boton.textContent = "Enviando...";
 
   try {
-    await llamarWorker(datos);
-    el("pantallaFormulario").hidden = true;
-    el("pantallaListo").hidden = false;
+    const resp = await llamarWorker(datos);
+    if (resp.mensaje) el("textoListo").textContent = resp.mensaje;
+    mostrarSolo("pantallaListo");
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (e) {
     mensajeEl.textContent = e.message;
@@ -297,9 +383,6 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
 // ---------------------------------------------------------------
 // INICIO
 // ---------------------------------------------------------------
-pintarPoliticas();
-pintarSemanas();
-
 el("inputNacimiento").addEventListener("change", actualizarPistaEdad);
 document.querySelectorAll('input[name="alergia"]').forEach((i) =>
   i.addEventListener("change", () => {
@@ -314,3 +397,5 @@ el("listaSemanas").addEventListener("change", actualizarSemanas);
   const hoy = new Date();
   el("inputNacimiento").max = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
 })();
+
+cargarTemporada();

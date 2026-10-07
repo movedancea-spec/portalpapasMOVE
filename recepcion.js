@@ -61,6 +61,7 @@ const PANTALLAS = [
   "pantallaExtranamos",
   "pantallaFeriados",
   "pantallaShow",
+  "pantallaCampamento",
 ];
 
 function mostrarPantalla(id) {
@@ -431,6 +432,10 @@ el("btnMenuShow").addEventListener("click", () => {
   mostrarPantalla("pantallaShow");
   abrirShow();
 });
+el("btnMenuCampamento").addEventListener("click", () => {
+  mostrarPantalla("pantallaCampamento");
+  abrirCampamento();
+});
 
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -450,6 +455,7 @@ el("btnVolverAvisoImportante").addEventListener("click", () => mostrarPantalla("
 el("btnVolverExtranamos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverFeriados").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverShow").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverCampamento").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
   detenerAutoRefresco();
@@ -3863,3 +3869,447 @@ async function eliminarPagoModista(pago, boton) {
     boton.disabled = false;
   }
 }
+
+// =====================================================================
+// CURSO DE VACACIONES (Move Vacation Camp)
+// =====================================================================
+// Todo vive en Airtable: CONFIG VACATION CAMP (una fila por temporada),
+// VACATION CAMP INSCRIPCIONES y ASISTENCIA VACATION CAMP. Esta pantalla
+// solo habla con el Worker (acciones vc*), que revisa la clave de
+// Recepción antes de leer o guardar cualquier cosa.
+//
+// Los nombres y datos de las inscritas los escriben los papás en una
+// ficha pública, así que aquí todo se pinta con textContent (nunca
+// innerHTML con esos datos).
+
+let vcDatos = null; // última respuesta de vcRecepcionDatos
+let vcConfigId = ""; // temporada elegida en el selector
+let vcDiasSinCurso = []; // copia editable de los días sin curso
+let vcPestana = "Inscritas";
+
+function vcCrear(etiqueta, clase, texto) {
+  const nodo = document.createElement(etiqueta);
+  if (clase) nodo.className = clase;
+  if (texto !== undefined && texto !== null) nodo.textContent = texto;
+  return nodo;
+}
+
+function vcMensaje(id, texto, tipo) {
+  const m = el(id);
+  m.textContent = texto || "";
+  m.className = "mensaje-form" + (tipo === "error" ? " mensaje-form-error" : tipo === "ok" ? " mensaje-form-ok" : "");
+}
+
+const vcQ = (n) => (n === null || n === undefined ? "—" : "Q" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 }));
+
+// 'AAAA-MM-DD' → '18/11/2026' sin pasar por Date (no se corre el día).
+function vcFechaCorta(iso) {
+  if (!iso) return "";
+  const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return `${d}/${m}/${a}`;
+}
+
+function vcHoraGuatemala(isoInstante) {
+  if (!isoInstante) return "";
+  return new Date(isoInstante).toLocaleTimeString("es-GT", {
+    timeZone: "America/Guatemala",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+async function abrirCampamento() {
+  vcMensaje("mensajeVc", "");
+  await vcCargar();
+}
+
+async function vcCargar() {
+  el("listaVcInscritas").innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    vcDatos = await llamarWorker({ accion: "vcRecepcionDatos", clave: claveRecepcion, configId: vcConfigId });
+  } catch (e) {
+    vcMensaje("mensajeVc", e.message, "error");
+    el("listaVcInscritas").innerHTML = "";
+    return;
+  }
+  if (!vcDatos.config) {
+    vcMensaje("mensajeVc", "Todavía no hay ninguna temporada en CONFIG VACATION CAMP.", "error");
+    el("listaVcInscritas").innerHTML = "";
+    return;
+  }
+  vcConfigId = vcDatos.config.id;
+  vcPintarTodo();
+}
+
+function vcPintarTodo() {
+  const cfg = vcDatos.config;
+
+  const select = el("selectVcTemporada");
+  select.innerHTML = "";
+  vcDatos.temporadas.forEach((t) => {
+    const op = vcCrear("option", "", `${t.temporada}${t.id === vcDatos.temporadaActivaId ? " (la de la ficha)" : ""}`);
+    op.value = t.id;
+    select.appendChild(op);
+  });
+  select.value = cfg.id;
+  el("pistaVcTemporada").textContent =
+    `Del ${vcFechaCorta(cfg.inicio)} al ${vcFechaCorta(cfg.fin)}.` +
+    (cfg.id === vcDatos.temporadaActivaId ? " Esta es la temporada que muestra la ficha pública." : " Esta temporada NO es la que muestra la ficha pública (es la de fecha de inicio más reciente).");
+
+  const activas = vcDatos.inscritas.filter((i) => i.estado !== "Cancelada").length;
+  el("contadorVc").textContent = `${activas} de ${cfg.cupo ?? "—"}`;
+
+  vcPintarEstado();
+  vcPintarInscritas();
+  vcPintarAsistencia();
+  vcLlenarFormulario();
+  el("pistaVcNueva").textContent =
+    `Se copian los precios, horario, edades, cupo, actividades, políticas y mensaje de la temporada ${cfg.temporada}. ` +
+    "Nace con inscripciones Cerradas y sin días sin curso: revisa todo en Configuración antes de abrirla.";
+}
+
+// ---------- Abiertas / Cerradas ----------
+function vcPintarEstado() {
+  const cont = el("opcionesVcEstado");
+  cont.innerHTML = "";
+  const actual = vcDatos.config.estado;
+  [
+    { estado: "Abiertas", titulo: "🟢 Abiertas", detalle: "La ficha pública recibe inscripciones (mientras haya cupo)." },
+    { estado: "Cerradas", titulo: "⛔ Cerradas", detalle: "La ficha muestra un mensaje amable con el teléfono, sin formulario." },
+  ].forEach((op) => {
+    const activo = actual === op.estado;
+    const tarjeta = vcCrear("button", "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : ""));
+    tarjeta.type = "button";
+    tarjeta.setAttribute("aria-pressed", activo ? "true" : "false");
+    tarjeta.append(
+      vcCrear("span", "tarjeta-resultado-nombre", op.titulo + (activo ? " — ASÍ ESTÁ AHORA" : "")),
+      vcCrear("span", "tarjeta-resultado-detalle", op.detalle)
+    );
+    if (!activo) tarjeta.addEventListener("click", () => vcAbrirCerrar(op.estado === "Abiertas"));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function vcAbrirCerrar(abiertas) {
+  const nombre = vcDatos.config.temporada;
+  if (!window.confirm(abiertas ? `¿Abrir las inscripciones de la temporada ${nombre}?` : `¿Cerrar las inscripciones de la temporada ${nombre}?`)) return;
+  vcMensaje("mensajeVc", "Guardando...");
+  try {
+    await llamarWorker({ accion: "vcRecepcionAbrirCerrar", clave: claveRecepcion, configId: vcConfigId, abiertas });
+    vcDatos.config.estado = abiertas ? "Abiertas" : "Cerradas";
+    vcPintarEstado();
+    vcMensaje("mensajeVc", abiertas ? "✅ Inscripciones abiertas." : "✅ Inscripciones cerradas.", "ok");
+  } catch (e) {
+    vcMensaje("mensajeVc", e.message, "error");
+  }
+}
+
+// ---------- Inscritas ----------
+function vcLinea(etiqueta, valor, clase) {
+  const p = vcCrear("span", clase || "");
+  p.append(vcCrear("strong", "", etiqueta + ": "), document.createTextNode(valor || "—"));
+  return p;
+}
+
+function vcTelefono(etiqueta, nombre, parentesco, telefono) {
+  const p = vcCrear("span");
+  p.append(vcCrear("strong", "", etiqueta + ": "), document.createTextNode(`${nombre} (${parentesco}) · `));
+  const a = vcCrear("a", "", telefono);
+  a.href = "tel:" + String(telefono || "").replace(/\D/g, "");
+  p.appendChild(a);
+  return p;
+}
+
+function vcPintarInscritas() {
+  const cont = el("listaVcInscritas");
+  cont.innerHTML = "";
+  if (!vcDatos.inscritas.length) {
+    cont.appendChild(vcCrear("p", "lista-vacia", "Todavía no hay inscripciones en esta temporada."));
+    return;
+  }
+  vcDatos.inscritas.forEach((i) => cont.appendChild(vcTarjetaInscrita(i)));
+}
+
+function vcTarjetaInscrita(i) {
+  const cancelada = i.estado === "Cancelada";
+  const tarjeta = vcCrear("details", "show-tarjeta vc-inscrita" + (cancelada ? " inactivo" : ""));
+
+  const resumen = vcCrear("summary", "show-tarjeta-fila");
+  const texto = vcCrear("span", "show-tarjeta-texto");
+  const nombre = vcCrear("span", "show-tarjeta-nombre");
+  nombre.append(vcCrear("span", "vc-flecha", "▸"), document.createTextNode(i.alumna));
+  texto.append(nombre, vcCrear("span", "tarjeta-resultado-detalle", i.modalidad + (i.semanas.length ? " · " + i.semanas.join(", ") : "")));
+  const etiquetas = vcCrear("span", "show-etiquetas");
+  if (cancelada) etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-estado", "CANCELADA"));
+  if (i.codigo) etiquetas.appendChild(vcCrear("span", "vc-codigo", i.codigo));
+  etiquetas.appendChild(
+    vcCrear("span", "show-etiqueta " + (i.reservaPagada ? "show-etiqueta-si" : "show-etiqueta-pendiente"), i.reservaPagada ? "Reserva ✓" : "Reserva pendiente")
+  );
+  if (i.tieneAlergia === "SI") etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-no", "⚠️ Alergia"));
+  resumen.append(texto, etiquetas);
+  tarjeta.appendChild(resumen);
+
+  const detalle = vcCrear("div", "vc-detalle");
+  detalle.append(
+    vcTelefono("Responsable", i.responsable, i.parentescoResponsable, i.telefonoResponsable),
+    vcTelefono("Emergencia", i.contactoEmergencia, i.parentescoEmergencia, i.telefonoEmergencia),
+    vcLinea("Nacimiento", vcFechaCorta(i.fechaNacimiento)),
+    vcLinea("Alergia", i.tieneAlergia === "SI" ? i.descripcionAlergia : "No", i.tieneAlergia === "SI" ? "vc-medico" : ""),
+    vcLinea("Condiciones médicas", i.condicionesMedicas, i.condicionesMedicas ? "vc-medico" : ""),
+    vcLinea("Medicamentos", i.medicamentos, i.medicamentos ? "vc-medico" : ""),
+    vcLinea("Restricciones alimentarias", i.restriccionesAlimentarias, i.restriccionesAlimentarias ? "vc-medico" : ""),
+    vcLinea("Otra información", i.otraInformacion),
+    vcLinea("Total", `${vcQ(i.montoTotal)} (reserva ${vcQ(i.montoReserva)} + saldo ${vcQ(i.montoSaldo)})`),
+    vcLinea("Código del kiosko", i.codigo || (cancelada ? "—" : "se genera al marcar la reserva"))
+  );
+  tarjeta.appendChild(detalle);
+
+  const pagos = vcCrear("div", "vc-pagos");
+  pagos.append(
+    vcCasilla(`Reserva pagada (${vcQ(i.montoReserva)})`, i.reservaPagada, cancelada, (valor) =>
+      vcActualizarInscripcion(i, { reservaPagada: valor })
+    ),
+    vcCasilla(`Saldo pagado (${vcQ(i.montoSaldo)})`, i.saldoPagado, cancelada, (valor) =>
+      vcActualizarInscripcion(i, { saldoPagado: valor })
+    )
+  );
+  tarjeta.appendChild(pagos);
+
+  const acciones = vcCrear("div", "show-acciones");
+  const boton = vcCrear("button", "btn-secundario btn-chico" + (cancelada ? "" : " show-btn-peligro"), cancelada ? "Reactivar inscripción" : "Cancelar inscripción");
+  boton.type = "button";
+  boton.addEventListener("click", () => {
+    const pregunta = cancelada
+      ? `¿Reactivar la inscripción de ${i.alumna}? Vuelve a contar para el cupo y su código vuelve a funcionar.`
+      : `¿Cancelar la inscripción de ${i.alumna}? No se borra: deja de contar para el cupo y su código del kiosko deja de funcionar.`;
+    if (window.confirm(pregunta)) vcActualizarInscripcion(i, { estado: cancelada ? "Activa" : "Cancelada" });
+  });
+  acciones.appendChild(boton);
+  tarjeta.appendChild(acciones);
+  return tarjeta;
+}
+
+function vcCasilla(texto, marcada, deshabilitada, alCambiar) {
+  const label = vcCrear("label", "opcion-checkbox");
+  const input = vcCrear("input");
+  input.type = "checkbox";
+  input.checked = marcada;
+  input.disabled = deshabilitada;
+  input.addEventListener("change", () => alCambiar(input.checked));
+  label.append(input, vcCrear("span", "", texto));
+  return label;
+}
+
+async function vcActualizarInscripcion(inscrita, cambios) {
+  vcMensaje("mensajeVc", "Guardando...");
+  try {
+    const resp = await llamarWorker({ accion: "vcRecepcionActualizarInscripcion", clave: claveRecepcion, id: inscrita.id, ...cambios });
+    const nueva = { ...resp.inscrita, entradaHoy: inscrita.entradaHoy, salidaHoy: inscrita.salidaHoy };
+    const posicion = vcDatos.inscritas.findIndex((x) => x.id === inscrita.id);
+    if (posicion >= 0) vcDatos.inscritas[posicion] = nueva;
+    const codigoNuevo = !inscrita.codigo && nueva.codigo;
+    vcPintarTodo();
+    vcMensaje(
+      "mensajeVc",
+      codigoNuevo ? `✅ Guardado. Código del kiosko de ${nueva.alumna}: ${nueva.codigo}` : "✅ Guardado.",
+      "ok"
+    );
+  } catch (e) {
+    vcMensaje("mensajeVc", e.message, "error");
+    vcPintarInscritas(); // regresa las casillas a como estaban
+  }
+}
+
+// ---------- Asistencia de hoy ----------
+function vcPintarAsistencia() {
+  const cont = el("listaVcAsistencia");
+  cont.innerHTML = "";
+  if (!vcDatos.hayCursoHoy) {
+    cont.appendChild(vcCrear("p", "lista-vacia", `Hoy (${vcFechaCorta(vcDatos.hoy)}) no hay curso en esta temporada.`));
+  }
+  const activas = vcDatos.inscritas.filter((i) => i.estado !== "Cancelada");
+  const grupos = [
+    { titulo: "✅ Ya salieron", lista: activas.filter((i) => i.salidaHoy) },
+    { titulo: "🏕️ Están aquí", lista: activas.filter((i) => i.entradaHoy && !i.salidaHoy) },
+    { titulo: "⏳ No han llegado", lista: activas.filter((i) => !i.entradaHoy) },
+  ];
+  grupos.forEach((g) => {
+    cont.appendChild(vcCrear("p", "show-grupo-titulo", `${g.titulo} (${g.lista.length})`));
+    if (!g.lista.length) {
+      cont.appendChild(vcCrear("p", "lista-vacia", "Nadie."));
+      return;
+    }
+    g.lista.forEach((i) => {
+      const fila = vcCrear("div", "show-tarjeta show-tarjeta-fila");
+      fila.appendChild(vcCrear("span", "show-tarjeta-nombre", i.alumna));
+      const horas = [];
+      if (i.entradaHoy) horas.push("Entró " + vcHoraGuatemala(i.entradaHoy));
+      if (i.salidaHoy) horas.push("Salió " + vcHoraGuatemala(i.salidaHoy));
+      if (!i.codigo) horas.push("sin código");
+      fila.appendChild(vcCrear("span", "vc-hora", horas.join(" · ")));
+      cont.appendChild(fila);
+    });
+  });
+}
+
+// ---------- Configuración ----------
+function vcLlenarFormulario() {
+  const c = vcDatos.config;
+  el("inputVcNombre").value = c.nombre || "";
+  el("inputVcInicio").value = c.inicio || "";
+  el("inputVcFin").value = c.fin || "";
+  el("inputVcHoraRecepcion").value = c.horaRecepcion || "";
+  el("inputVcHoraInicio").value = c.horaInicio || "";
+  el("inputVcHoraFin").value = c.horaFin || "";
+  el("inputVcEdadMin").value = c.edadMinima ?? "";
+  el("inputVcEdadMax").value = c.edadMaxima ?? "";
+  el("inputVcPrecioCompleto").value = c.precioCompleto ?? "";
+  el("inputVcSemanasParcial").value = c.semanasParcial ?? "";
+  el("inputVcPrecioParcial").value = c.precioParcial ?? "";
+  el("inputVcPorcentaje").value = c.porcentajeReserva === null ? "" : Math.round(c.porcentajeReserva * 100);
+  el("inputVcCupo").value = c.cupo ?? "";
+  el("inputVcActividades").value = c.actividades || "";
+  el("inputVcPoliticas").value = c.politicas || "";
+  el("inputVcMensaje").value = c.mensajeConfirmacion || "";
+  vcDiasSinCurso = c.diasSinCurso.map((d) => ({ ...d }));
+  vcPintarDiasSinCurso();
+  vcMensaje("mensajeVcConfig", "");
+}
+
+function vcPintarDiasSinCurso() {
+  const cont = el("listaVcDiasSinCurso");
+  cont.innerHTML = "";
+  if (!vcDiasSinCurso.length) {
+    cont.appendChild(vcCrear("p", "lista-vacia", "No hay días sin curso."));
+    return;
+  }
+  vcDiasSinCurso.forEach((d, indice) => {
+    const fila = vcCrear("div", "show-tarjeta show-tarjeta-fila");
+    fila.appendChild(vcCrear("span", "show-tarjeta-nombre", vcFechaCorta(d.fecha) + (d.motivo ? " — " + d.motivo : "")));
+    const quitar = vcCrear("button", "btn-secundario btn-chico show-btn-peligro", "Quitar");
+    quitar.type = "button";
+    quitar.addEventListener("click", () => {
+      vcDiasSinCurso.splice(indice, 1);
+      vcPintarDiasSinCurso();
+      vcMensaje("mensajeVcConfig", "Recuerda guardar la configuración.");
+    });
+    fila.appendChild(quitar);
+    cont.appendChild(fila);
+  });
+}
+
+el("btnVcAgregarDia").addEventListener("click", () => {
+  const fecha = el("inputVcDiaSinCurso").value;
+  const motivo = el("inputVcMotivoSinCurso").value.trim();
+  if (!fecha) {
+    vcMensaje("mensajeVcConfig", "Escoge la fecha sin curso.", "error");
+    return;
+  }
+  vcDiasSinCurso = vcDiasSinCurso.filter((d) => d.fecha !== fecha);
+  vcDiasSinCurso.push({ fecha, motivo });
+  vcDiasSinCurso.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  el("inputVcDiaSinCurso").value = "";
+  el("inputVcMotivoSinCurso").value = "";
+  vcPintarDiasSinCurso();
+  vcMensaje("mensajeVcConfig", "Recuerda guardar la configuración.");
+});
+
+el("btnVcGuardarConfig").addEventListener("click", async () => {
+  const boton = el("btnVcGuardarConfig");
+  boton.disabled = true;
+  vcMensaje("mensajeVcConfig", "Guardando...");
+  try {
+    await llamarWorker({
+      accion: "vcRecepcionGuardarConfig",
+      clave: claveRecepcion,
+      configId: vcConfigId,
+      campos: {
+        nombre: el("inputVcNombre").value,
+        inicio: el("inputVcInicio").value,
+        fin: el("inputVcFin").value,
+        diasSinCurso: vcDiasSinCurso,
+        horaRecepcion: el("inputVcHoraRecepcion").value,
+        horaInicio: el("inputVcHoraInicio").value,
+        horaFin: el("inputVcHoraFin").value,
+        edadMinima: el("inputVcEdadMin").value,
+        edadMaxima: el("inputVcEdadMax").value,
+        precioCompleto: el("inputVcPrecioCompleto").value,
+        semanasParcial: el("inputVcSemanasParcial").value,
+        precioParcial: el("inputVcPrecioParcial").value,
+        porcentajeReserva: el("inputVcPorcentaje").value,
+        cupo: el("inputVcCupo").value,
+        actividades: el("inputVcActividades").value,
+        politicas: el("inputVcPoliticas").value,
+        mensajeConfirmacion: el("inputVcMensaje").value,
+      },
+    });
+    await vcCargar();
+    vcMensaje("mensajeVcConfig", "✅ Configuración guardada. La ficha pública ya muestra lo nuevo.", "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcConfig", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+// ---------- Temporada nueva ----------
+el("btnVcCrearTemporada").addEventListener("click", async () => {
+  const temporada = el("inputVcNuevaTemporada").value.trim();
+  const inicio = el("inputVcNuevaInicio").value;
+  const fin = el("inputVcNuevaFin").value;
+  if (!temporada || !inicio || !fin) {
+    vcMensaje("mensajeVcNueva", "Escribe el nombre y las dos fechas.", "error");
+    return;
+  }
+  const boton = el("btnVcCrearTemporada");
+  boton.disabled = true;
+  vcMensaje("mensajeVcNueva", "Creando...");
+  try {
+    const resp = await llamarWorker({
+      accion: "vcRecepcionCrearTemporada",
+      clave: claveRecepcion,
+      desdeId: vcConfigId,
+      temporada,
+      inicio,
+      fin,
+    });
+    vcConfigId = resp.configId;
+    el("inputVcNuevaTemporada").value = "";
+    el("inputVcNuevaInicio").value = "";
+    el("inputVcNuevaFin").value = "";
+    await vcCargar();
+    vcCambiarPestana("Config");
+    vcMensaje("mensajeVcConfig", `✅ Temporada ${temporada} creada (Cerrada). Revisa precios, días sin curso y políticas, guarda, y luego ábrela.`, "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcNueva", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+// ---------- Pestañas y selector ----------
+function vcCambiarPestana(nombre) {
+  vcPestana = nombre;
+  document.querySelectorAll("[data-vc-pestana]").forEach((chip) => {
+    chip.classList.toggle("activo", chip.dataset.vcPestana === nombre);
+  });
+  ["Inscritas", "Asistencia", "Config", "Nueva"].forEach((n) => {
+    el("vistaVc" + n).hidden = n !== nombre;
+  });
+}
+
+document.querySelectorAll("[data-vc-pestana]").forEach((chip) => {
+  chip.addEventListener("click", () => vcCambiarPestana(chip.dataset.vcPestana));
+});
+
+el("selectVcTemporada").addEventListener("change", () => {
+  vcConfigId = el("selectVcTemporada").value;
+  vcMensaje("mensajeVc", "");
+  vcCargar();
+});
+
+el("btnVcActualizarAsistencia").addEventListener("click", async () => {
+  await vcCargar();
+  vcMensaje("mensajeVc", "✅ Actualizado.", "ok");
+});

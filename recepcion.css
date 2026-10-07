@@ -1199,3 +1199,62 @@ cursor:default;
 color:#e0245e;
 font-weight:800;
 }
+
+/* ---------- Curso de vacaciones ---------- */
+.vc-dos-columnas,
+.vc-tres-columnas{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:10px;
+}
+.vc-tres-columnas{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+
+@media(max-width:400px){
+.vc-tres-columnas{ grid-template-columns:1fr; }
+}
+
+.vc-textarea-grande{ min-height:220px; }
+
+.vc-inscrita summary{
+list-style:none;
+cursor:pointer;
+}
+.vc-inscrita summary::-webkit-details-marker{ display:none; }
+.vc-inscrita summary:focus-visible{ outline:2px solid #ef4b9b; outline-offset:2px; border-radius:10px; }
+.vc-inscrita[open] summary .vc-flecha{ transform:rotate(90deg); }
+.vc-flecha{ display:inline-block; color:#ef4b9b; transition:transform .15s; margin-right:4px; }
+
+.vc-detalle{
+display:flex;
+flex-direction:column;
+gap:3px;
+margin-top:8px;
+font-size:13px;
+font-weight:600;
+color:#555;
+overflow-wrap:anywhere;
+}
+.vc-detalle strong{ color:#a15277; }
+.vc-detalle a{ color:#ef4b9b; }
+.vc-medico{ color:#e0245e; }
+
+.vc-pagos{
+display:flex;
+flex-direction:column;
+gap:6px;
+margin-top:8px;
+}
+
+.vc-codigo{
+font-size:15px;
+font-weight:800;
+letter-spacing:.08em;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+border-radius:999px;
+padding:3px 10px;
+}
+
+.vc-hora{ font-size:12.5px; font-weight:700; color:#777; white-space:nowrap; }
+/* Algunos navegadores viejos no aceptan display:flex en <details>. */
+.vc-inscrita{ display:block; }

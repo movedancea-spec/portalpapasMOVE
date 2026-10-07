@@ -3,28 +3,43 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MOVE — Ficha de inscripción Move Vacation Camp</title>
+<title>MOVE — Ficha de inscripción curso de vacaciones</title>
 <meta name="theme-color" content="#ef4b9b" />
 <meta name="description" content="Ficha de inscripción del Move Vacation Camp de MOVE Dance Academy." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="prueba.css" />
-<link rel="stylesheet" href="vacation-camp.css?v=1" />
+<link rel="stylesheet" href="vacation-camp.css?v=2" />
 </head>
 <body>
 
 <div class="container">
 
   <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
-  <div class="title">Ficha de inscripción — Move Vacation Camp</div>
+  <!-- El nombre del curso, las fechas, precios, semanas y políticas
+       vienen de la tabla CONFIG VACATION CAMP (ver vacation-camp.js). -->
+  <div class="title" id="tituloFicha">Ficha de inscripción</div>
+
+  <!-- ============ PANTALLA: CARGANDO ============ -->
+  <section id="pantallaCargando" class="pantalla">
+    <p class="subtitulo" id="textoCargando">Cargando... ⏳</p>
+  </section>
+
+  <!-- ============ PANTALLA: INSCRIPCIONES CERRADAS / CUPO LLENO ============ -->
+  <section id="pantallaCerrado" class="pantalla" hidden>
+    <p class="listo-emoji">🌴</p>
+    <p class="listo-texto" id="textoCerrado"></p>
+  </section>
 
   <!-- ============ PANTALLA: FORMULARIO ============ -->
-  <form id="pantallaFormulario" class="pantalla" novalidate>
-    <p class="subtitulo">
-      Del 2 de noviembre al 4 de diciembre, de 9:00 a.m. a 12:00 p.m.
-      Para niñas de 6 a 12 años. Los campos con * son obligatorios. 🌴
-    </p>
+  <form id="pantallaFormulario" class="pantalla" novalidate hidden>
+    <p class="subtitulo" id="subtituloFicha"></p>
+
+    <section class="seccion actividades" id="seccionActividades" hidden>
+      <p class="seccion-titulo">🎨 Actividades</p>
+      <p class="actividades-texto" id="textoActividades"></p>
+    </section>
 
     <!-- Datos de la alumna -->
     <fieldset class="seccion">
@@ -128,20 +143,20 @@
       <div class="campo-form">
         <p class="etiqueta-campo" id="etiquetaModalidad">Elige una opción *</p>
         <div class="opciones-columna" role="radiogroup" aria-labelledby="etiquetaModalidad">
-          <label class="opcion"><input type="radio" name="modalidad" value="completo" /> <span>Campamento completo — Q2,250</span></label>
-          <label class="opcion"><input type="radio" name="modalidad" value="dosSemanas" /> <span>Mínimo 2 semanas — Q1,350</span></label>
+          <label class="opcion"><input type="radio" name="modalidad" value="completo" /> <span id="textoModalidadCompleto"></span></label>
+          <label class="opcion"><input type="radio" name="modalidad" value="parcial" /> <span id="textoModalidadParcial"></span></label>
         </div>
       </div>
 
       <div class="campo-form" id="campoSemanas" hidden>
-        <p class="etiqueta-campo" id="etiquetaSemanas">¿Qué 2 semanas va a asistir? * (elige exactamente 2)</p>
+        <p class="etiqueta-campo" id="etiquetaSemanas"></p>
         <div class="opciones-columna" id="listaSemanas" role="group" aria-labelledby="etiquetaSemanas"></div>
         <p class="pista-campo" id="pistaSemanas"></p>
       </div>
 
       <div class="resumen-pago" id="resumenPago" hidden>
-        <div class="resumen-fila"><span>Reserva (50%)</span><strong id="montoReserva"></strong></div>
-        <div class="resumen-fila"><span>Saldo (50%) — el primer día</span><strong id="montoSaldo"></strong></div>
+        <div class="resumen-fila"><span id="etiquetaReserva">Reserva</span><strong id="montoReserva"></strong></div>
+        <div class="resumen-fila"><span id="etiquetaSaldo">Saldo — el primer día</span><strong id="montoSaldo"></strong></div>
       </div>
     </fieldset>
 
@@ -167,15 +182,11 @@
   <!-- ============ PANTALLA: LISTO ============ -->
   <section id="pantallaListo" class="pantalla" hidden>
     <p class="listo-emoji">🎉</p>
-    <p class="listo-texto">
-      ¡Gracias! Recibimos la inscripción. Para confirmar el lugar de tu hija
-      es necesario pagar el 50% de reserva. Te contactaremos al número
-      registrado con los datos de pago. Cualquier duda: 3752-9984.
-    </p>
+    <p class="listo-texto" id="textoListo"></p>
   </section>
 
 </div>
 
-<script src="vacation-camp.js?v=1"></script>
+<script src="vacation-camp.js?v=3"></script>
 </body>
 </html>

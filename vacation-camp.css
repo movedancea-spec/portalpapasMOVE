@@ -166,3 +166,15 @@ color:#555;
 line-height:1.5;
 margin-bottom:4px;
 }
+
+/*=====================================
+ACTIVIDADES (texto de la configuración)
+=====================================*/
+
+.actividades-texto{
+font-size:clamp(14px,3.8vw,15px);
+font-weight:600;
+color:#555;
+line-height:1.5;
+white-space:pre-line;
+}
