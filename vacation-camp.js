@@ -222,7 +222,42 @@ function actualizarModalidad() {
     const { reserva, saldo } = montos(total);
     el("montoReserva").textContent = formatoQ(reserva);
     el("montoSaldo").textContent = formatoQ(saldo);
+    // Las opciones de forma de pago muestran el monto de la modalidad
+    // elegida (el Worker lo vuelve a calcular al guardar).
+    el("textoFormaReserva").textContent = `Reserva ${porcentajeTexto()}% — ${formatoQ(reserva)} (el saldo se paga el primer día)`;
+    el("textoFormaTotal").textContent = `Pago total — ${formatoQ(total)}`;
   }
+  document.querySelectorAll('input[name="formaPago"]').forEach((i) => {
+    i.disabled = !total;
+  });
+  el("pistaFormaPago").hidden = !!total;
+}
+
+// ---------------------------------------------------------------
+// PANTALLA FINAL: botón de Paggo o instrucciones, según el método.
+// ---------------------------------------------------------------
+function pintarPagoFinal(resp) {
+  const caja = el("pagoFinal");
+  const boton = el("btnPagar");
+  const texto = el("pagoFinalTexto");
+  const queSePaga = resp.formaPago === "total" ? "Pago total" : "Reserva";
+  el("pagoFinalMonto").textContent = `${queSePaga}: ${formatoQ(resp.montoElegido || 0)}`;
+  boton.hidden = true;
+  texto.hidden = true;
+
+  if (resp.metodoPago === "link" && resp.linkPago) {
+    boton.href = resp.linkPago;
+    boton.textContent = resp.formaPago === "total" ? "Pagar total →" : "Pagar reserva →";
+    boton.hidden = false;
+  } else if (resp.metodoPago === "link") {
+    // Paggo no pudo crear el link: Recepción lo manda por WhatsApp.
+    texto.textContent = `En breve te enviaremos el link de pago por WhatsApp. Cualquier duda: ${TELEFONO_ACADEMIA}.`;
+    texto.hidden = false;
+  } else {
+    texto.textContent = resp.instrucciones || "";
+    texto.hidden = !resp.instrucciones;
+  }
+  caja.hidden = false;
 }
 
 // ---------------------------------------------------------------
@@ -308,6 +343,8 @@ function errorDelFormulario(d) {
   if (!d.tieneAlergia) faltan.push("si tiene alguna alergia");
   if (d.tieneAlergia === "SI" && !d.descripcionAlergia) faltan.push("descripción de la alergia");
   if (!d.modalidad) faltan.push("modalidad de inscripción");
+  if (!d.formaPago) faltan.push("forma de pago");
+  if (!d.metodoPago) faltan.push("método de pago");
   if (!d.nombreAcepta) faltan.push("nombre de quien acepta");
   if (faltan.length) return "Falta: " + faltan.join(", ") + ".";
 
@@ -350,6 +387,8 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
     otraInformacion: el("inputOtraInfo").value.trim(),
     modalidad,
     semanas: modalidad === "parcial" ? semanasMarcadas() : [],
+    formaPago: valorRadio("formaPago"),
+    metodoPago: valorRadio("metodoPago"),
     aceptoPoliticas: el("chkAcepto").checked,
     nombreAcepta: el("inputNombreAcepta").value.trim(),
   };
@@ -369,6 +408,7 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
   try {
     const resp = await llamarWorker(datos);
     if (resp.mensaje) el("textoListo").textContent = resp.mensaje;
+    pintarPagoFinal(resp);
     mostrarSolo("pantallaListo");
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (e) {

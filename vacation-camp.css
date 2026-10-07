@@ -178,3 +178,37 @@ color:#555;
 line-height:1.5;
 white-space:pre-line;
 }
+
+/*=====================================
+PAGO EN LA PANTALLA FINAL
+=====================================*/
+
+.pago-final{
+margin-top:18px;
+border-radius:18px;
+background:white;
+border:2px solid #ffd8ea;
+padding:16px;
+text-align:center;
+}
+
+.pago-final-monto{
+font-size:clamp(16px,4.4vw,19px);
+font-weight:800;
+color:#ef4b9b;
+margin-bottom:6px;
+}
+
+.btn-pagar{
+display:block;
+text-decoration:none;
+}
+
+.pago-final-texto{
+font-size:clamp(14px,3.8vw,15.5px);
+font-weight:600;
+color:#555;
+line-height:1.5;
+white-space:pre-line;
+overflow-wrap:anywhere;
+}

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=vacation-camp-v1" />
+<link rel="stylesheet" href="recepcion.css?v=vacation-camp-v3" />
 </head>
 <body>
 
@@ -747,6 +747,25 @@
         <p class="etiqueta-campo">Mensaje después de inscribirse</p>
         <textarea id="inputVcMensaje" class="input-textarea" rows="4"></textarea>
 
+        <p class="etiqueta-campo">Datos para transferencia o depósito</p>
+        <p class="pista-campo">Banco, tipo y número de cuenta, a nombre de quién y a dónde mandar el comprobante. Si lo dejas vacío, la ficha y el WhatsApp dicen: "En breve te enviaremos los datos para la transferencia."</p>
+        <textarea id="inputVcDatosTransferencia" class="input-textarea" rows="4"></textarea>
+
+        <p class="etiqueta-campo">Instrucciones para pago en efectivo</p>
+        <textarea id="inputVcInstruccionesEfectivo" class="input-textarea" rows="3"></textarea>
+
+        <p class="etiqueta-campo">WhatsApp de bienvenida (al inscribirse)</p>
+        <p class="pista-campo vc-llaves">
+          Datos que se reemplazan solos: {responsable} {alumna} {curso} {fechas} {horario} {hora_recepcion} {fecha_inicio}
+          {reserva} {saldo} {total} {monto_elegido} {link_pago} {datos_transferencia} {instrucciones_efectivo} {texto_pago}.
+          {texto_pago} se arma solo según la forma y el método de pago.
+        </p>
+        <textarea id="inputVcWhatsapp" class="input-textarea vc-textarea-grande" rows="12"></textarea>
+
+        <p class="etiqueta-campo">WhatsApp de pago confirmado</p>
+        <p class="pista-campo">Se manda una vez por la reserva y una vez por el saldo (si pagan el total, una sola vez). Usa los mismos datos entre llaves.</p>
+        <textarea id="inputVcWhatsappPago" class="input-textarea" rows="4"></textarea>
+
         <button class="btn-grande btn-siguiente" id="btnVcGuardarConfig" type="button">Guardar configuración</button>
         <p class="mensaje-form" id="mensajeVcConfig" role="status"></p>
       </div>
@@ -776,6 +795,6 @@
 
 </div>
 
-<script src="recepcion.js?v=vacation-camp-v1"></script>
+<script src="recepcion.js?v=vacation-camp-v2"></script>
 </body>
 </html>

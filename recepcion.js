@@ -4041,6 +4041,8 @@ function vcTarjetaInscrita(i) {
   nombre.append(vcCrear("span", "vc-flecha", "▸"), document.createTextNode(i.alumna));
   texto.append(nombre, vcCrear("span", "tarjeta-resultado-detalle", i.modalidad + (i.semanas.length ? " · " + i.semanas.join(", ") : "")));
   const etiquetas = vcCrear("span", "show-etiquetas");
+  if (i.pagoRevertido) etiquetas.appendChild(vcCrear("span", "show-etiqueta vc-alerta", "⚠️ PAGO REVERTIDO"));
+  if (i.whatsappEnviado === "No") etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-no", "WhatsApp no enviado"));
   if (cancelada) etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-estado", "CANCELADA"));
   if (i.codigo) etiquetas.appendChild(vcCrear("span", "vc-codigo", i.codigo));
   etiquetas.appendChild(
@@ -4061,22 +4063,55 @@ function vcTarjetaInscrita(i) {
     vcLinea("Restricciones alimentarias", i.restriccionesAlimentarias, i.restriccionesAlimentarias ? "vc-medico" : ""),
     vcLinea("Otra información", i.otraInformacion),
     vcLinea("Total", `${vcQ(i.montoTotal)} (reserva ${vcQ(i.montoReserva)} + saldo ${vcQ(i.montoSaldo)})`),
+    vcLinea("Pago", [i.formaPago, i.metodoPago].filter(Boolean).join(" · ")),
+    vcLinea("WhatsApp de bienvenida", i.whatsappEnviado === "No" ? "NO se envió — escríbele a mano" : i.whatsappEnviado || "—", i.whatsappEnviado === "No" ? "vc-medico" : ""),
     vcLinea("Código del kiosko", i.codigo || (cancelada ? "—" : "se genera al marcar la reserva"))
   );
+  [["Link reserva", i.linkReserva], ["Link total", i.linkTotal], ["Link saldo", i.linkSaldo]].forEach(([nombre, url]) => {
+    if (!url) return;
+    const p = vcCrear("span");
+    const a = vcCrear("a", "", url);
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    p.append(vcCrear("strong", "", nombre + ": "), a);
+    detalle.appendChild(p);
+  });
+  if (i.historialPagos) {
+    const historial = vcCrear("details", "vc-historial");
+    historial.append(vcCrear("summary", "", "Historial de pagos"), vcCrear("pre", "", i.historialPagos));
+    detalle.appendChild(historial);
+  }
   tarjeta.appendChild(detalle);
 
   const pagos = vcCrear("div", "vc-pagos");
   pagos.append(
-    vcCasilla(`Reserva pagada (${vcQ(i.montoReserva)})`, i.reservaPagada, cancelada, (valor) =>
-      vcActualizarInscripcion(i, { reservaPagada: valor })
+    vcCasilla(`Reserva pagada (${vcQ(i.montoReserva)})`, i.reservaPagada, cancelada, (valor, input) =>
+      vcMarcarPago(i, "reservaPagada", valor, input)
     ),
-    vcCasilla(`Saldo pagado (${vcQ(i.montoSaldo)})`, i.saldoPagado, cancelada, (valor) =>
-      vcActualizarInscripcion(i, { saldoPagado: valor })
+    vcCasilla(`Saldo pagado (${vcQ(i.montoSaldo)})`, i.saldoPagado, cancelada, (valor, input) =>
+      vcMarcarPago(i, "saldoPagado", valor, input)
     )
   );
   tarjeta.appendChild(pagos);
 
   const acciones = vcCrear("div", "show-acciones");
+  // "Enviar link de pago": reserva o total si no han pagado nada (según
+  // su forma de pago), o el saldo si ya pagaron la reserva.
+  const falta = !i.reservaPagada ? (i.formaPago === "Pago total" ? "total" : "reserva") : !i.saldoPagado ? "saldo" : "";
+  if (!cancelada && falta) {
+    const montoFalta = { reserva: i.montoReserva, total: i.montoTotal, saldo: i.montoSaldo }[falta];
+    const botonLink = vcCrear("button", "btn-secundario btn-chico", `📲 Enviar link de pago (${falta} ${vcQ(montoFalta)})`);
+    botonLink.type = "button";
+    botonLink.addEventListener("click", () => vcEnviarLinkPago(i, falta, montoFalta, botonLink));
+    acciones.appendChild(botonLink);
+  }
+  if (i.pagoRevertido) {
+    const quitar = vcCrear("button", "btn-secundario btn-chico", "Quitar alerta de pago revertido");
+    quitar.type = "button";
+    quitar.addEventListener("click", () => vcActualizarInscripcion(i, { quitarAlertaRevertido: true }));
+    acciones.appendChild(quitar);
+  }
   const boton = vcCrear("button", "btn-secundario btn-chico" + (cancelada ? "" : " show-btn-peligro"), cancelada ? "Reactivar inscripción" : "Cancelar inscripción");
   boton.type = "button";
   boton.addEventListener("click", () => {
@@ -4096,9 +4131,26 @@ function vcCasilla(texto, marcada, deshabilitada, alCambiar) {
   input.type = "checkbox";
   input.checked = marcada;
   input.disabled = deshabilitada;
-  input.addEventListener("change", () => alCambiar(input.checked));
+  input.addEventListener("change", () => alCambiar(input.checked, input));
   label.append(input, vcCrear("span", "", texto));
   return label;
+}
+
+// Marcar un pago a mano también manda el WhatsApp de pago confirmado
+// (una vez por concepto), así que se pregunta antes.
+function vcMarcarPago(inscrita, campo, valor, input) {
+  if (valor) {
+    const que = campo === "reservaPagada" ? "la reserva" : "el saldo";
+    const pregunta =
+      `¿Marcar ${que} de ${inscrita.alumna} como pagado?` +
+      (campo === "reservaPagada" && !inscrita.codigo ? " Se generará su código del kiosko." : "") +
+      ` Si todavía no se le avisó, se manda el WhatsApp de pago confirmado a ${inscrita.responsable}.`;
+    if (!window.confirm(pregunta)) {
+      input.checked = false;
+      return;
+    }
+  }
+  vcActualizarInscripcion(inscrita, { [campo]: valor });
 }
 
 async function vcActualizarInscripcion(inscrita, cambios) {
@@ -4118,6 +4170,30 @@ async function vcActualizarInscripcion(inscrita, cambios) {
   } catch (e) {
     vcMensaje("mensajeVc", e.message, "error");
     vcPintarInscritas(); // regresa las casillas a como estaban
+  }
+}
+
+async function vcEnviarLinkPago(inscrita, falta, monto, boton) {
+  const pregunta = `¿Generar un link de Paggo por ${vcQ(monto)} (${falta}) y mandarlo por WhatsApp a ${inscrita.responsable}?`;
+  if (!window.confirm(pregunta)) return;
+  boton.disabled = true;
+  vcMensaje("mensajeVc", "Generando link...");
+  try {
+    const resp = await llamarWorker({ accion: "vcRecepcionEnviarLinkPago", clave: claveRecepcion, id: inscrita.id });
+    const nueva = { ...resp.inscrita, entradaHoy: inscrita.entradaHoy, salidaHoy: inscrita.salidaHoy };
+    const posicion = vcDatos.inscritas.findIndex((x) => x.id === inscrita.id);
+    if (posicion >= 0) vcDatos.inscritas[posicion] = nueva;
+    vcPintarTodo();
+    vcMensaje(
+      "mensajeVc",
+      resp.whatsapp
+        ? `✅ Link enviado por WhatsApp a ${nueva.responsable}.`
+        : `⚠️ Se generó el link pero NO se pudo mandar por WhatsApp. Cópialo de la tarjeta de ${nueva.alumna} y mándalo a mano.`,
+      resp.whatsapp ? "ok" : "error"
+    );
+  } catch (e) {
+    vcMensaje("mensajeVc", e.message, "error");
+    boton.disabled = false;
   }
 }
 
@@ -4172,6 +4248,10 @@ function vcLlenarFormulario() {
   el("inputVcActividades").value = c.actividades || "";
   el("inputVcPoliticas").value = c.politicas || "";
   el("inputVcMensaje").value = c.mensajeConfirmacion || "";
+  el("inputVcDatosTransferencia").value = c.datosTransferencia || "";
+  el("inputVcInstruccionesEfectivo").value = c.instruccionesEfectivo || "";
+  el("inputVcWhatsapp").value = c.mensajeWhatsapp || "";
+  el("inputVcWhatsappPago").value = c.mensajeWhatsappPago || "";
   vcDiasSinCurso = c.diasSinCurso.map((d) => ({ ...d }));
   vcPintarDiasSinCurso();
   vcMensaje("mensajeVcConfig", "");
@@ -4242,6 +4322,10 @@ el("btnVcGuardarConfig").addEventListener("click", async () => {
         actividades: el("inputVcActividades").value,
         politicas: el("inputVcPoliticas").value,
         mensajeConfirmacion: el("inputVcMensaje").value,
+        datosTransferencia: el("inputVcDatosTransferencia").value,
+        instruccionesEfectivo: el("inputVcInstruccionesEfectivo").value,
+        mensajeWhatsapp: el("inputVcWhatsapp").value,
+        mensajeWhatsappPago: el("inputVcWhatsappPago").value,
       },
     });
     await vcCargar();
