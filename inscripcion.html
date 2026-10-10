@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MOVE — Ficha de inscripción</title>
+<meta name="theme-color" content="#ef4b9b" />
+<meta name="description" content="Ficha de inscripción a los cursos de MOVE Dance Academy." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="prueba.css" />
+<link rel="stylesheet" href="inscripcion.css?v=1" />
+</head>
+<body>
+
+<div class="container">
+
+  <img src="logo.png" alt="MOVE Dance Academy" class="logo" />
+  <!-- El nombre del curso, las fechas, precios, semanas y políticas
+       vienen de la tabla CONFIG VACATION CAMP (ver inscripcion.js). -->
+  <div class="title" id="tituloFicha">Ficha de inscripción</div>
+
+  <!-- ============ PANTALLA: CARGANDO ============ -->
+  <section id="pantallaCargando" class="pantalla">
+    <p class="subtitulo" id="textoCargando">Cargando... ⏳</p>
+  </section>
+
+  <!-- ============ PANTALLA: INSCRIPCIONES CERRADAS / CUPO LLENO ============ -->
+  <section id="pantallaCerrado" class="pantalla" hidden>
+    <p class="listo-emoji">🌴</p>
+    <p class="listo-texto" id="textoCerrado"></p>
+  </section>
+
+  <!-- ============ PANTALLA: FORMULARIO ============ -->
+  <form id="pantallaFormulario" class="pantalla" novalidate hidden>
+    <p class="subtitulo" id="subtituloFicha"></p>
+
+    <section class="seccion actividades" id="seccionActividades" hidden>
+      <p class="seccion-titulo">🎨 Actividades</p>
+      <p class="actividades-texto" id="textoActividades"></p>
+    </section>
+
+    <!-- Datos de la alumna -->
+    <fieldset class="seccion">
+      <legend class="seccion-titulo">👧 Datos de la alumna</legend>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputAlumna">Nombre completo de la alumna *</label>
+        <input type="text" id="inputAlumna" class="input-texto" placeholder="Ej. María López" autocomplete="off" maxlength="150" />
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputNacimiento">Fecha de nacimiento *</label>
+        <input type="date" id="inputNacimiento" class="input-texto" />
+        <p class="pista-campo" id="pistaEdad"></p>
+      </div>
+    </fieldset>
+
+    <!-- Persona responsable -->
+    <fieldset class="seccion">
+      <legend class="seccion-titulo">🧑‍🍼 Persona responsable</legend>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputResponsable">Nombre de la persona responsable *</label>
+        <input type="text" id="inputResponsable" class="input-texto" placeholder="Ej. Ana López" autocomplete="name" maxlength="150" />
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputParentescoResponsable">Parentesco *</label>
+        <input type="text" id="inputParentescoResponsable" class="input-texto" placeholder="Ej. Mamá" maxlength="60" />
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputTelefonoResponsable">Teléfono de la persona responsable *</label>
+        <input type="tel" id="inputTelefonoResponsable" class="input-texto" placeholder="Ej. 5555 5555" autocomplete="tel" inputmode="tel" maxlength="20" />
+      </div>
+    </fieldset>
+
+    <!-- Contacto de emergencia -->
+    <fieldset class="seccion">
+      <legend class="seccion-titulo">🚨 Contacto de emergencia</legend>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputEmergencia">Nombre del contacto de emergencia *</label>
+        <input type="text" id="inputEmergencia" class="input-texto" placeholder="Ej. Carlos López" autocomplete="off" maxlength="150" />
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputParentescoEmergencia">Parentesco *</label>
+        <input type="text" id="inputParentescoEmergencia" class="input-texto" placeholder="Ej. Abuelo" maxlength="60" />
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputTelefonoEmergencia">Teléfono del contacto de emergencia *</label>
+        <input type="tel" id="inputTelefonoEmergencia" class="input-texto" placeholder="Ej. 4444 4444" autocomplete="off" inputmode="tel" maxlength="20" />
+        <p class="pista-campo" id="pistaTelefonoEmergencia">Debe ser distinto al de la persona responsable.</p>
+      </div>
+    </fieldset>
+
+    <!-- Información médica -->
+    <fieldset class="seccion">
+      <legend class="seccion-titulo">🩺 Información médica</legend>
+
+      <div class="campo-form">
+        <p class="etiqueta-campo" id="etiquetaAlergia">¿Tiene alguna alergia? *</p>
+        <div class="opciones-fila" role="radiogroup" aria-labelledby="etiquetaAlergia">
+          <label class="opcion"><input type="radio" name="alergia" value="SI" /> <span>Sí</span></label>
+          <label class="opcion"><input type="radio" name="alergia" value="NO" /> <span>No</span></label>
+        </div>
+      </div>
+
+      <div class="campo-form" id="campoDescripcionAlergia" hidden>
+        <label class="etiqueta-campo" for="inputDescripcionAlergia">Describe la alergia *</label>
+        <textarea id="inputDescripcionAlergia" class="input-texto input-area" rows="3" maxlength="1500" placeholder="Alimentos, medicamentos, materiales, picaduras, etc."></textarea>
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputCondiciones">Condiciones médicas</label>
+        <textarea id="inputCondiciones" class="input-texto input-area" rows="2" maxlength="1500" placeholder="Asma, diabetes, epilepsia, etc."></textarea>
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputMedicamentos">Medicamentos que toma actualmente</label>
+        <textarea id="inputMedicamentos" class="input-texto input-area" rows="2" maxlength="1500"></textarea>
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputRestricciones">Restricciones alimentarias</label>
+        <textarea id="inputRestricciones" class="input-texto input-area" rows="2" maxlength="1500" placeholder="Importante para las clases de Mini Chef 👩‍🍳"></textarea>
+      </div>
+
+      <div class="campo-form">
+        <label class="etiqueta-campo" for="inputOtraInfo">Otra información que debamos saber</label>
+        <textarea id="inputOtraInfo" class="input-texto input-area" rows="2" maxlength="1500"></textarea>
+      </div>
+    </fieldset>
+
+    <!-- Modalidad -->
+    <fieldset class="seccion">
+      <legend class="seccion-titulo">📅 Modalidad de inscripción</legend>
+
+      <div class="campo-form">
+        <p class="etiqueta-campo" id="etiquetaModalidad">Elige una opción *</p>
+        <div class="opciones-columna" role="radiogroup" aria-labelledby="etiquetaModalidad">
+          <label class="opcion"><input type="radio" name="modalidad" value="completo" /> <span id="textoModalidadCompleto"></span></label>
+          <label class="opcion"><input type="radio" name="modalidad" value="parcial" /> <span id="textoModalidadParcial"></span></label>
+        </div>
+      </div>
+
+      <div class="campo-form" id="campoSemanas" hidden>
+        <p class="etiqueta-campo" id="etiquetaSemanas"></p>
+        <div class="opciones-columna" id="listaSemanas" role="group" aria-labelledby="etiquetaSemanas"></div>
+        <p class="pista-campo" id="pistaSemanas"></p>
+      </div>
+
+      <div class="resumen-pago" id="resumenPago" hidden>
+        <div class="resumen-fila"><span id="etiquetaReserva">Reserva</span><strong id="montoReserva"></strong></div>
+        <div class="resumen-fila"><span id="etiquetaSaldo">Saldo — el primer día</span><strong id="montoSaldo"></strong></div>
+      </div>
+    </fieldset>
+
+    <!-- Pago -->
+    <fieldset class="seccion">
+      <legend class="seccion-titulo">💳 Pago</legend>
+
+      <div class="campo-form">
+        <p class="etiqueta-campo" id="etiquetaFormaPago">Forma de pago *</p>
+        <p class="pista-campo" id="pistaFormaPago">Elige primero la modalidad de inscripción.</p>
+        <div class="opciones-columna" role="radiogroup" aria-labelledby="etiquetaFormaPago">
+          <label class="opcion"><input type="radio" name="formaPago" value="reserva" disabled /> <span id="textoFormaReserva">Reserva</span></label>
+          <label class="opcion"><input type="radio" name="formaPago" value="total" disabled /> <span id="textoFormaTotal">Pago total</span></label>
+        </div>
+      </div>
+
+      <div class="campo-form">
+        <p class="etiqueta-campo" id="etiquetaMetodoPago">Método de pago *</p>
+        <div class="opciones-columna" role="radiogroup" aria-labelledby="etiquetaMetodoPago">
+          <label class="opcion"><input type="radio" name="metodoPago" value="link" /> <span>Link de pago (tarjeta)</span></label>
+          <label class="opcion"><input type="radio" name="metodoPago" value="transferencia" /> <span>Transferencia o depósito</span></label>
+          <label class="opcion"><input type="radio" name="metodoPago" value="efectivo" /> <span>Efectivo en la academia</span></label>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Políticas -->
+    <section class="seccion politicas" aria-labelledby="tituloPoliticas">
+      <div id="textoPoliticas"></div>
+    </section>
+
+    <label class="opcion opcion-acepto">
+      <input type="checkbox" id="chkAcepto" />
+      <span>He leído y acepto las políticas del curso de vacaciones *</span>
+    </label>
+
+    <div class="campo-form">
+      <label class="etiqueta-campo" for="inputNombreAcepta">Nombre de quien acepta *</label>
+      <input type="text" id="inputNombreAcepta" class="input-texto" placeholder="Nombre de la persona responsable" maxlength="150" />
+    </div>
+
+    <button class="btn-grande btn-siguiente" id="btnEnviar" type="submit">Enviar inscripción →</button>
+    <p class="mensaje-form" id="mensajeFormulario" role="alert"></p>
+  </form>
+
+  <!-- ============ PANTALLA: LISTO ============ -->
+  <section id="pantallaListo" class="pantalla" hidden>
+    <p class="listo-emoji">🎉</p>
+    <p class="listo-texto" id="textoListo"></p>
+
+    <!-- Según el método de pago: botón de Paggo o instrucciones -->
+    <div class="pago-final" id="pagoFinal" hidden>
+      <p class="pago-final-monto" id="pagoFinalMonto"></p>
+      <a class="btn-grande btn-siguiente btn-pagar" id="btnPagar" href="#" target="_blank" rel="noopener" hidden></a>
+      <p class="pago-final-texto" id="pagoFinalTexto" hidden></p>
+    </div>
+  </section>
+
+</div>
+
+<script src="inscripcion.js?v=2"></script>
+</body>
+</html>

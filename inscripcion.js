@@ -1,5 +1,5 @@
 // =====================================================================
-// MOVE — Ficha de inscripción del curso de vacaciones (formulario público)
+// MOVE — Ficha de inscripción a cursos (formulario público, inscripcion.html)
 // =====================================================================
 // Página que llenan los papás sin entrar al Portal. Ya no tiene nada
 // fijo del año: al abrir le pide al Worker ("vacationCampConfig") la
@@ -12,10 +12,12 @@
 // calcula los montos con la configuración; lo que se muestra aquí es
 // solo para que la familia lo vea. Aquí nunca hay claves de Airtable.
 //
-// Cada temporada tiene su propio link: vacation-camp.html?c={código}
-// (se genera y se comparte desde Recepción). El código se manda tal
-// cual al Worker, que es quien decide qué temporada es. Sin código, el
-// Worker abre la temporada 2026 (el link que se compartió primero).
+// Cada temporada tiene su propio link: inscripcion.html?curso={nombre}
+// (el nombre se escoge y se comparte desde Recepción). Se manda tal
+// cual al Worker, que es quien decide qué temporada es. También acepta
+// los links viejos con ?c={código}. Sin ninguno de los dos, el Worker
+// abre la temporada 2026: así sigue funcionando vacation-camp.html (el
+// link que se compartió primero), que redirige aquí.
 
 // En localhost (prueba con `wrangler dev`) se habla con el Worker local,
 // igual que en recepcion.js; en el sitio publicado, con el real.
@@ -30,8 +32,11 @@ const NOMBRES_DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "vier
 // Temporada que mandó el Worker (null hasta que carga).
 let temporada = null;
 
-// Código del link (?c=...); vacío si se abrió el link sin código.
-const CODIGO_LINK = (new URLSearchParams(location.search).get("c") || "").trim();
+// Qué temporada pide el link: ?curso=nombre (o ?c=código en links
+// viejos); vacíos si se abrió el link sin nada.
+const PARAMS_LINK = new URLSearchParams(location.search);
+const CURSO_LINK = (PARAMS_LINK.get("curso") || "").trim();
+const CODIGO_LINK = (PARAMS_LINK.get("c") || "").trim();
 
 const el = (id) => document.getElementById(id);
 
@@ -315,7 +320,7 @@ function pintarFicha() {
 
 async function cargarTemporada() {
   try {
-    const datos = await llamarWorker({ accion: "vacationCampConfig", c: CODIGO_LINK });
+    const datos = await llamarWorker({ accion: "vacationCampConfig", curso: CURSO_LINK, c: CODIGO_LINK });
     if (datos.linkInvalido) {
       mostrarCerrado(datos.mensaje);
       return;
@@ -329,7 +334,9 @@ async function cargarTemporada() {
   if (!temporada) {
     mostrarCerrado(`Por ahora no hay inscripciones abiertas para el curso de vacaciones. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
   } else if (!temporada.abierta) {
-    mostrarCerrado(`Las inscripciones para el ${temporada.nombre} están cerradas por ahora. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
+    // Sin el nombre del curso: el Worker ni siquiera lo manda si está
+    // cerrada, para no adelantar un curso que todavía no se anuncia.
+    mostrarCerrado(`Las inscripciones no están abiertas en este momento. Para más información escríbenos al ${TELEFONO_ACADEMIA}.`);
   } else if (temporada.lleno) {
     mostrarCerrado(`¡Gracias por tu interés! Ya se llenó el cupo del ${temporada.nombre}. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
   } else {
@@ -383,6 +390,7 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
   const modalidad = valorRadio("modalidad");
   const datos = {
     accion: "inscribirVacationCamp",
+    curso: CURSO_LINK,
     c: CODIGO_LINK,
     alumna: el("inputAlumna").value.trim(),
     fechaNacimiento: el("inputNacimiento").value,

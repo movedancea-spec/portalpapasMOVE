@@ -1224,6 +1224,8 @@ color:#a15277;
 overflow-wrap:anywhere;
 user-select:all;
 }
+.vc-editar-link{ margin-top:10px; }
+.vc-link-vista{ overflow-wrap:anywhere; }
 
 .vc-inscrita summary{
 list-style:none;

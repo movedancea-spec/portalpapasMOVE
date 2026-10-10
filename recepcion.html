@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=vacation-camp-link-v1" />
+<link rel="stylesheet" href="recepcion.css?v=inscripcion-link-v1" />
 </head>
 <body>
 
@@ -627,8 +627,8 @@
     <select id="selectVcTemporada" class="input-select"></select>
     <p class="pista-campo" id="pistaVcTemporada"></p>
 
-    <!-- Link de la ficha de ESTA temporada (vacation-camp.html?c=código).
-         Cada temporada tiene el suyo; el código lo genera el Worker. -->
+    <!-- Link de la ficha de ESTA temporada (inscripcion.html?curso=nombre).
+         Cada temporada tiene el suyo; el Worker revisa que no se repita. -->
     <div class="bloque-info vc-link-ficha">
       <p class="bloque-info-titulo">🔗 Link de la ficha de inscripción</p>
       <p class="vc-link-texto" id="textoVcLink">—</p>
@@ -636,7 +636,16 @@
         <button class="btn-secundario btn-chico" id="btnVcCopiarLink" type="button">📋 Copiar link</button>
         <button class="btn-secundario btn-chico" id="btnVcAbrirLink" type="button">🔗 Abrir ficha</button>
         <button class="btn-secundario btn-chico" id="btnVcWhatsappLink" type="button">📲 Compartir por WhatsApp</button>
-        <button class="btn-secundario btn-chico show-btn-peligro" id="btnVcGenerarLink" type="button">🔄 Generar link nuevo</button>
+        <button class="btn-secundario btn-chico" id="btnVcEditarLink" type="button">✏️ Editar nombre del link</button>
+      </div>
+      <div id="cajaVcEditarLink" class="vc-editar-link" hidden>
+        <p class="etiqueta-campo">Nombre del link</p>
+        <input type="text" id="inputVcNombreLink" class="input-texto" maxlength="80" placeholder="Ej. summer-dance-camp-2027" autocomplete="off" />
+        <p class="pista-campo vc-link-vista" id="vistaVcNombreLink"></p>
+        <div class="show-acciones">
+          <button class="btn-secundario btn-chico" id="btnVcGuardarLink" type="button">💾 Guardar nombre</button>
+          <button class="btn-secundario btn-chico" id="btnVcCancelarLink" type="button">Cancelar</button>
+        </div>
       </div>
       <p class="pista-campo" id="pistaVcLink"></p>
       <p class="mensaje-form" id="mensajeVcLink" role="status"></p>
@@ -792,6 +801,9 @@
         <p class="pista-campo" id="pistaVcNueva"></p>
         <p class="etiqueta-campo">Nombre de la temporada</p>
         <input type="text" id="inputVcNuevaTemporada" class="input-texto" maxlength="50" placeholder="Ej. 2027" autocomplete="off" />
+        <p class="etiqueta-campo">Nombre del link de la ficha</p>
+        <input type="text" id="inputVcNuevaNombreLink" class="input-texto" maxlength="80" autocomplete="off" />
+        <p class="pista-campo vc-link-vista" id="vistaVcNuevaNombreLink"></p>
         <div class="vc-dos-columnas">
           <div>
             <p class="etiqueta-campo">Fecha de inicio</p>
@@ -810,6 +822,6 @@
 
 </div>
 
-<script src="recepcion.js?v=vacation-camp-link-v1"></script>
+<script src="recepcion.js?v=inscripcion-link-v1"></script>
 </body>
 </html>

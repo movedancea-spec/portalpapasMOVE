@@ -22,6 +22,7 @@ Todo lo que habla con el Worker `https://portalalumnas.movedancea.workers.dev`. 
 - `aviso.html`/`.js` — que una maestra mande un aviso (con foto/PDF opcional) solo a su grupo, siempre por el Portal (push + visible al abrir el Portal), nunca WhatsApp.
 - `ranking.html`/`.js` — ranking mensual de grupos por calificación interna; solo directora, sin historial de meses pasados.
 - `prueba.html`/`.js` — formulario público de "Reserva tu Clase de Prueba" (viene del catálogo). Manda `origen` distinto al que usa Recepción para agendar por teléfono, porque aún no hay cupo confirmado.
+- `inscripcion.html`/`.js`/`.css` — ficha pública de inscripción a cursos (Vacation Camp y los que sigan), configurada por temporada en CONFIG VACATION CAMP y manejada desde Recepción → "🏕️ Curso de vacaciones". Cada temporada tiene su link `inscripcion.html?curso={NOMBRE LINK}`; también acepta los links viejos `?c={CODIGO LINK}`, y sin nada abre la temporada 2026. `vacation-camp.html` es **solo una redirección** a `inscripcion.html` (conserva `?…`) porque ese link ya se compartió; no le agregues nada.
 - `catalogo.html` — catálogo de precios público, sin JS propio (solo un `<script>` inline), enlaza a `prueba.html`.
 - Sistema de **Entradas del Show** (venta de boletos por turnos), todos bajo la misma `CLAVE_ENTRADAS_SHOW` (Secret de Cloudflare) salvo `entradas.html` que es pública:
   - `entradas.html`/`.js` — venta pública: elegir alumna → recibir código de turno → consultar turno → cuando toca, elegir filas y pagar con link de Paggo.
