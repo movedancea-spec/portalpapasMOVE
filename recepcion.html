@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=vacation-camp-v3" />
+<link rel="stylesheet" href="recepcion.css?v=vacation-camp-link-v1" />
 </head>
 <body>
 
@@ -627,6 +627,21 @@
     <select id="selectVcTemporada" class="input-select"></select>
     <p class="pista-campo" id="pistaVcTemporada"></p>
 
+    <!-- Link de la ficha de ESTA temporada (vacation-camp.html?c=código).
+         Cada temporada tiene el suyo; el código lo genera el Worker. -->
+    <div class="bloque-info vc-link-ficha">
+      <p class="bloque-info-titulo">🔗 Link de la ficha de inscripción</p>
+      <p class="vc-link-texto" id="textoVcLink">—</p>
+      <div class="show-acciones">
+        <button class="btn-secundario btn-chico" id="btnVcCopiarLink" type="button">📋 Copiar link</button>
+        <button class="btn-secundario btn-chico" id="btnVcAbrirLink" type="button">🔗 Abrir ficha</button>
+        <button class="btn-secundario btn-chico" id="btnVcWhatsappLink" type="button">📲 Compartir por WhatsApp</button>
+        <button class="btn-secundario btn-chico show-btn-peligro" id="btnVcGenerarLink" type="button">🔄 Generar link nuevo</button>
+      </div>
+      <p class="pista-campo" id="pistaVcLink"></p>
+      <p class="mensaje-form" id="mensajeVcLink" role="status"></p>
+    </div>
+
     <div class="show-total-pagos">
       <span>Inscritas (sin contar canceladas)</span>
       <strong id="contadorVc">—</strong>
@@ -795,6 +810,6 @@
 
 </div>
 
-<script src="recepcion.js?v=vacation-camp-v2"></script>
+<script src="recepcion.js?v=vacation-camp-link-v1"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 // =====================================================================
 // Página que llenan los papás sin entrar al Portal. Ya no tiene nada
 // fijo del año: al abrir le pide al Worker ("vacationCampConfig") la
-// temporada activa de la tabla CONFIG VACATION CAMP — nombre, fechas,
+// temporada de su link de la tabla CONFIG VACATION CAMP — nombre, fechas,
 // horario, edades, precios, semanas, días sin curso, políticas y
 // mensaje — y con eso arma la ficha. Para cambiar algo de un año a otro
 // se edita en Recepción → Curso de vacaciones, no aquí.
@@ -11,6 +11,11 @@
 // Al enviar ("inscribirVacationCamp") el Worker vuelve a revisar todo y
 // calcula los montos con la configuración; lo que se muestra aquí es
 // solo para que la familia lo vea. Aquí nunca hay claves de Airtable.
+//
+// Cada temporada tiene su propio link: vacation-camp.html?c={código}
+// (se genera y se comparte desde Recepción). El código se manda tal
+// cual al Worker, que es quien decide qué temporada es. Sin código, el
+// Worker abre la temporada 2026 (el link que se compartió primero).
 
 // En localhost (prueba con `wrangler dev`) se habla con el Worker local,
 // igual que en recepcion.js; en el sitio publicado, con el real.
@@ -24,6 +29,9 @@ const NOMBRES_DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "vier
 
 // Temporada que mandó el Worker (null hasta que carga).
 let temporada = null;
+
+// Código del link (?c=...); vacío si se abrió el link sin código.
+const CODIGO_LINK = (new URLSearchParams(location.search).get("c") || "").trim();
 
 const el = (id) => document.getElementById(id);
 
@@ -307,7 +315,11 @@ function pintarFicha() {
 
 async function cargarTemporada() {
   try {
-    const datos = await llamarWorker({ accion: "vacationCampConfig" });
+    const datos = await llamarWorker({ accion: "vacationCampConfig", c: CODIGO_LINK });
+    if (datos.linkInvalido) {
+      mostrarCerrado(datos.mensaje);
+      return;
+    }
     temporada = datos.temporada;
   } catch (e) {
     el("textoCargando").textContent = `No se pudo cargar la ficha. Recarga la página o escríbenos al ${TELEFONO_ACADEMIA}.`;
@@ -371,6 +383,7 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
   const modalidad = valorRadio("modalidad");
   const datos = {
     accion: "inscribirVacationCamp",
+    c: CODIGO_LINK,
     alumna: el("inputAlumna").value.trim(),
     fechaNacimiento: el("inputNacimiento").value,
     responsable: el("inputResponsable").value.trim(),

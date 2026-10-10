@@ -3887,6 +3887,10 @@ let vcConfigId = ""; // temporada elegida en el selector
 let vcDiasSinCurso = []; // copia editable de los días sin curso
 let vcPestana = "Inscritas";
 
+// Dirección pública de la ficha. El link de cada temporada es esta
+// dirección + "?c=" + su CODIGO LINK (lo genera el Worker).
+const VC_URL_FICHA = "https://academiamovedance.com/vacation-camp.html";
+
 function vcCrear(etiqueta, clase, texto) {
   const nodo = document.createElement(etiqueta);
   if (clase) nodo.className = clase;
@@ -3948,26 +3952,103 @@ function vcPintarTodo() {
   const select = el("selectVcTemporada");
   select.innerHTML = "";
   vcDatos.temporadas.forEach((t) => {
-    const op = vcCrear("option", "", `${t.temporada}${t.id === vcDatos.temporadaActivaId ? " (la de la ficha)" : ""}`);
+    const op = vcCrear("option", "", `${t.temporada}${t.id === vcDatos.temporadaSinCodigoId ? " (link sin código)" : ""}`);
     op.value = t.id;
     select.appendChild(op);
   });
   select.value = cfg.id;
   el("pistaVcTemporada").textContent =
-    `Del ${vcFechaCorta(cfg.inicio)} al ${vcFechaCorta(cfg.fin)}.` +
-    (cfg.id === vcDatos.temporadaActivaId ? " Esta es la temporada que muestra la ficha pública." : " Esta temporada NO es la que muestra la ficha pública (es la de fecha de inicio más reciente).");
+    `Del ${vcFechaCorta(cfg.inicio)} al ${vcFechaCorta(cfg.fin)}.`;
 
   const activas = vcDatos.inscritas.filter((i) => i.estado !== "Cancelada").length;
   el("contadorVc").textContent = `${activas} de ${cfg.cupo ?? "—"}`;
 
+  vcPintarLink();
   vcPintarEstado();
   vcPintarInscritas();
   vcPintarAsistencia();
   vcLlenarFormulario();
   el("pistaVcNueva").textContent =
     `Se copian los precios, horario, edades, cupo, actividades, políticas y mensaje de la temporada ${cfg.temporada}. ` +
-    "Nace con inscripciones Cerradas y sin días sin curso: revisa todo en Configuración antes de abrirla.";
+    "Nace con inscripciones Cerradas, sin días sin curso y con su propio link de la ficha: revisa todo en Configuración antes de abrirla.";
 }
+
+// ---------- Link de la ficha ----------
+function vcLinkFicha() {
+  const codigo = vcDatos && vcDatos.config && vcDatos.config.codigoLink;
+  return codigo ? `${VC_URL_FICHA}?c=${encodeURIComponent(codigo)}` : "";
+}
+
+function vcPintarLink() {
+  const cfg = vcDatos.config;
+  const link = vcLinkFicha();
+  el("textoVcLink").textContent = link || "Esta temporada todavía no tiene link. Usa \"🔄 Generar link nuevo\".";
+  ["btnVcCopiarLink", "btnVcAbrirLink", "btnVcWhatsappLink"].forEach((id) => (el(id).disabled = !link));
+  el("pistaVcLink").textContent =
+    `Este link abre solo la temporada ${cfg.temporada}. Si las inscripciones están Cerradas o ya se llenó el cupo, la ficha lo avisa.` +
+    (cfg.id === vcDatos.temporadaSinCodigoId
+      ? ` El link viejo sin código (${VC_URL_FICHA}) también abre esta temporada.`
+      : "");
+  vcMensaje("mensajeVcLink", "");
+}
+
+el("btnVcCopiarLink").addEventListener("click", async () => {
+  const link = vcLinkFicha();
+  if (!link) return;
+  try {
+    await navigator.clipboard.writeText(link);
+    vcMensaje("mensajeVcLink", "✅ Link copiado.", "ok");
+  } catch (e) {
+    // Sin permiso para el portapapeles: se deja el link seleccionado
+    // para copiarlo a mano.
+    const rango = document.createRange();
+    rango.selectNodeContents(el("textoVcLink"));
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(rango);
+    vcMensaje("mensajeVcLink", "No se pudo copiar solo. El link quedó seleccionado: cópialo con Ctrl+C.", "error");
+  }
+});
+
+el("btnVcAbrirLink").addEventListener("click", () => {
+  let link = vcLinkFicha();
+  if (!link) return;
+  // En una prueba local se abre la ficha local (que habla con el Worker
+  // local), con el mismo código.
+  if (["localhost", "127.0.0.1"].includes(location.hostname)) {
+    link = new URL("vacation-camp.html" + new URL(link).search, location.href).href;
+  }
+  window.open(link, "_blank", "noopener");
+});
+
+el("btnVcWhatsappLink").addEventListener("click", () => {
+  const link = vcLinkFicha();
+  if (!link) return;
+  const texto = `¡Inscribe a tu hija al ${vcDatos.config.nombre}! Llena la ficha aquí: ${link}`;
+  window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+});
+
+el("btnVcGenerarLink").addEventListener("click", async () => {
+  const cfg = vcDatos && vcDatos.config;
+  if (!cfg) return;
+  const pregunta = cfg.codigoLink
+    ? `¿Generar un link nuevo para la temporada ${cfg.temporada}?\n\n⚠️ El link actual DEJARÁ DE FUNCIONAR: quien lo abra verá un aviso para escribir al 3752-9984. Tendrás que compartir el link nuevo.`
+    : `¿Generar el link de la ficha para la temporada ${cfg.temporada}?`;
+  if (!window.confirm(pregunta)) return;
+  const boton = el("btnVcGenerarLink");
+  boton.disabled = true;
+  vcMensaje("mensajeVcLink", "Generando...");
+  try {
+    const resp = await llamarWorker({ accion: "vcRecepcionGenerarLink", clave: claveRecepcion, configId: cfg.id });
+    cfg.codigoLink = resp.codigoLink;
+    vcPintarLink();
+    vcMensaje("mensajeVcLink", "✅ Link nuevo generado. El anterior ya no funciona.", "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcLink", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
 
 // ---------- Abiertas / Cerradas ----------
 function vcPintarEstado() {
@@ -4364,7 +4445,7 @@ el("btnVcCrearTemporada").addEventListener("click", async () => {
     el("inputVcNuevaFin").value = "";
     await vcCargar();
     vcCambiarPestana("Config");
-    vcMensaje("mensajeVcConfig", `✅ Temporada ${temporada} creada (Cerrada). Revisa precios, días sin curso y políticas, guarda, y luego ábrela.`, "ok");
+    vcMensaje("mensajeVcConfig", `✅ Temporada ${temporada} creada (Cerrada) con su propio link (arriba). Revisa precios, días sin curso y políticas, guarda, y luego ábrela.`, "ok");
   } catch (e) {
     vcMensaje("mensajeVcNueva", e.message, "error");
   } finally {

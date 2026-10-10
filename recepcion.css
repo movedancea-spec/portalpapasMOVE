@@ -1215,6 +1215,16 @@ gap:10px;
 
 .vc-textarea-grande{ min-height:220px; }
 
+.vc-link-ficha{ margin-top:10px; }
+.vc-link-texto{
+margin:6px 0 4px;
+font-size:14px;
+font-weight:700;
+color:#a15277;
+overflow-wrap:anywhere;
+user-select:all;
+}
+
 .vc-inscrita summary{
 list-style:none;
 cursor:pointer;
