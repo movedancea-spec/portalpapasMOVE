@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=inscripcion-link-v1" />
+<link rel="stylesheet" href="recepcion.css?v=vc-eliminar-v1" />
 </head>
 <body>
 
@@ -623,9 +623,32 @@
       <span class="barra-titulo">🏕️ Curso de vacaciones</span>
     </div>
 
+    <!-- Pagos de Paggo de un curso/inscripción eliminado, cancelado o
+         archivado (tabla VACATION CAMP PAGOS POR REVISAR), de TODAS las
+         temporadas. Solo aparece si hay alguno sin resolver. -->
+    <div id="cajaVcPagosRevisar" class="bloque-info vc-alerta-pagos" hidden>
+      <p class="bloque-info-titulo">⚠️ Pagos por revisar</p>
+      <p class="pista-campo">Estos pagos llegaron por Paggo a un curso o inscripción que ya no está activo. Revisa si hay que reembolsarlos.</p>
+      <div id="listaVcPagosRevisar" class="show-lista"></div>
+    </div>
+
+    <!-- Resultado de eliminar un curso: links de Paggo que quedaron
+         pendientes y hay que desactivar a mano en el panel de Paggo. -->
+    <div id="cajaVcResultadoEliminar" class="bloque-info" hidden>
+      <p class="bloque-info-titulo" id="tituloVcResultadoEliminar"></p>
+      <div id="textoVcResultadoEliminar" class="vc-resultado-eliminar"></div>
+      <button class="btn-secundario btn-chico" id="btnVcCerrarResultado" type="button">Entendido</button>
+    </div>
+
     <p class="etiqueta-campo">Temporada</p>
     <select id="selectVcTemporada" class="input-select"></select>
     <p class="pista-campo" id="pistaVcTemporada"></p>
+
+    <div id="cajaVcArchivada" class="bloque-info" hidden>
+      <p class="bloque-info-titulo">📦 Este curso está archivado</p>
+      <p class="pista-campo">La ficha muestra que las inscripciones no están abiertas, los códigos del kiosko de sus participantes no funcionan y no aparece en el selector normal. No se borró ningún dato.</p>
+      <button class="btn-secundario btn-chico" id="btnVcDesarchivar" type="button">♻️ Desarchivar curso</button>
+    </div>
 
     <!-- Link de la ficha de ESTA temporada (inscripcion.html?curso=nombre).
          Cada temporada tiene el suyo; el Worker revisa que no se repita. -->
@@ -656,8 +679,10 @@
       <strong id="contadorVc">—</strong>
     </div>
 
-    <p class="etiqueta-campo">Inscripciones en la ficha pública</p>
-    <div id="opcionesVcEstado" class="lista-resultados"></div>
+    <div id="bloqueVcEstado">
+      <p class="etiqueta-campo">Inscripciones en la ficha pública</p>
+      <div id="opcionesVcEstado" class="lista-resultados"></div>
+    </div>
 
     <div class="chips-contenedor show-pestanas">
       <button class="chip activo" type="button" data-vc-pestana="Inscritas">👧 Inscritas</button>
@@ -793,6 +818,30 @@
         <button class="btn-grande btn-siguiente" id="btnVcGuardarConfig" type="button">Guardar configuración</button>
         <p class="mensaje-form" id="mensajeVcConfig" role="status"></p>
       </div>
+
+      <!-- Al final a propósito, para no tocarlo por error. El Worker
+           revisa las reglas (sin pagos → eliminar; con pagos → archivar). -->
+      <div class="bloque-info vc-zona-peligro">
+        <p class="bloque-info-titulo">Eliminar o archivar este curso</p>
+        <p class="pista-campo">Solo se puede eliminar si ninguna inscripción tiene pagos. Si tiene pagos, se puede archivar (no se borra nada).</p>
+        <button class="btn-secundario btn-chico show-btn-peligro" id="btnVcEliminarCurso" type="button">🗑️ Eliminar curso</button>
+        <div id="cajaVcEliminar" hidden>
+          <div id="textoVcEliminar" class="vc-resultado-eliminar"></div>
+          <div id="confirmarVcEliminar" hidden>
+            <p class="etiqueta-campo" id="etiquetaVcConfirmarEliminar"></p>
+            <input type="text" id="inputVcConfirmarEliminar" class="input-texto" maxlength="100" autocomplete="off" />
+            <div class="show-acciones">
+              <button class="btn-secundario btn-chico show-btn-peligro" id="btnVcConfirmarEliminar" type="button">🗑️ Eliminar definitivamente</button>
+              <button class="btn-secundario btn-chico" id="btnVcCancelarEliminar" type="button">Cancelar</button>
+            </div>
+          </div>
+          <div id="archivarVcEliminar" class="show-acciones" hidden>
+            <button class="btn-secundario btn-chico" id="btnVcArchivar" type="button">📦 Archivar curso</button>
+            <button class="btn-secundario btn-chico" id="btnVcCancelarArchivar" type="button">Cancelar</button>
+          </div>
+        </div>
+        <p class="mensaje-form" id="mensajeVcEliminar" role="status"></p>
+      </div>
     </div>
 
     <!-- d) Temporada nueva (copia de la elegida) -->
@@ -822,6 +871,6 @@
 
 </div>
 
-<script src="recepcion.js?v=inscripcion-link-v1"></script>
+<script src="recepcion.js?v=vc-eliminar-v1"></script>
 </body>
 </html>

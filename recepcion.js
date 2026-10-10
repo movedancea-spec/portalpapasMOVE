@@ -3893,6 +3893,10 @@ let vcPestana = "Inscritas";
 const VC_URL_FICHA = "https://academiamovedance.com/inscripcion.html";
 const VC_URL_FICHA_VIEJA = "https://academiamovedance.com/vacation-camp.html";
 
+// Opciones especiales del selector de temporadas.
+const VC_OPCION_ARCHIVADOS = "__archivados";
+const VC_OPCION_ACTIVOS = "__activos";
+
 // En "Temporada nueva" el nombre del link se propone solo (nombre del
 // curso + temporada) hasta que Recepción lo cambie a mano.
 let vcNombreLinkNuevaEditado = false;
@@ -3943,6 +3947,7 @@ async function vcCargar() {
     el("listaVcInscritas").innerHTML = "";
     return;
   }
+  vcPintarPagosRevisar();
   if (!vcDatos.config) {
     vcMensaje("mensajeVc", "Todavía no hay ninguna temporada en CONFIG VACATION CAMP.", "error");
     el("listaVcInscritas").innerHTML = "";
@@ -3955,14 +3960,36 @@ async function vcCargar() {
 function vcPintarTodo() {
   const cfg = vcDatos.config;
 
+  // El selector enseña o las temporadas normales o las archivadas,
+  // según cuál esté elegida; la última opción cambia de grupo.
+  const archivado = cfg.estado === "Archivada";
+  const archivadas = vcDatos.temporadas.filter((t) => t.estado === "Archivada");
+  const normales = vcDatos.temporadas.filter((t) => t.estado !== "Archivada");
   const select = el("selectVcTemporada");
   select.innerHTML = "";
-  vcDatos.temporadas.forEach((t) => {
-    const op = vcCrear("option", "", `${t.temporada}${t.id === vcDatos.temporadaSinCodigoId ? " (link sin código)" : ""}`);
+  (archivado ? archivadas : normales).forEach((t) => {
+    const op = vcCrear(
+      "option",
+      "",
+      `${archivado ? "📦 " : ""}${t.temporada}${t.id === vcDatos.temporadaSinCodigoId ? " (link sin código)" : ""}`
+    );
     op.value = t.id;
     select.appendChild(op);
   });
+  if (!archivado && archivadas.length) {
+    const op = vcCrear("option", "", `📦 Ver cursos archivados (${archivadas.length})`);
+    op.value = VC_OPCION_ARCHIVADOS;
+    select.appendChild(op);
+  }
+  if (archivado && normales.length) {
+    const op = vcCrear("option", "", "← Volver a los cursos activos");
+    op.value = VC_OPCION_ACTIVOS;
+    select.appendChild(op);
+  }
   select.value = cfg.id;
+  el("cajaVcArchivada").hidden = !archivado;
+  el("bloqueVcEstado").hidden = archivado;
+  vcCerrarEliminar();
   el("pistaVcTemporada").textContent =
     `Del ${vcFechaCorta(cfg.inicio)} al ${vcFechaCorta(cfg.fin)}.`;
 
@@ -4118,6 +4145,227 @@ el("btnVcGuardarLink").addEventListener("click", async () => {
     boton.disabled = false;
   }
 });
+
+// ---------- Pagos por revisar ----------
+// Pagos de Paggo que llegaron a un curso/inscripción eliminado,
+// cancelado o archivado. Vienen de TODAS las temporadas.
+function vcFechaHora(isoInstante) {
+  if (!isoInstante) return "";
+  return new Date(isoInstante).toLocaleString("es-GT", {
+    timeZone: "America/Guatemala",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+function vcPintarPagosRevisar() {
+  const lista = (vcDatos && vcDatos.pagosPorRevisar) || [];
+  el("cajaVcPagosRevisar").hidden = !lista.length;
+  const cont = el("listaVcPagosRevisar");
+  cont.innerHTML = "";
+  lista.forEach((p) => {
+    const item = vcCrear("div", "vc-pago-revisar");
+    const deQue =
+      p.motivo === "Inscripción cancelada"
+        ? "de una inscripción cancelada"
+        : p.motivo === "Curso archivado"
+          ? "de un curso archivado"
+          : "de un curso eliminado";
+    item.append(vcCrear("strong", "", `${p.evento === "Revertido" ? "Pago revertido" : "Pago recibido"} ${deQue}: ${vcQ(p.monto)}`));
+    [
+      ["Fecha", vcFechaHora(p.fecha)],
+      ["Concepto", p.concepto],
+      ["Alumna", p.alumna],
+      ["Responsable", [p.responsable, p.telefono].filter(Boolean).join(" — ")],
+      ["Temporada", p.temporada],
+      ["Link de Paggo", p.paggoLinkId],
+      ["Pagó en Paggo", [p.pagador, p.fechaPago && vcFechaHora(p.fechaPago)].filter(Boolean).join(" — ")],
+      ["Tarjeta", [p.tarjeta, p.autorizacion && `autorización ${p.autorizacion}`].filter(Boolean).join(", ")],
+    ].forEach(([etiqueta, valor]) => {
+      if (valor) item.append(vcCrear("div", "", `${etiqueta}: ${valor}`));
+    });
+    if (p.evento === "Pagado") {
+      item.append(
+        vcCrear("div", "", p.confirmado ? "✅ Paggo confirma que se cobró." : "⚠️ Paggo todavía no lo muestra como cobrado: revísalo en Paggo.")
+      );
+    }
+    const boton = vcCrear("button", "btn-secundario btn-chico", "✅ Ya lo resolví (reembolsado)");
+    boton.type = "button";
+    boton.addEventListener("click", async () => {
+      if (!window.confirm(`¿Marcar como resuelto el pago de ${vcQ(p.monto)} (Paggo ${p.paggoLinkId})?\n\nDeja de salir aquí, pero queda guardado en Airtable.`)) return;
+      boton.disabled = true;
+      try {
+        await llamarWorker({ accion: "vcRecepcionResolverPagoRevisar", clave: claveRecepcion, id: p.id });
+        vcDatos.pagosPorRevisar = vcDatos.pagosPorRevisar.filter((x) => x.id !== p.id);
+        vcPintarPagosRevisar();
+      } catch (e) {
+        boton.disabled = false;
+        window.alert(e.message);
+      }
+    });
+    const acciones = vcCrear("div", "show-acciones");
+    acciones.append(boton);
+    item.append(acciones);
+    cont.append(item);
+  });
+}
+
+// ---------- Eliminar / archivar curso ----------
+// Las reglas las decide el Worker (vcRecepcionRevisarEliminar) y las
+// vuelve a revisar al eliminar; aquí solo se enseñan.
+let vcRevisionEliminar = null;
+
+function vcCerrarEliminar() {
+  vcRevisionEliminar = null;
+  el("cajaVcEliminar").hidden = true;
+  el("confirmarVcEliminar").hidden = true;
+  el("archivarVcEliminar").hidden = true;
+  el("btnVcEliminarCurso").hidden = false;
+  el("inputVcConfirmarEliminar").value = "";
+  vcMensaje("mensajeVcEliminar", "");
+}
+
+// Lista <ul> de links de Paggo pendientes.
+function vcListaLinks(links) {
+  const ul = vcCrear("ul");
+  links.forEach((l) => ul.append(vcCrear("li", "", `Paggo ${l.paggoLinkId} — ${l.alumna} — ${l.concepto} ${vcQ(l.monto)}`)));
+  return ul;
+}
+
+el("btnVcEliminarCurso").addEventListener("click", async () => {
+  const boton = el("btnVcEliminarCurso");
+  boton.disabled = true;
+  vcMensaje("mensajeVcEliminar", "Revisando el curso...");
+  try {
+    vcRevisionEliminar = await llamarWorker({ accion: "vcRecepcionRevisarEliminar", clave: claveRecepcion, configId: vcConfigId });
+  } catch (e) {
+    vcMensaje("mensajeVcEliminar", e.message, "error");
+    return;
+  } finally {
+    boton.disabled = false;
+  }
+  vcMensaje("mensajeVcEliminar", "");
+  const r = vcRevisionEliminar;
+  const texto = el("textoVcEliminar");
+  texto.innerHTML = "";
+  if (r.caso === 3) {
+    texto.append(
+      vcCrear(
+        "p",
+        "",
+        `⛔ No se puede eliminar la temporada ${r.temporada}: tiene pagos registrados (${r.alumnasConPagos.join(", ")}). ` +
+          "Eliminarla borraría el registro de esos pagos."
+      ),
+      vcCrear(
+        "p",
+        "",
+        r.estado === "Archivada"
+          ? "Este curso ya está archivado."
+          : "En su lugar puedes archivarlo: se cierra la ficha, los códigos del kiosko dejan de funcionar y se oculta del selector, pero no se borra ningún dato."
+      )
+    );
+    el("archivarVcEliminar").hidden = r.estado === "Archivada";
+  } else {
+    texto.append(
+      vcCrear(
+        "p",
+        "",
+        r.caso === 1
+          ? `La temporada ${r.temporada} no tiene inscripciones.`
+          : `⚠️ La temporada ${r.temporada} tiene ${r.totalInscripciones} ${r.totalInscripciones === 1 ? "inscripción" : "inscripciones"}` +
+              (r.canceladas ? ` (${r.canceladas} cancelada${r.canceladas === 1 ? "" : "s"})` : "") +
+              ", ninguna con pagos. Al eliminar el curso TAMBIÉN se borran esas inscripciones y su asistencia."
+      ),
+      vcCrear("p", "", "Esto no se puede deshacer.")
+    );
+    if (r.linksPendientes.length) {
+      texto.append(
+        vcCrear("p", "", "Estos links de Paggo siguen activos y se podrían pagar. Desactívalos tú en el panel de Paggo (desde aquí no se pueden desactivar):"),
+        vcListaLinks(r.linksPendientes)
+      );
+    }
+    el("etiquetaVcConfirmarEliminar").textContent = `Para confirmar, escribe el nombre de la temporada: ${r.temporada}`;
+    el("confirmarVcEliminar").hidden = false;
+  }
+  el("cajaVcEliminar").hidden = false;
+  el("btnVcEliminarCurso").hidden = true;
+});
+
+el("btnVcCancelarEliminar").addEventListener("click", vcCerrarEliminar);
+el("btnVcCancelarArchivar").addEventListener("click", vcCerrarEliminar);
+
+el("btnVcConfirmarEliminar").addEventListener("click", async () => {
+  const r = vcRevisionEliminar;
+  if (!r) return;
+  const escrito = el("inputVcConfirmarEliminar").value.trim();
+  if (escrito.toLowerCase() !== r.temporada.toLowerCase()) {
+    vcMensaje("mensajeVcEliminar", `Escribe exactamente: ${r.temporada}`, "error");
+    return;
+  }
+  const boton = el("btnVcConfirmarEliminar");
+  boton.disabled = true;
+  vcMensaje("mensajeVcEliminar", "Eliminando...");
+  try {
+    const resp = await llamarWorker({
+      accion: "vcRecepcionEliminarTemporada",
+      clave: claveRecepcion,
+      configId: vcConfigId,
+      confirmacion: escrito,
+    });
+    el("tituloVcResultadoEliminar").textContent = `🗑️ Se eliminó la temporada ${resp.temporada}`;
+    const texto = el("textoVcResultadoEliminar");
+    texto.innerHTML = "";
+    texto.append(
+      vcCrear(
+        "p",
+        "",
+        `Se borraron ${resp.inscripcionesBorradas} ${resp.inscripcionesBorradas === 1 ? "inscripción" : "inscripciones"} y ${resp.asistenciasBorradas} ${resp.asistenciasBorradas === 1 ? "registro" : "registros"} de asistencia.`
+      )
+    );
+    if (resp.linksPendientes.length) {
+      texto.append(vcCrear("p", "", "⚠️ Desactiva estos links en el panel de Paggo:"), vcListaLinks(resp.linksPendientes));
+      texto.append(vcCrear("p", "", "Si alguien paga uno antes, el pago aparecerá aquí arriba en \"Pagos por revisar\"."));
+    } else {
+      texto.append(vcCrear("p", "", "No tenía links de Paggo pendientes."));
+    }
+    el("cajaVcResultadoEliminar").hidden = false;
+    vcConfigId = "";
+    vcCambiarPestana("Inscritas");
+    await vcCargar();
+    el("pantallaCampamento").scrollIntoView({ behavior: "smooth" });
+  } catch (e) {
+    vcMensaje("mensajeVcEliminar", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+el("btnVcCerrarResultado").addEventListener("click", () => {
+  el("cajaVcResultadoEliminar").hidden = true;
+});
+
+async function vcArchivar(archivar) {
+  const cfg = vcDatos.config;
+  const pregunta = archivar
+    ? `¿Archivar el curso ${cfg.temporada}?\n\n• La ficha mostrará que las inscripciones no están abiertas.\n• Los códigos del kiosko de sus participantes dejarán de funcionar.\n• Se ocultará del selector (lo encuentras en "📦 Ver cursos archivados").\n\nNo se borra ningún dato.`
+    : `¿Desarchivar el curso ${cfg.temporada}?\n\nQueda con inscripciones Cerradas: revísalo antes de abrirlo. Los códigos del kiosko vuelven a funcionar en los días de curso.`;
+  if (!window.confirm(pregunta)) return;
+  try {
+    await llamarWorker({ accion: "vcRecepcionArchivar", clave: claveRecepcion, configId: cfg.id, archivar });
+    await vcCargar();
+    vcMensaje("mensajeVc", archivar ? `📦 Curso ${cfg.temporada} archivado.` : `♻️ Curso ${cfg.temporada} desarchivado (Cerradas).`, "ok");
+    el("pantallaCampamento").scrollIntoView({ behavior: "smooth" });
+  } catch (e) {
+    vcMensaje(archivar ? "mensajeVcEliminar" : "mensajeVc", e.message, "error");
+  }
+}
+
+el("btnVcArchivar").addEventListener("click", () => vcArchivar(true));
+el("btnVcDesarchivar").addEventListener("click", () => vcArchivar(false));
 
 // ---------- Abiertas / Cerradas ----------
 function vcPintarEstado() {
@@ -4564,7 +4812,14 @@ document.querySelectorAll("[data-vc-pestana]").forEach((chip) => {
 });
 
 el("selectVcTemporada").addEventListener("change", () => {
-  vcConfigId = el("selectVcTemporada").value;
+  const valor = el("selectVcTemporada").value;
+  if (valor === VC_OPCION_ARCHIVADOS) {
+    vcConfigId = (vcDatos.temporadas.find((t) => t.estado === "Archivada") || {}).id || "";
+  } else if (valor === VC_OPCION_ACTIVOS) {
+    vcConfigId = ""; // el Worker elige la más reciente que no esté archivada
+  } else {
+    vcConfigId = valor;
+  }
   vcMensaje("mensajeVc", "");
   vcCargar();
 });

@@ -1226,6 +1226,14 @@ user-select:all;
 }
 .vc-editar-link{ margin-top:10px; }
 .vc-link-vista{ overflow-wrap:anywhere; }
+.vc-alerta-pagos{ border-color:#f5b5c8; background:#fff0f4; }
+.vc-alerta-pagos .bloque-info-titulo{ color:#e0245e; }
+.vc-pago-revisar{ border-top:1px solid #ffd6e4; padding:8px 0; font-size:13.5px; overflow-wrap:anywhere; }
+.vc-pago-revisar:first-child{ border-top:none; }
+.vc-pago-revisar strong{ color:#e0245e; }
+.vc-zona-peligro{ margin-top:22px; border-color:#f5b5c8; }
+.vc-resultado-eliminar{ margin:8px 0; font-size:13.5px; overflow-wrap:anywhere; }
+.vc-resultado-eliminar ul{ margin:6px 0 0; padding-left:18px; }
 
 .vc-inscrita summary{
 list-style:none;
