@@ -353,7 +353,7 @@ async function abrirPanel(grupo) {
 
 async function cargarPanelClase() {
   try {
-    const datos = await llamarWorker({ accion: "panelClase", grupoId: grupoActual.id });
+    const datos = await llamarWorkerComoMaestra({ accion: "panelClase", grupoId: grupoActual.id });
     alumnasPanel = datos.alumnas || [];
     objetivoMensualActual = datos.objetivoMensual || "";
     ultimaNotaActual = datos.ultimaNota || null;
@@ -1488,11 +1488,24 @@ function regrabarVideo() {
   abrirCamaraVideo();
 }
 
-function subirVideoXHR(url, blob, contentType, alProgresar) {
+// Sube con el token de la maestra (sesionmaestra.js) en un header: el
+// Worker solo acepta archivos de una maestra para SUS grupos. Si el
+// token había vencido, pide otro con la clave guardada y reintenta una vez.
+async function subirVideoXHR(url, blob, contentType, alProgresar) {
+  try {
+    return await subirArchivoClaseXHR(url, blob, contentType, alProgresar, await obtenerTokenMaestra(false));
+  } catch (e) {
+    if (!e.sesionVencida) throw e;
+    return await subirArchivoClaseXHR(url, blob, contentType, alProgresar, await obtenerTokenMaestra(true));
+  }
+}
+
+function subirArchivoClaseXHR(url, blob, contentType, alProgresar, token) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url);
     xhr.setRequestHeader("Content-Type", contentType || "video/webm");
+    xhr.setRequestHeader("X-Sesion-Maestra", token);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && alProgresar) alProgresar(Math.round((e.loaded / e.total) * 100));
     };
@@ -1504,7 +1517,9 @@ function subirVideoXHR(url, blob, contentType, alProgresar) {
       if (xhr.status >= 200 && xhr.status < 300 && datos.success) {
         resolve(datos);
       } else {
-        reject(new Error(datos.error || "No se pudo subir el video."));
+        const error = new Error(datos.error || "No se pudo subir el video.");
+        error.sesionVencida = xhr.status === 401 && Boolean(datos.sesionVencida);
+        reject(error);
       }
     };
     xhr.onerror = () => reject(new Error("Falló la conexión al subir el video."));
@@ -1680,7 +1695,7 @@ function renderVideosClase(videos) {
 
 async function eliminarVideoClase(clave) {
   try {
-    await llamarWorker({ accion: "eliminarVideoClase", clave });
+    await llamarWorkerComoMaestra({ accion: "eliminarVideoClase", archivo: clave });
     await cargarPanelClase();
   } catch (e) {
     mostrarMensajeVideo(e.message, true);
@@ -1877,7 +1892,7 @@ function renderAudiosClase(audios) {
 
 async function eliminarAudioClase(clave) {
   try {
-    await llamarWorker({ accion: "eliminarAudioClase", clave });
+    await llamarWorkerComoMaestra({ accion: "eliminarAudioClase", archivo: clave });
     await cargarPanelClase();
   } catch (e) {
     mostrarMensajeAudio(e.message, true);
@@ -1901,7 +1916,7 @@ let alarmaRecepcionIntervalo = null;
 async function cargarMensajesRecepcionPanel() {
   if (!grupoActual) return;
   try {
-    const datos = await llamarWorker({ accion: "obtenerMensajesRecepcion", grupoId: grupoActual.id });
+    const datos = await llamarWorkerComoMaestra({ accion: "obtenerMensajesRecepcion", grupoId: grupoActual.id });
     mensajesRecepcionActual = datos.mensajes || [];
     renderMensajesRecepcion();
 
@@ -2049,7 +2064,7 @@ async function marcarLeidosRecepcion() {
   detenerAlarmaRecepcion();
   if (!grupoActual) return;
   try {
-    await llamarWorker({ accion: "marcarMensajesRecepcionLeidosMaestra", grupoId: grupoActual.id });
+    await llamarWorkerComoMaestra({ accion: "marcarMensajesRecepcionLeidosMaestra", grupoId: grupoActual.id });
   } catch (e) {
     // No pasa nada si falla — el siguiente ciclo lo vuelve a intentar.
   }
@@ -2073,12 +2088,11 @@ async function enviarMensajeRecepcionPanel() {
   boton.disabled = true;
 
   try {
-    await llamarWorker({
+    // El nombre del grupo y el autor los pone el Worker.
+    await llamarWorkerComoMaestra({
       accion: "enviarMensajeRecepcion",
       grupoId: grupoActual.id,
-      grupoNombre: grupoActual.nombre,
       mensaje: texto,
-      autor: "Maestra",
     });
     input.value = "";
     await cargarMensajesRecepcionPanel();
