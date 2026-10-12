@@ -1252,10 +1252,10 @@ document.querySelectorAll(".btn-calificacion").forEach((btn) => {
 
     document.querySelectorAll(".btn-calificacion").forEach((b) => (b.disabled = true));
     try {
-      await llamarWorker({
+      // El nombre del grupo lo pone el Worker.
+      await llamarWorkerComoMaestra({
         accion: "calificarClase",
         grupoId: grupoActual.id,
-        grupoNombre: grupoActual.nombre,
         categoria,
       });
       calificacionHoyActual = categoria;

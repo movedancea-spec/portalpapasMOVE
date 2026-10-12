@@ -562,6 +562,7 @@ async function cargarResumenAsistencia() {
     const datos = await llamarWorker({
       accion: "obtenerResumenAsistencia",
       alumnaId: alumnaDeEstaConsulta,
+      ...credencialesAlumna(),
     });
     // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
     if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
@@ -714,7 +715,7 @@ async function abrirReconocimientos() {
   }
 
   try {
-    const datos = await llamarWorker({ accion: "reconocimientosDeAlumna", alumnaId: alumnaSeleccionada.id });
+    const datos = await llamarWorker({ accion: "reconocimientosDeAlumna", alumnaId: alumnaSeleccionada.id, ...credencialesAlumna() });
     renderReconocimientosAgrupados(datos.reconocimientos || []);
   } catch (e) {
     cont.innerHTML = "";
@@ -856,7 +857,7 @@ async function abrirMensajesMaestra() {
   }
 
   try {
-    const datos = await llamarWorker({ accion: "avisosMaestraDeAlumna", alumnaId: alumnaSeleccionada.id });
+    const datos = await llamarWorker({ accion: "avisosMaestraDeAlumna", alumnaId: alumnaSeleccionada.id, ...credencialesAlumna() });
     renderMensajesMaestra(datos.avisos || []);
   } catch (e) {
     cont.innerHTML = "";
@@ -1326,7 +1327,7 @@ async function probarNotificacionesPush(btn, resultadoEl) {
 
   try {
     const alumnaIds = idsAlumnasActuales();
-    const datos = await llamarWorker({ accion: "probarPushAlumna", alumnaId: alumnaIds[0] });
+    const datos = await llamarWorker({ accion: "probarPushAlumna", alumnaId: alumnaIds[0], ...credencialesAlumna() });
     if (!datos.resultados || !datos.resultados.length) {
       resultadoEl.textContent = datos.resumen || "No hay ninguna suscripción guardada.";
     } else {
@@ -1395,7 +1396,7 @@ function cargarAsistenciaMes() {
       btn.textContent = textoAbierto;
       panel.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
       try {
-        const datos = await llamarWorker({ accion: "obtenerAsistenciaMes", alumnaId: alumnaSeleccionada.id });
+        const datos = await llamarWorker({ accion: "obtenerAsistenciaMes", alumnaId: alumnaSeleccionada.id, ...credencialesAlumna() });
         renderAsistenciaMes(panel, datos.registros || [], mesActual);
         panel.dataset.cargado = "1";
       } catch (e) {
@@ -2282,6 +2283,7 @@ function construirFilaParticipacionShow(f) {
       await llamarWorker({
         accion: "actualizarParticipacionShow",
         alumnaId: alumnaSeleccionada.id,
+        ...credencialesAlumna(),
         valor,
       });
       f.valor = valor;
@@ -3746,8 +3748,9 @@ function renderListaMaestrasChat(maestras) {
 
 // Clave con la que se entró (de la alumna o la familiar), para las
 // acciones del Worker que confirman que quien pregunta es su familia
-// (código de recogida, maestras de la alumna, evaluación de maestras y
-// el chat con las maestras).
+// (código de recogida, maestras de la alumna, evaluación de maestras,
+// chat, asistencia, avisos, reconocimientos, participación en el show
+// y la prueba de notificaciones).
 function credencialesAlumna() {
   return modoFamilia ? { claveFamiliar: claveFamiliarActual } : { clave: claveActual };
 }
@@ -4181,6 +4184,7 @@ async function enviarEvaluacionMaestra() {
       accion: "guardarEvaluacionMaestra",
       alumnaId: alumnaSeleccionada.id,
       maestraId: maestraEnEvaluacion.id,
+      ...credencialesAlumna(),
       criterios,
       general: respuestasEval.general,
       comentario: el("evalComentario").value.trim(),
