@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=vc-eliminar-v1" />
+<link rel="stylesheet" href="recepcion.css?v=fichas-v1" />
 </head>
 <body>
 
@@ -101,9 +101,57 @@
         <span class="btn-menu-icono">🏕️</span>
         <span class="btn-menu-texto">Curso de vacaciones</span>
       </button>
+      <button class="btn-menu" id="btnMenuFichas" type="button">
+        <span class="btn-menu-icono">📝</span>
+        <span class="btn-menu-texto">Fichas de inscripción</span>
+      </button>
     </div>
 
     <button class="btn-enlace" id="btnSalirMenu" type="button">Salir</button>
+  </section>
+
+  <!-- ============ PANTALLA: FICHAS DE INSCRIPCIÓN (fichas-editor.js) ============ -->
+  <section id="pantallaFichas" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverFichas" type="button">← Menú</button>
+      <span class="barra-titulo">📝 Fichas de inscripción</span>
+    </div>
+
+    <p class="etiqueta-campo">Links públicos</p>
+    <div id="fichasLinks" class="ficha-links"></div>
+
+    <div class="separador-lista"></div>
+    <div class="ficha-tabs" id="fichasTabs">
+      <button type="button" data-ficha="academia" class="activa">Academia</button>
+      <button type="button" data-ficha="adultos">Adultos</button>
+    </div>
+    <p class="pista-campo" id="fichaUltimaEdicion"></p>
+
+    <div id="fichaEditor"></div>
+
+    <div class="ficha-guardar">
+      <p class="etiqueta-campo">Tu nombre (queda registrado quién hizo el cambio)</p>
+      <input type="text" id="inputEditadoPorFicha" class="input-texto" maxlength="80" placeholder="Ej. Ana" autocomplete="off" />
+      <div class="ficha-guardar-botones">
+        <button class="btn-secundario" id="btnVistaPreviaFicha" type="button">👀 Vista previa</button>
+        <button class="btn-secundario" id="btnDescartarFicha" type="button">Descartar cambios</button>
+      </div>
+      <button class="btn-grande btn-siguiente" id="btnGuardarFicha" type="button">💾 Guardar cambios</button>
+      <p class="mensaje-form" id="mensajeFichas"></p>
+    </div>
+
+    <details class="ficha-bloque-general">
+      <summary>🕑 Historial de cambios</summary>
+      <div id="fichaHistorial"></div>
+    </details>
+
+    <div class="ficha-vista-previa" id="vistaPreviaFicha" hidden>
+      <div class="ficha-vista-previa-barra">
+        <span>👀 Vista previa (sin guardar)</span>
+        <button class="btn-secundario" id="btnCerrarVistaPreviaFicha" type="button">✕ Cerrar</button>
+      </div>
+      <iframe id="marcoVistaPreviaFicha" title="Vista previa de la ficha" src="about:blank"></iframe>
+    </div>
   </section>
 
   <!-- ============ PANTALLA: SOLICITUDES ============ -->
@@ -871,6 +919,10 @@
 
 </div>
 
-<script src="recepcion.js?v=vc-eliminar-v1"></script>
+<script src="recepcion.js?v=fichas-v1"></script>
+<!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
+     mandar el link a un servicio de afuera). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="fichas-editor.js?v=fichas-v1"></script>
 </body>
 </html>

@@ -62,6 +62,7 @@ const PANTALLAS = [
   "pantallaFeriados",
   "pantallaShow",
   "pantallaCampamento",
+  "pantallaFichas",
 ];
 
 function mostrarPantalla(id) {
@@ -2369,6 +2370,9 @@ async function guardarAlumna() {
     } else {
       const resp = await llamarWorker({
         accion: "crearInscripcion",
+        // Con la clave, el Worker acepta grupo, maestra, clase, horario y
+        // mensualidad (desde la ficha pública ya no se aceptan).
+        clave: claveRecepcion,
         alumna: valores.nombre,
         edad: valores.edad,
         cumpleanos: valores.cumpleanos,
