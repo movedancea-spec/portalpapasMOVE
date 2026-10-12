@@ -11,7 +11,6 @@
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
-let maestraId = "";
 let nombreMaestra = "";
 let gruposMaestra = [];
 let grupoActual = null;
@@ -154,9 +153,8 @@ async function entrarMaestra(claveAuto) {
 
   try {
     const datos = await llamarWorker({ accion: "maestraEntrar", clave });
-    maestraId = datos.maestraId;
     nombreMaestra = datos.nombre || "Maestra";
-    guardarSesionMaestraCompartida(clave, maestraId, nombreMaestra);
+    guardarSesionMaestraCompartida(clave, nombreMaestra, datos.token);
     await cargarGrupos();
   } catch (e) {
     if (esAuto) {
@@ -277,7 +275,7 @@ async function cargarGrupos() {
   el("listaGrupos").innerHTML = '<p class="lista-alumnas-aviso">Cargando tus grupos...</p>';
 
   try {
-    const datos = await llamarWorker({ accion: "gruposDeMaestra", maestraId });
+    const datos = await llamarWorkerComoMaestra({ accion: "gruposDeMaestra" });
     gruposMaestra = datos.grupos || [];
     renderGrupos();
   } catch (e) {
@@ -2154,10 +2152,9 @@ async function guardarBitacoraAhora({ mensajeSinCambios } = {}) {
   btn.textContent = "Guardando...";
 
   try {
-    await llamarWorker({
+    await llamarWorkerComoMaestra({
       accion: "guardarBitacora",
       grupoId: grupoActual.id,
-      maestraId,
       objetivoMensual: objetivoMensualNuevo,
       notaClase,
     });
@@ -2221,7 +2218,6 @@ el("btnCerrarSesionPanel").addEventListener("click", () => {
   detenerAlarmaRecepcion();
   reiniciarRuletaVisual();
   detenerControlRemoto();
-  maestraId = "";
   nombreMaestra = "";
   gruposMaestra = [];
   grupoActual = null;

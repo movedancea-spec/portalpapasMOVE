@@ -4,14 +4,13 @@
 // ==========================================
 // Habla con el mismo Worker que el Portal de Alumnas. Cada maestra
 // entra con su propia clave individual (tabla MAESTRAS, campo
-// "CLAVE CHAT"); el Worker devuelve su nombre real, así que los
-// mensajes siempre quedan firmados correctamente sin que ella tenga
-// que escribir su nombre cada vez.
+// "CLAVE CHAT"); el Worker devuelve su nombre real y un token de
+// sesión (sesionmaestra.js). Quién escribe y con qué nombre lo decide el
+// Worker con ese token: la página ya no manda ni su ID ni su nombre.
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
 let nombreMaestra = "";
-let maestraIdActual = "";
 let claveMaestraActual = ""; // la clave con la que la maestra entró, se usa para confirmar el cambio de clave
 let alumnasMaestra = [];
 let alumnaSeleccionadaMaestra = null;
@@ -57,6 +56,18 @@ async function llamarWorkerMaestra(payload) {
   return datos;
 }
 
+// Si la clave ya no sirve (se cambió desde otra pantalla o la
+// desactivaron), se vuelve al login en vez de seguir fallando cada
+// vez que se actualiza la lista o el chat.
+function volverAlLoginSiSesionVencida(e) {
+  const vencida = e.sesionVencida || (e.status === 401 && e.datos && e.datos.sesionVencida);
+  if (!vencida) return false;
+  borrarSesionMaestraCompartida();
+  mostrarPantallaMaestra("pantallaLogin");
+  mostrarErrorMaestra(e.message);
+  return true;
+}
+
 // ---------- login ----------
 
 async function entrarMaestra(claveAuto) {
@@ -83,9 +94,8 @@ async function entrarMaestra(claveAuto) {
   try {
     const datos = await llamarWorkerMaestra({ accion: "maestraEntrar", clave });
     nombreMaestra = datos.nombre || "Maestra";
-    maestraIdActual = datos.maestraId || "";
     claveMaestraActual = clave;
-    guardarSesionMaestraCompartida(clave, maestraIdActual, nombreMaestra);
+    guardarSesionMaestraCompartida(clave, nombreMaestra, datos.token);
     el("inputClaveMaestra").value = "";
     mostrarPantallaMaestra("pantallaLista");
     await cargarListaAlumnasMaestra();
@@ -223,14 +233,15 @@ async function guardarNuevaClaveMaestra() {
   btn.textContent = "Guardando...";
 
   try {
-    await llamarWorkerMaestra({
+    await llamarWorkerComoMaestra({
       accion: "maestraCambiarClave",
-      maestraId: maestraIdActual,
       claveActual: claveMaestraActual,
       claveNueva: nueva,
     });
     claveMaestraActual = nueva;
-    guardarSesionMaestraCompartida(nueva, maestraIdActual, nombreMaestra);
+    // El token viejo quedó amarrado a la clave anterior: sin token, la
+    // próxima llamada pide uno nuevo con la clave nueva.
+    guardarSesionMaestraCompartida(nueva, nombreMaestra, "");
     el("inputClaveNuevaMaestra").value = "";
     el("inputClaveConfirmarMaestra").value = "";
     el("mensajeClaveOkMaestra").hidden = false;
@@ -246,10 +257,11 @@ async function guardarNuevaClaveMaestra() {
 
 async function cargarListaAlumnasMaestra() {
   try {
-    const datos = await llamarWorkerMaestra({ accion: "maestraListaAlumnas", maestraId: maestraIdActual });
+    const datos = await llamarWorkerComoMaestra({ accion: "maestraListaAlumnas" });
     alumnasMaestra = datos.alumnas || [];
     renderListaAlumnasMaestra(el("buscarAlumnaMaestra").value);
   } catch (e) {
+    if (volverAlLoginSiSesionVencida(e)) return;
     mostrarErrorMaestra(e.message);
   }
 }
@@ -364,14 +376,13 @@ async function cargarChatMaestra(mostrarCargando) {
     el("chatMensajesMaestra").innerHTML = '<p class="chat-vacio">Cargando mensajes...</p>';
   }
   try {
-    const datos = await llamarWorkerMaestra({
+    const datos = await llamarWorkerComoMaestra({
       accion: "chatObtener",
       alumnaId: alumnaSeleccionadaMaestra.id,
-      maestraId: maestraIdActual,
-      quien: "maestra",
     });
     renderChatMaestra(datos.mensajes || []);
   } catch (e) {
+    if (volverAlLoginSiSesionVencida(e)) return;
     mostrarErrorMaestra(e.message);
   }
 }
@@ -393,17 +404,15 @@ async function enviarMensajeChatMaestra() {
   input.value = "";
 
   try {
-    await llamarWorkerMaestra({
+    await llamarWorkerComoMaestra({
       accion: "chatEnviar",
       alumnaId: alumnaSeleccionadaMaestra.id,
-      maestraId: maestraIdActual,
-      quien: "maestra",
-      autor: nombreMaestra,
       texto,
     });
     await cargarChatMaestra(false);
   } catch (e) {
     input.value = texto;
+    if (volverAlLoginSiSesionVencida(e)) return;
     mostrarErrorMaestra(e.message);
   } finally {
     btn.disabled = false;

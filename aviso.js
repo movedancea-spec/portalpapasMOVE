@@ -13,7 +13,6 @@
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
 
-let maestraId = "";
 let nombreMaestra = "";
 let gruposMaestra = [];
 let grupoActual = null; // { id, nombre, estilo, totalAlumnas }
@@ -187,9 +186,8 @@ async function entrarMaestra(claveAuto) {
 
   try {
     const datos = await llamarWorker({ accion: "maestraEntrar", clave });
-    maestraId = datos.maestraId;
     nombreMaestra = datos.nombre || "Maestra";
-    guardarSesionMaestraCompartida(clave, maestraId, nombreMaestra);
+    guardarSesionMaestraCompartida(clave, nombreMaestra, datos.token);
     await cargarGrupos();
   } catch (e) {
     if (esAuto) {
@@ -308,7 +306,7 @@ async function cargarGrupos() {
   el("listaGrupos").innerHTML = '<p class="lista-alumnas-aviso">Cargando tus grupos...</p>';
 
   try {
-    const datos = await llamarWorker({ accion: "gruposDeMaestra", maestraId });
+    const datos = await llamarWorkerComoMaestra({ accion: "gruposDeMaestra" });
     gruposMaestra = datos.grupos || [];
     renderGrupos();
   } catch (e) {
@@ -404,7 +402,6 @@ el("btnMandarAviso").addEventListener("click", async () => {
   try {
     const payload = {
       accion: "maestraMandarAviso",
-      maestraId,
       grupoId: grupoActual.id,
       titulo,
       mensaje,
@@ -419,7 +416,7 @@ el("btnMandarAviso").addEventListener("click", async () => {
       btn.textContent = "Mandando...";
     }
 
-    const datos = await llamarWorker(payload);
+    const datos = await llamarWorkerComoMaestra(payload);
     mensajeEl.textContent = "✅ " + (datos.resumen || "Aviso mandado.");
     mensajeEl.classList.add("mensaje-form-ok");
     el("inputAvisoTitulo").value = "";

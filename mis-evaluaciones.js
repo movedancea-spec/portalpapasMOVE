@@ -126,9 +126,9 @@ async function cargarMisEvaluaciones(clave, esAuto) {
     const datos = await llamarWorker({ accion: "maestraEvaluacionesRecibidas", clave });
     const sesion = leerSesionMaestraCompartida();
     if (!sesion || sesion.clave !== clave) {
-      // Solo hay clave: pedimos el id/nombre al login normal para dejar la sesión compartida.
+      // Solo hay clave: pedimos el token al login normal para dejar la sesión compartida.
       const login = await llamarWorker({ accion: "maestraEntrar", clave });
-      guardarSesionMaestraCompartida(clave, login.maestraId, login.nombre || datos.nombre);
+      guardarSesionMaestraCompartida(clave, login.nombre || datos.nombre, login.token);
     }
     el("tituloMaestra").textContent = "⭐ " + (datos.nombre || "Mis evaluaciones");
     renderEvaluaciones(datos.evaluaciones || []);

@@ -11,7 +11,6 @@
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 const LIMITE_MENSAJE_RECONOCIMIENTO = 200;
 
-let maestraId = "";
 let gruposMaestra = [];
 let grupoActual = null; // { id, nombre, estilo, totalAlumnas }
 let alumnasDelGrupo = [];
@@ -68,8 +67,7 @@ async function entrarMaestra(claveAuto) {
 
   try {
     const datos = await llamarWorker({ accion: "maestraEntrar", clave });
-    maestraId = datos.maestraId;
-    guardarSesionMaestraCompartida(clave, maestraId, datos.nombre || "Maestra");
+    guardarSesionMaestraCompartida(clave, datos.nombre || "Maestra", datos.token);
     await cargarGrupos();
   } catch (e) {
     if (esAuto) {
@@ -94,7 +92,7 @@ async function cargarGrupos() {
   el("listaGrupos").innerHTML = '<p class="lista-alumnas-aviso">Cargando tus clases...</p>';
 
   try {
-    const datos = await llamarWorker({ accion: "gruposDeMaestra", maestraId });
+    const datos = await llamarWorkerComoMaestra({ accion: "gruposDeMaestra" });
     gruposMaestra = datos.grupos || [];
     renderGrupos();
   } catch (e) {
@@ -136,7 +134,7 @@ async function abrirAlumnas(grupo) {
   el("listaAlumnasReconocimiento").innerHTML = '<p class="lista-alumnas-aviso">Cargando alumnas...</p>';
 
   try {
-    const datos = await llamarWorker({ accion: "maestraAlumnasDeGrupo", maestraId, grupoId: grupo.id });
+    const datos = await llamarWorkerComoMaestra({ accion: "maestraAlumnasDeGrupo", grupoId: grupo.id });
     alumnasDelGrupo = datos.alumnas || [];
     renderAlumnas();
   } catch (e) {
@@ -207,9 +205,8 @@ el("btnMandarReconocimiento").addEventListener("click", async () => {
   mensajeEl.className = "mensaje-form";
 
   try {
-    await llamarWorker({
+    await llamarWorkerComoMaestra({
       accion: "maestraEnviarReconocimiento",
-      maestraId,
       grupoId: grupoActual.id,
       alumnaId: alumnaActual.id,
       mensaje,
@@ -253,7 +250,7 @@ async function cargarHistorial() {
   cont.innerHTML = '<p class="lista-alumnas-aviso">Cargando...</p>';
 
   try {
-    const datos = await llamarWorker({ accion: "maestraListaReconocimientosEnviados", maestraId });
+    const datos = await llamarWorkerComoMaestra({ accion: "maestraListaReconocimientosEnviados" });
     const reconocimientos = datos.reconocimientos || [];
     cont.innerHTML = "";
 

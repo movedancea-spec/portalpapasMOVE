@@ -445,7 +445,7 @@ button.tarjeta-enlace{
 
 </div>
 
-<script src="sesionmaestra.js"></script>
+<script src="sesionmaestra.js?v=sesion-token-v1"></script>
 <script src="temas-fecha.js?v=emojis-rapidos-v2"></script>
 <script>
   // ==========================================
@@ -462,7 +462,6 @@ button.tarjeta-enlace{
     return document.getElementById(id);
   }
 
-  let maestraIdPortal = "";
   let clavePortalMaestra = ""; // para pedir los cumpleaños (el Worker la valida)
   let nombrePortalMaestra = "";
   let maestrasParaRecuperarPortal = [];
@@ -817,9 +816,8 @@ button.tarjeta-enlace{
           llaveActualBytes.every((b, i) => b === llaveEsperadaBytes[i]);
         if (!coinciden) {
           try {
-            await llamarWorkerPortal({
+            await llamarWorkerComoMaestra({
               accion: "eliminarSuscripcionPushMaestra",
-              maestraId: maestraIdPortal,
               endpoint: suscripcionActual.endpoint,
             });
           } catch (e) {
@@ -901,13 +899,8 @@ button.tarjeta-enlace{
         });
       }
 
-      if (!maestraIdPortal) {
-        throw new Error("No se pudo identificar tu cuenta para guardar la suscripción.");
-      }
-
-      await llamarWorkerPortal({
+      await llamarWorkerComoMaestra({
         accion: "guardarSuscripcionPushMaestra",
-        maestraId: maestraIdPortal,
         subscription: suscripcion.toJSON(),
       });
 
@@ -926,9 +919,8 @@ button.tarjeta-enlace{
     mostrarErrorPortalMaestra("");
 
     try {
-      await llamarWorkerPortal({
+      await llamarWorkerComoMaestra({
         accion: "eliminarSuscripcionPushMaestra",
-        maestraId: maestraIdPortal,
         endpoint: suscripcion.endpoint,
       });
       await suscripcion.unsubscribe();
@@ -952,7 +944,7 @@ button.tarjeta-enlace{
     if (resultadoEl) resultadoEl.textContent = "";
 
     try {
-      const datos = await llamarWorkerPortal({ accion: "probarPushMaestra", maestraId: maestraIdPortal });
+      const datos = await llamarWorkerComoMaestra({ accion: "probarPushMaestra" });
       if (resultadoEl) {
         if (!datos.resultados || !datos.resultados.length) {
           resultadoEl.textContent = datos.resumen || "No hay ninguna suscripción guardada.";
@@ -996,9 +988,8 @@ button.tarjeta-enlace{
     try {
       const datos = await llamarWorkerPortal({ accion: "maestraEntrar", clave });
       nombrePortalMaestra = datos.nombre || "Maestra";
-      maestraIdPortal = datos.maestraId || "";
       clavePortalMaestra = clave;
-      guardarSesionMaestraCompartida(clave, maestraIdPortal, nombrePortalMaestra);
+      guardarSesionMaestraCompartida(clave, nombrePortalMaestra, datos.token);
       el("inputClavePortalMaestra").value = "";
       mostrarMenuPortalMaestra();
     } catch (e) {
@@ -1118,7 +1109,6 @@ button.tarjeta-enlace{
 
   el("btnCerrarSesionPortalMaestra").addEventListener("click", () => {
     borrarSesionMaestraCompartida();
-    maestraIdPortal = "";
     nombrePortalMaestra = "";
     clavePortalMaestra = "";
     cumpleanosMaestra = null;

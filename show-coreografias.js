@@ -125,7 +125,7 @@ async function entrarMaestra() {
   boton.textContent = "Entrando...";
   try {
     const datos = await llamarWorker({ accion: "maestraEntrar", clave });
-    guardarSesionMaestraCompartida(clave, datos.maestraId, datos.nombre || "Maestra");
+    guardarSesionMaestraCompartida(clave, datos.nombre || "Maestra", datos.token);
     claveMaestra = clave;
     await cargarLista();
   } catch (e) {

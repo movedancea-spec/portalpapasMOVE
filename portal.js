@@ -3703,7 +3703,8 @@ async function cargarChat(mostrarCargando) {
       accion: "chatObtener",
       alumnaId: alumnaSeleccionada.id,
       maestraId: maestraSeleccionadaChat.id,
-      quien: "familia",
+      // El Worker confirma con la clave que es la familia de la alumna.
+      ...credencialesAlumna(),
     });
     renderChat(datos.mensajes || []);
   } catch (e) {
@@ -3745,7 +3746,8 @@ function renderListaMaestrasChat(maestras) {
 
 // Clave con la que se entró (de la alumna o la familiar), para las
 // acciones del Worker que confirman que quien pregunta es su familia
-// (código de recogida, maestras de la alumna, evaluación de maestras).
+// (código de recogida, maestras de la alumna, evaluación de maestras y
+// el chat con las maestras).
 function credencialesAlumna() {
   return modoFamilia ? { claveFamiliar: claveFamiliarActual } : { clave: claveActual };
 }
@@ -3790,7 +3792,7 @@ async function enviarMensajeChat() {
       accion: "chatEnviar",
       alumnaId: alumnaSeleccionada.id,
       maestraId: maestraSeleccionadaChat.id,
-      quien: "familia",
+      ...credencialesAlumna(),
       texto,
     });
     await cargarChat(false);
