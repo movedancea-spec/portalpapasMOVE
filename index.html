@@ -130,8 +130,8 @@
       <p class="racha-explicacion" id="rachaExplicacion">semanas seguidas de asistencia, sin faltar ninguna</p>
     </div>
 
-    <!-- "👗 Mi traje para el show": una tarjeta por traje, solo si Recepción lo encendió (ver portal.js, ESTADO DEL TRAJE). -->
-    <div id="bloqueTrajeShow" class="bloque-traje-show" hidden></div>
+    <!-- Solo si Recepción lo encendió y la alumna tiene bailes (ver portal.js, ESTADO DEL TRAJE). -->
+    <button class="btn-grande btn-siguiente" id="btnEstadoTrajes" type="button" hidden>👗 Estado de trajes</button>
 
     <button class="btn-grande btn-siguiente" id="btnMensajesAnuncios" type="button">📢 Mensajes e información importante MOVE</button>
     <button class="btn-grande btn-siguiente" id="btnMensajesMaestra" type="button">👩‍🏫 Mensajes de tu maestra</button>
@@ -282,6 +282,14 @@
     <button class="btn-grande btn-siguiente" id="btnAtrasReconocimientos">← Volver al perfil</button>
   </section>
 
+  <!-- ============ PANTALLA: ESTADO DE TRAJES DEL SHOW ============ -->
+  <section id="pantallaEstadoTrajes" class="pantalla" hidden>
+    <p class="perfil-nombre">👗 Estado de trajes</p>
+    <p class="lista-alumnas-aviso" style="padding-top:0;">Cómo va cada traje para el show. Las fechas las marca Recepción.</p>
+    <div id="listaEstadoTrajes" class="bloque-traje-show"></div>
+    <button class="btn-grande btn-siguiente" id="btnAtrasEstadoTrajes" type="button">← Volver al perfil</button>
+  </section>
+
   <!-- ============ PANTALLA 5D: AVISOS DE ENTRADAS ============ -->
   <section id="pantallaAvisosEntradas" class="pantalla" hidden>
     <p class="perfil-nombre">🎟️ Avisos de entradas</p>
@@ -351,7 +359,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="temas-fecha.js?v=emojis-rapidos-v2"></script>
-<script src="portal.js?v=trajes-v1"></script>
+<script src="portal.js?v=trajes-boton-v1"></script>
 <script src="juego-baile.js?v=1"></script>
 <script>
   if ("serviceWorker" in navigator) {

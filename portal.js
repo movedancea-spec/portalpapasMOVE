@@ -166,6 +166,7 @@ function mostrarPantalla(id) {
     "pantallaMensajesAnuncios",
     "pantallaMensajesMaestra",
     "pantallaReconocimientos",
+    "pantallaEstadoTrajes",
     "pantallaAvisosEntradas",
     "pantallaInfoImportante",
     "pantallaSelectorMaestra",
@@ -491,7 +492,7 @@ function mostrarPerfilDesdeDatos(datos) {
   // si Recepción tiene la evaluación encendida.
   actualizarBotonEvaluarMaestras();
 
-  // Igual: "👗 Mi traje para el show" solo aparece si Recepción lo
+  // Igual: el botón "👗 Estado de trajes" solo aparece si Recepción lo
   // encendió y la alumna está en algún baile activo.
   actualizarTrajeShow();
 
@@ -4264,9 +4265,10 @@ el("btnEnviarEvaluacion").addEventListener("click", enviarEvaluacionMaestra);
 // ==========================================
 // ESTADO DEL TRAJE ("👗 Mi traje para el show")
 // Seguimiento tipo rastreo de paquete que marca Recepción (Alumnas Show
-// → "👗 Estado trajes"). Una tarjeta por cada baile ACTIVO de la alumna;
+// → "👗 Estado trajes"). En el perfil, el botón "👗 Estado de trajes"
+// abre una pantalla con una tarjeta por cada baile ACTIVO de la alumna;
 // si Recepción tiene el interruptor apagado, o la alumna no sale en
-// ningún baile, no se ve nada. El Worker (trajeShowDeAlumna) decide todo
+// ningún baile, ni el botón se ve. El Worker (trajeShowDeAlumna) decide todo
 // eso y solo manda nombre del baile + fechas.
 // No se exige orden: si Recepción marcó una etapa más adelante, las de
 // antes que no se marcaron se ven en gris claro sin fecha (decisión de
@@ -4301,10 +4303,16 @@ function fechaHoraTraje(iso) {
   return `${Number(p.day)} ${MESES_CORTOS_TRAJE[Number(p.month) - 1]}, ${hora % 12 || 12}:${p.minute} ${hora < 12 ? "a.m." : "p.m."}`;
 }
 
+// En el perfil solo va el botón "👗 Estado de trajes" (con el número de
+// bailes si son varios); las tarjetas se ven en su propia pantalla
+// (pedido de Ana, 2026-10-12). Se usan los trajes que se leyeron al
+// entrar al perfil de esta alumna.
+let trajesShowAlumna = [];
+
 async function actualizarTrajeShow() {
-  const bloque = el("bloqueTrajeShow");
-  bloque.hidden = true;
-  bloque.innerHTML = "";
+  const boton = el("btnEstadoTrajes");
+  boton.hidden = true;
+  trajesShowAlumna = [];
   if (!alumnaSeleccionada) return;
   const alumnaDeEstaConsulta = alumnaSeleccionada.id;
   try {
@@ -4315,15 +4323,25 @@ async function actualizarTrajeShow() {
     });
     // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
     if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
-    const trajes = datos.activo ? datos.trajes || [] : [];
-    bloque.innerHTML = "";
-    trajes.forEach((t) => bloque.appendChild(tarjetaTrajeShow(t)));
-    bloque.hidden = !trajes.length;
+    trajesShowAlumna = datos.activo ? datos.trajes || [] : [];
+    boton.textContent = "👗 Estado de trajes" + (trajesShowAlumna.length > 1 ? ` (${trajesShowAlumna.length})` : "");
+    boton.hidden = !trajesShowAlumna.length;
   } catch (e) {
     // Es un extra del perfil: si falla, simplemente no se muestra.
-    bloque.hidden = true;
+    boton.hidden = true;
   }
 }
+
+function abrirEstadoTrajes() {
+  const cont = el("listaEstadoTrajes");
+  cont.innerHTML = "";
+  trajesShowAlumna.forEach((t) => cont.appendChild(tarjetaTrajeShow(t)));
+  mostrarPantalla("pantallaEstadoTrajes");
+  window.scrollTo({ top: 0 });
+}
+
+el("btnEstadoTrajes").addEventListener("click", abrirEstadoTrajes);
+el("btnAtrasEstadoTrajes").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
 
 function tarjetaTrajeShow(traje) {
   const etapas = traje.etapas || {};
