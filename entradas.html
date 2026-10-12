@@ -44,6 +44,14 @@
       <p class="aviso-familia" id="textoAlumnaElegidaTurno" hidden>✅ Elegiste a <strong id="nombreAlumnaElegidaTurno"></strong>. <button class="btn-enlace" id="btnCambiarAlumnaTurno" type="button">Cambiar</button></p>
     </div>
 
+    <!-- Desde el 2026-10-11 se pide la clave del Portal: así nadie puede
+         registrar (ni ver el código) de una alumna que no es suya. -->
+    <div class="campo-form">
+      <p class="etiqueta-campo">Clave del Portal de Alumnas</p>
+      <input type="password" id="inputClaveTurno" class="input-texto" placeholder="Escribe la clave del portal de tu hija/o" autocomplete="current-password" />
+      <p class="aviso-familia">Es la misma clave con la que entran al Portal de Alumnas (la de tu hija/o o la clave familiar). ¿No la recuerdas? <a href="index.html" target="_blank" rel="noopener">Recupérala en el Portal</a>: elige el nombre de tu hija/o y toca "¿Olvidaste tu clave?".</p>
+    </div>
+
     <button class="btn-grande btn-siguiente" id="btnRegistrarTurno" disabled>Registrarme →</button>
     <p class="mensaje-error" id="mensajeErrorRegistro"></p>
 
@@ -141,6 +149,6 @@
   <button class="btn-pagar-total" id="btnGenerarLinkIndividual" disabled type="button">Generar link de pago →</button>
 </div>
 
-<script src="entradas.js"></script>
+<script src="entradas.js?v=turno-clave-v1"></script>
 </body>
 </html>

@@ -683,8 +683,13 @@ function actualizarBadgeControlRemoto(pin) {
     badge.hidden = true;
     return;
   }
-  badge.innerHTML =
-    '📱 Control remoto<br><span style="font-size:21px;letter-spacing:3px;">' + pin + "</span>";
+  // 6 dígitos se muestran "123 456" para que sea fácil copiarlos.
+  const pinLegible = pin.length === 6 ? `${pin.slice(0, 3)} ${pin.slice(3)}` : pin;
+  badge.replaceChildren(document.createTextNode("📱 Control remoto"), document.createElement("br"));
+  const numero = document.createElement("span");
+  numero.style.cssText = "font-size:21px;letter-spacing:3px;";
+  numero.textContent = pinLegible;
+  badge.appendChild(numero);
   badge.hidden = false;
 }
 

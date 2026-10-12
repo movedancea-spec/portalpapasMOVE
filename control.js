@@ -43,8 +43,8 @@ async function llamarWorker(payload) {
 const inputPin = el("inputPinControl");
 
 inputPin.addEventListener("input", () => {
-  // Solo dígitos, máximo 4 — así no hace falta validar formato aparte.
-  inputPin.value = inputPin.value.replace(/\D/g, "").slice(0, 4);
+  // Solo dígitos, máximo 6 — así no hace falta validar formato aparte.
+  inputPin.value = inputPin.value.replace(/\D/g, "").slice(0, 6);
 });
 
 inputPin.addEventListener("keydown", (ev) => {
@@ -58,8 +58,11 @@ async function conectarControl() {
   const msg = el("mensajeErrorPin");
   msg.textContent = "";
 
-  if (pin.length !== 4) {
-    msg.textContent = "Escribe los 4 dígitos del código.";
+  // El código ahora es de 6 dígitos. Se aceptan 4 solo para las
+  // pantallas que ya tenían abierto un código viejo (vencen solos en
+  // 6 horas desde el 2026-10-11); después se puede dejar solo el 6.
+  if (pin.length !== 6 && pin.length !== 4) {
+    msg.textContent = "Escribe los 6 dígitos del código.";
     return;
   }
 

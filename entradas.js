@@ -299,6 +299,11 @@ async function registrarTurno() {
     msg.textContent = "Busca el nombre de tu alumna y elígela de la lista.";
     return;
   }
+  const clave = el("inputClaveTurno").value.trim();
+  if (!clave) {
+    msg.textContent = "Escribe la clave del portal de tu hija/o.";
+    return;
+  }
 
   btn.disabled = true;
   const textoOriginal = btn.textContent;
@@ -307,7 +312,9 @@ async function registrarTurno() {
     const datos = await llamarWorker({
       accion: "entradasRegistrarTurno",
       alumnaId: alumnaElegidaTurno.id,
+      clave,
     });
+    el("inputClaveTurno").value = "";
     guardarCodigo(datos.codigo);
     el("textoCodigoNuevo").textContent = datos.codigo;
     el("tituloRegistrado").textContent = datos.yaRegistrado
