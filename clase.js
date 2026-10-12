@@ -1274,6 +1274,11 @@ document.querySelectorAll(".btn-calificacion").forEach((btn) => {
 // ---------- modo clase: grabar video para el portal ----------
 
 const MAX_SEGUNDOS_VIDEO = 300; // 5 minutos
+// Cloudflare (plan Free) no deja pasar al Worker nada de más de 100 MB:
+// un video más pesado fallaría al subir sin ningún aviso. Mismo límite
+// que VIDEO_MAX_BYTES en el Worker (90 MiB ≈ 94 MB, con margen).
+const TAMANO_MAX_VIDEO_CLASE = 90 * 1024 * 1024;
+const MENSAJE_VIDEO_PESADO = "El video es muy pesado para subirlo (máximo 90 MB). Graba uno más corto.";
 
 let streamCamaraVideo = null;
 let mediaRecorderVideo = null;
@@ -1415,7 +1420,8 @@ function iniciarGrabacionVideo() {
       ? new MediaRecorder(streamCamaraVideo, {
           mimeType: mimeTypeGrabadoVideo,
           // 1.5 Mbps: nítido a 720p con el movimiento del baile, ~12 MB
-          // por minuto (5 min ≈ 60 MB; el Worker acepta hasta 250 MB).
+          // por minuto (5 min ≈ 60 MB; el límite es 90 MB, ver
+          // TAMANO_MAX_VIDEO_CLASE). Algunos celulares ignoran este valor.
           videoBitsPerSecond: 1500000,
           audioBitsPerSecond: 96000,
         })
@@ -1446,6 +1452,8 @@ function iniciarGrabacionVideo() {
     el("btnIniciarGrabacionVideo").hidden = true;
     el("btnDetenerGrabacionVideo").hidden = true;
     el("videoClaseBotonesRevision").hidden = false;
+    // Se avisa de una vez, antes de que la maestra intente subirlo.
+    if (blobGrabadoVideo.size > TAMANO_MAX_VIDEO_CLASE) mostrarMensajeVideo(MENSAJE_VIDEO_PESADO, true);
   };
 
   mediaRecorderVideo.start(1000);
@@ -1529,6 +1537,10 @@ function subirArchivoClaseXHR(url, blob, contentType, alProgresar, token) {
 
 async function subirVideoAlPortal() {
   if (!blobGrabadoVideo || !grupoActual) return;
+  if (blobGrabadoVideo.size > TAMANO_MAX_VIDEO_CLASE) {
+    mostrarMensajeVideo(MENSAJE_VIDEO_PESADO, true);
+    return;
+  }
   const btn = el("btnSubirVideo");
   const original = btn.textContent;
   btn.disabled = true;
@@ -1658,15 +1670,13 @@ function renderVideosClase(videos) {
 
     const verLink = document.createElement("a");
     verLink.className = "video-clase-fila-boton-ver";
-    verLink.href = v.url;
-    verLink.target = "_blank";
-    verLink.rel = "noopener";
+    enlazarArchivoClase(verLink, v.clave, false);
     verLink.textContent = "▶ Ver";
     botones.appendChild(verLink);
 
     const descargarLink = document.createElement("a");
     descargarLink.className = "video-clase-fila-boton-descargar";
-    descargarLink.href = v.urlDescarga;
+    enlazarArchivoClase(descargarLink, v.clave, true);
     descargarLink.textContent = "⬇ Descargar";
     botones.appendChild(descargarLink);
 
@@ -1691,6 +1701,40 @@ function renderVideosClase(videos) {
     fila.appendChild(botones);
     cont.appendChild(fila);
   });
+}
+
+// ---------- links de video/audio de clase ----------
+// El Worker solo sirve videos/audios con un link firmado que vence en
+// unas horas (son de alumnas menores de edad). Por eso "Ver" y
+// "Descargar" ya no traen un link fijo: al tocarlos se pide uno nuevo
+// (accion linkArchivoClase). Para "Ver", la pestaña se abre en el mismo
+// toque y el link se carga al llegar, porque Safari (iPhone/iPad)
+// bloquea las pestañas que se abren después de esperar una respuesta.
+function enlazarArchivoClase(enlace, clave, descargar) {
+  enlace.href = "#";
+  enlace.removeAttribute("target");
+  enlace.addEventListener("click", (e) => {
+    e.preventDefault();
+    abrirArchivoClase(clave, descargar);
+  });
+}
+
+async function abrirArchivoClase(clave, descargar) {
+  let pestana = null;
+  if (!descargar) {
+    pestana = window.open("", "_blank");
+    if (pestana) pestana.opener = null;
+  }
+  try {
+    const datos = await llamarWorkerComoMaestra({ accion: "linkArchivoClase", archivo: clave, descargar });
+    // Descargar (o si el navegador bloqueó la pestaña): en esta misma
+    // página; con "attachment" el navegador descarga sin salir de aquí.
+    if (pestana) pestana.location.href = datos.url;
+    else window.location.href = datos.url;
+  } catch (e) {
+    if (pestana) pestana.close();
+    mostrarMensajeVideo(e.message, true);
+  }
 }
 
 async function eliminarVideoClase(clave) {
@@ -1853,15 +1897,13 @@ function renderAudiosClase(audios) {
 
       const escucharLink = document.createElement("a");
       escucharLink.className = "video-clase-fila-boton-ver";
-      escucharLink.href = a.url;
-      escucharLink.target = "_blank";
-      escucharLink.rel = "noopener";
+      enlazarArchivoClase(escucharLink, a.clave, false);
       escucharLink.textContent = "▶ Escuchar";
       botones.appendChild(escucharLink);
 
       const descargarLink = document.createElement("a");
       descargarLink.className = "video-clase-fila-boton-descargar";
-      descargarLink.href = a.urlDescarga;
+      enlazarArchivoClase(descargarLink, a.clave, true);
       descargarLink.textContent = "⬇ Descargar";
       botones.appendChild(descargarLink);
 

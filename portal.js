@@ -985,7 +985,7 @@ async function abrirAvisosEntradas() {
   }
 
   try {
-    const datos = await llamarWorker({ accion: "avisosEntradasDeAlumna", alumnaId: alumnaSeleccionada.id });
+    const datos = await llamarWorker({ accion: "avisosEntradasDeAlumna", alumnaId: alumnaSeleccionada.id, ...credencialesAlumna() });
     renderAvisosEntradas(datos.avisos || []);
   } catch (e) {
     cont.innerHTML = "";
@@ -1164,6 +1164,7 @@ async function actualizarBloqueNotificacionesPush() {
           await llamarWorker({
             accion: "eliminarSuscripcionPush",
             alumnaIds,
+            ...credencialesAlumna(),
             endpoint: suscripcionActual.endpoint,
           });
         } catch (e) {
@@ -1194,6 +1195,7 @@ async function actualizarBloqueNotificacionesPush() {
       llamarWorker({
         accion: "guardarSuscripcionPush",
         alumnaIds: idsParaReforzar,
+        ...credencialesAlumna(),
         subscription: suscripcionActual.toJSON(),
       }).catch(() => {
         // Si falla, no interrumpimos nada — la próxima vez que se
@@ -1281,6 +1283,7 @@ async function activarNotificacionesPush(btn) {
     await llamarWorker({
       accion: "guardarSuscripcionPush",
       alumnaIds,
+      ...credencialesAlumna(),
       subscription: suscripcion.toJSON(),
     });
 
@@ -1308,6 +1311,7 @@ async function desactivarNotificacionesPush(btn, suscripcion) {
     await llamarWorker({
       accion: "eliminarSuscripcionPush",
       alumnaIds,
+      ...credencialesAlumna(),
       endpoint: suscripcion.endpoint,
     });
     await suscripcion.unsubscribe();
@@ -1854,6 +1858,46 @@ function formatearFechaHoraVideoPortal(iso) {
   }
 }
 
+// ---------- links de video/audio de clase ----------
+// El Worker solo sirve videos/audios con un link firmado que vence en
+// unas horas (son de alumnas menores de edad). Por eso "Ver" y
+// "Descargar" ya no traen un link fijo: al tocarlos se pide uno nuevo
+// (accion linkArchivoClase). Para "Ver", la pestaña se abre en el mismo
+// toque y el link se carga al llegar, porque Safari (iPhone/iPad)
+// bloquea las pestañas que se abren después de esperar una respuesta.
+function enlazarArchivoClase(enlace, clave, descargar) {
+  enlace.href = "#";
+  enlace.removeAttribute("target");
+  enlace.addEventListener("click", (e) => {
+    e.preventDefault();
+    abrirArchivoClase(clave, descargar);
+  });
+}
+
+async function abrirArchivoClase(clave, descargar) {
+  let pestana = null;
+  if (!descargar) {
+    pestana = window.open("", "_blank");
+    if (pestana) pestana.opener = null;
+  }
+  try {
+    const datos = await llamarWorker({
+      accion: "linkArchivoClase",
+      archivo: clave,
+      descargar,
+      alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
+    });
+    // Descargar (o si el navegador bloqueó la pestaña): en esta misma
+    // página; con "attachment" el navegador descarga sin salir de aquí.
+    if (pestana) pestana.location.href = datos.url;
+    else window.location.href = datos.url;
+  } catch (e) {
+    if (pestana) pestana.close();
+    mostrarError(e.message);
+  }
+}
+
 function renderBotonVideosClase(videosPorClase) {
   const btn = el("btnVideosClase");
   const panel = el("panelVideosClase");
@@ -1896,15 +1940,13 @@ function renderBotonVideosClase(videosPorClase) {
 
       const verLink = document.createElement("a");
       verLink.className = "video-portal-boton-ver";
-      verLink.href = v.url;
-      verLink.target = "_blank";
-      verLink.rel = "noopener";
+      enlazarArchivoClase(verLink, v.clave, false);
       verLink.textContent = "▶ Ver";
       botones.appendChild(verLink);
 
       const descargarLink = document.createElement("a");
       descargarLink.className = "video-portal-boton-descargar";
-      descargarLink.href = v.urlDescarga;
+      enlazarArchivoClase(descargarLink, v.clave, true);
       descargarLink.textContent = "⬇ Descargar";
       botones.appendChild(descargarLink);
 
@@ -1922,8 +1964,8 @@ function renderBotonVideosClase(videosPorClase) {
 // (no comparte lista con los videos) para no arriesgar el código de video
 // que ya funciona. Reusa las mismas clases CSS de video-portal-* para que
 // se vea igual. Espera que "datos.audios" venga agrupado por clase con la
-// misma forma que "datos.videos": [{ clase, audios: [{ fecha, tamanoMB,
-// url, urlDescarga }] }].
+// misma forma que "datos.videos": [{ clase, audios: [{ clave, fecha,
+// tamanoMB }] }] (el link se pide al tocar, ver abrirArchivoClase).
 function renderBotonAudiosClase(audiosPorClase) {
   const btn = el("btnAudiosClase");
   const panel = el("panelAudiosClase");
@@ -1965,15 +2007,13 @@ function renderBotonAudiosClase(audiosPorClase) {
 
         const escucharLink = document.createElement("a");
         escucharLink.className = "video-portal-boton-ver";
-        escucharLink.href = a.url;
-        escucharLink.target = "_blank";
-        escucharLink.rel = "noopener";
+        enlazarArchivoClase(escucharLink, a.clave, false);
         escucharLink.textContent = "▶ Escuchar";
         botones.appendChild(escucharLink);
 
         const descargarLink = document.createElement("a");
         descargarLink.className = "video-portal-boton-descargar";
-        descargarLink.href = a.urlDescarga;
+        enlazarArchivoClase(descargarLink, a.clave, true);
         descargarLink.textContent = "⬇ Descargar";
         botones.appendChild(descargarLink);
 
@@ -2076,6 +2116,7 @@ function construirFilaCumpleanos(f) {
       await llamarWorker({
         accion: "actualizarCumpleanos",
         alumnaId: alumnaSeleccionada.id,
+        ...credencialesAlumna(),
         nuevaFecha,
       });
       f.valor = nuevaFecha;
@@ -2183,6 +2224,7 @@ function construirFilaCorreo(f) {
       await llamarWorker({
         accion: "actualizarCorreo",
         alumnaId: alumnaSeleccionada.id,
+        ...credencialesAlumna(),
         nuevoCorreo,
       });
       f.valor = nuevoCorreo;
@@ -2545,6 +2587,8 @@ async function subirComprobantePagoEspecial(pagoEspecialId, archivo, spanTexto) 
     await llamarWorker({
       accion: "subirComprobantePagoEspecial",
       pagoEspecialId,
+      alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
       archivoBase64: preparado.base64,
       nombreArchivo: preparado.nombre,
       tipoArchivo: preparado.tipo,
@@ -2613,6 +2657,7 @@ async function verEvaluaciones() {
     const datos = await llamarWorker({
       accion: "evaluaciones",
       alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
     });
     renderEvaluaciones(datos.evaluaciones || []);
     mostrarPantalla("pantallaEvaluaciones");
@@ -2865,7 +2910,12 @@ async function generarLinkPago() {
   mostrarError("");
 
   try {
-    const datos = await llamarWorker({ accion: "generarLink", pagoId: pagoActual.pagoId });
+    const datos = await llamarWorker({
+      accion: "generarLink",
+      pagoId: pagoActual.pagoId,
+      alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
+    });
     renderPago(datos.pago);
   } catch (e) {
     mostrarError(e.message);
@@ -3043,6 +3093,7 @@ async function subirFotoPerfil(archivo) {
     const datos = await llamarWorker({
       accion: "subirFotoAlumnaFamilia",
       alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
       archivoBase64: preparado.base64,
       nombreArchivo: preparado.nombre,
       tipoArchivo: preparado.tipo,
@@ -3471,6 +3522,7 @@ async function verHistorialPagos() {
     const datos = await llamarWorker({
       accion: "historialPagos",
       alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
     });
     renderHistorialPagos(datos.historial || [], datos.anio);
     mostrarPantalla("pantallaHistorialPagos");
@@ -3487,6 +3539,7 @@ async function actualizarHistorialPagos() {
     const datos = await llamarWorker({
       accion: "historialPagos",
       alumnaId: alumnaSeleccionada.id,
+      ...credencialesAlumna(),
     });
     renderHistorialPagos(datos.historial || [], datos.anio);
   } catch (e) {
@@ -3604,7 +3657,7 @@ async function generarLinkHistorial(pagoId, boton) {
   mostrarError("");
 
   try {
-    await llamarWorker({ accion: "generarLink", pagoId });
+    await llamarWorker({ accion: "generarLink", pagoId, alumnaId: alumnaSeleccionada.id, ...credencialesAlumna() });
     await actualizarHistorialPagos();
   } catch (e) {
     mostrarError(e.message);
