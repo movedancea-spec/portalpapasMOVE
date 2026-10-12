@@ -1,9 +1,9 @@
 /* ==========================================
    MOVE — VISTA "ALUMNAS SHOW" (solo lectura)
-   Grupo → bailes → alumnas. La comparten show-maestras.html (Portal de
-   Maestras) y modista.html (link de la modista), para que las dos se
-   vean igual. Las pantallas de cada una (login, pestañas, impresión)
-   van en su propio CSS.
+   Grupo → bailes → alumnas. La usa modista.html (link de la modista);
+   antes también show-maestras.html, que desde 2026-10-11 es solo un
+   aviso que manda a show-coreografias.html. Las pantallas (login,
+   pestañas, impresión) van en su propio CSS.
    ========================================== */
 
 .show-grupo{
