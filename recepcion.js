@@ -3273,9 +3273,21 @@ async function eliminarBaileShow(baile, boton) {
 
   boton.disabled = true;
   try {
-    await llamarWorker({ accion: "showEliminarBaile", clave: claveRecepcion, baileId: baile.id, confirmar: true });
+    const r = await llamarWorker({ accion: "showEliminarBaile", clave: claveRecepcion, baileId: baile.id, confirmar: true });
     if (showBaileEditandoId === baile.id) limpiarFormularioBaile();
-    mensajeShow("mensajeShow", `✅ Se eliminó "${baile.nombre}".`, "ok");
+    // Las que se quedaron sin ningún baile perdieron su "SI SALE" en el
+    // Worker: la lista de "Asignar alumnas" se vuelve a pedir para que la
+    // etiqueta no quede vieja.
+    if (r.alumnasSinShow) {
+      showAlumnas = null;
+      showResultadosBusqueda = null;
+    }
+    mensajeShow(
+      "mensajeShow",
+      `✅ Se eliminó "${baile.nombre}".` +
+        (r.alumnasSinShow ? ` ${r.alumnasSinShow} alumna(s) se quedaron sin baile y ya no dicen "SI SALE".` : ""),
+      "ok"
+    );
     await recargarDatosShow();
   } catch (e) {
     mensajeShow("mensajeShow", e.message, "error");
@@ -3513,6 +3525,7 @@ el("btnGuardarAsignacionesShow").addEventListener("click", async () => {
     const partes = [];
     if (r.creadas) partes.push(`se agregó a ${r.creadas} baile${r.creadas === 1 ? "" : "s"}`);
     if (r.quitadas) partes.push(`se quitó de ${r.quitadas} baile${r.quitadas === 1 ? "" : "s"}`);
+    if (r.quitadas && !r.creadas && !r.show) partes.push('ya no tiene bailes, así que se le quitó el "SI SALE"');
     mensajeShow("mensajeAsignarShow", partes.length ? `✅ Listo: ${partes.join(" y ")}.` : "✅ No había cambios.", "ok");
     await recargarDatosShow();
   } catch (e) {
@@ -3527,8 +3540,14 @@ async function quitarAsignacionShow(baile, asignacion, boton) {
   if (!window.confirm(`¿Quitar a ${asignacion.nombre} del baile "${baile.nombre}"?`)) return;
   boton.disabled = true;
   try {
-    await llamarWorker({ accion: "showQuitarAsignacion", clave: claveRecepcion, asignacionId: asignacion.asignacionId });
-    mensajeShow("mensajeAsignarShow", `✅ Se quitó de "${baile.nombre}".`, "ok");
+    const r = await llamarWorker({ accion: "showQuitarAsignacion", clave: claveRecepcion, asignacionId: asignacion.asignacionId });
+    // Era su último baile: el Worker le vació SHOW.
+    if (r.showVaciado && showAlumnaElegida) showAlumnaElegida.show = "";
+    mensajeShow(
+      "mensajeAsignarShow",
+      `✅ Se quitó de "${baile.nombre}".` + (r.showVaciado ? ' Ya no tiene bailes: se le quitó el "SI SALE".' : ""),
+      "ok"
+    );
     await recargarDatosShow();
   } catch (e) {
     mensajeShow("mensajeAsignarShow", e.message, "error");
