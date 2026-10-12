@@ -3091,7 +3091,7 @@ function cambiarPestanaShow(nombre) {
   document.querySelectorAll("[data-show-pestana]").forEach((chip) => {
     chip.classList.toggle("activo", chip.dataset.showPestana === nombre);
   });
-  ["Catalogo", "Asignar", "Resumen", "Pagos", "Modista"].forEach((n) => {
+  ["Catalogo", "Asignar", "Resumen", "Trajes", "Pagos", "Modista"].forEach((n) => {
     el("vistaShow" + n).hidden = n !== nombre;
   });
   if (nombre === "Asignar" && !showAlumnas) cargarAlumnasShow();
@@ -3110,6 +3110,9 @@ async function recargarDatosShow() {
   renderSelectGruposBaile();
   renderCatalogoShow();
   renderResumenShow();
+  renderTrajePortal();
+  renderSelectGruposTrajes();
+  renderTrajesShow();
   renderChecklistBailesPago();
   if (showAlumnaElegida) renderAlumnaShow();
 }
@@ -3562,6 +3565,227 @@ function renderResumenShow() {
       cont.appendChild(tarjeta);
     });
   });
+}
+
+// ---------- Estado del traje ----------
+// Seguimiento tipo "rastreo de paquete" que las familias ven en el
+// portal ("👗 Mi traje para el show"). Cada toque se guarda solo; la
+// fecha y hora las pone el Worker (no el reloj de esta computadora).
+// "Medidas" es por alumna (el Worker la pone en todos sus trajes); lo
+// demás es por traje (cada baile asignado). No se exige orden: se puede
+// marcar "Entregado" aunque falte "Tallaje" (decisión de Ana). Solo salen
+// los bailes ACTIVOS, que son los mismos que ve el portal.
+
+const ETAPAS_TRAJE_RECEPCION = [
+  { id: "confeccion", nombre: "✂️ Confección" },
+  { id: "tallaje", nombre: "📐 Tallaje" },
+  { id: "entregado", nombre: "🎁 Entregado" },
+  { id: "devuelto", nombre: "↩️ Devuelto" },
+];
+const MESES_CORTOS_TRAJE = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const FORMATO_HORA_GUATEMALA_TRAJE = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Guatemala",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+// "14 oct, 4:30 p.m.", siempre en hora de Guatemala aunque la
+// computadora tenga otra zona horaria. Misma función en portal.js.
+function fechaHoraTraje(iso) {
+  const fecha = new Date(iso);
+  if (isNaN(fecha.getTime())) return "";
+  const p = {};
+  FORMATO_HORA_GUATEMALA_TRAJE.formatToParts(fecha).forEach((x) => (p[x.type] = x.value));
+  const hora = Number(p.hour) % 24;
+  return `${Number(p.day)} ${MESES_CORTOS_TRAJE[Number(p.month) - 1]}, ${hora % 12 || 12}:${p.minute} ${hora < 12 ? "a.m." : "p.m."}`;
+}
+
+function sinAcentosTraje(texto) {
+  return String(texto || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+let guardandoTrajePortal = false;
+
+function renderTrajePortal() {
+  const activo = showDatos.estadoTrajePortal === true;
+  el("cajaTrajePortal").className = "ficha-show " + (activo ? "activa" : "apagada");
+  el("btnTrajePortalSi").classList.toggle("elegido", activo);
+  el("btnTrajePortalNo").classList.toggle("elegido", !activo);
+  el("btnTrajePortalSi").disabled = guardandoTrajePortal;
+  el("btnTrajePortalNo").disabled = guardandoTrajePortal;
+  el("pistaTrajePortal").textContent = activo
+    ? "Encendido: las familias de las alumnas asignadas a algún baile activo ven “👗 Mi traje para el show” en su perfil."
+    : "Apagado: en el portal no se ve nada del traje. Se apaga solo el 1 de enero.";
+}
+
+async function guardarTrajePortal(activo) {
+  if (!showDatos || showDatos.estadoTrajePortal === activo || guardandoTrajePortal) return;
+  const pregunta = activo
+    ? "¿Mostrar el estado del traje en el portal? Las familias de las alumnas asignadas a un baile lo verán en su perfil."
+    : "¿Dejar de mostrar el estado del traje en el portal? Las familias ya no lo verán (las fechas no se borran).";
+  if (!window.confirm(pregunta)) return;
+  guardandoTrajePortal = true;
+  renderTrajePortal();
+  try {
+    const datos = await llamarWorker({ accion: "showGuardarEstadoTrajePortal", clave: claveRecepcion, activo });
+    showDatos.estadoTrajePortal = datos.activo === true;
+    mensajeShow("mensajeShow", datos.activo ? "✅ El portal ya muestra el estado del traje." : "✅ El portal ya no muestra el estado del traje.", "ok");
+  } catch (e) {
+    mensajeShow("mensajeShow", e.message, "error");
+  }
+  guardandoTrajePortal = false;
+  renderTrajePortal();
+}
+
+el("btnTrajePortalSi").addEventListener("click", () => guardarTrajePortal(true));
+el("btnTrajePortalNo").addEventListener("click", () => guardarTrajePortal(false));
+
+function bailesActivosTrajes() {
+  return showDatos.bailes.filter((b) => b.activo);
+}
+
+function renderSelectGruposTrajes() {
+  const select = el("selectTrajesGrupo");
+  const elegido = select.value;
+  select.innerHTML = "";
+  select.appendChild(new Option("Todos los grupos", ""));
+  const conBailes = new Set(bailesActivosTrajes().map((b) => b.grupoId));
+  showDatos.grupos
+    .filter((g) => conBailes.has(g.id))
+    .forEach((g) => select.appendChild(new Option(g.nombre, g.id)));
+  if ([...select.options].some((o) => o.value === elegido)) select.value = elegido;
+}
+
+el("selectTrajesGrupo").addEventListener("change", () => renderTrajesShow());
+el("inputTrajesBuscar").addEventListener("input", () => renderTrajesShow());
+
+// Alumnas con sus trajes (bailes activos), con el filtro de grupo y nombre.
+function alumnasConTrajes() {
+  const grupoId = el("selectTrajesGrupo").value;
+  const texto = sinAcentosTraje(el("inputTrajesBuscar").value.trim());
+  const porAlumna = new Map();
+  bailesActivosTrajes()
+    .filter((b) => !grupoId || b.grupoId === grupoId)
+    .forEach((baile) => {
+      baile.alumnas.forEach((a) => {
+        if (texto && !sinAcentosTraje(a.nombre).includes(texto)) return;
+        if (!porAlumna.has(a.alumnaId)) {
+          porAlumna.set(a.alumnaId, { alumnaId: a.alumnaId, nombre: a.nombre, estado: a.estado, trajes: [] });
+        }
+        porAlumna.get(a.alumnaId).trajes.push({ baile, asignacion: a });
+      });
+    });
+  return [...porAlumna.values()].sort((x, y) => x.nombre.localeCompare(y.nombre, "es", { sensitivity: "base" }));
+}
+
+// Fecha de medidas de la alumna en TODOS sus trajes (no solo los del
+// grupo filtrado): es la misma en todos.
+function medidasDeAlumnaTraje(alumnaId) {
+  const fechas = showDatos.bailes
+    .flatMap((b) => b.alumnas)
+    .filter((a) => a.alumnaId === alumnaId && a.etapas && a.etapas.medidas)
+    .map((a) => a.etapas.medidas)
+    .sort();
+  return fechas[0] || "";
+}
+
+function botonEtapaTraje(nombre, fecha, alGuardar) {
+  const boton = crearEl("button", "traje-etapa" + (fecha ? " marcada" : ""));
+  boton.type = "button";
+  boton.setAttribute("aria-pressed", fecha ? "true" : "false");
+  boton.appendChild(crearEl("span", "traje-etapa-nombre", nombre));
+  boton.appendChild(crearEl("span", "traje-etapa-fecha", fecha ? "✓ " + fechaHoraTraje(fecha) : "Sin marcar"));
+  boton.addEventListener("click", () => alGuardar(boton));
+  return boton;
+}
+
+function renderTrajesShow() {
+  const cont = el("listaTrajes");
+  cont.innerHTML = "";
+  const alumnas = alumnasConTrajes();
+
+  const trajes = alumnas.flatMap((a) => a.trajes);
+  const contar = (etapa) => trajes.filter((t) => t.asignacion.etapas && t.asignacion.etapas[etapa]).length;
+  const conMedidas = alumnas.filter((a) => medidasDeAlumnaTraje(a.alumnaId)).length;
+  el("resumenTrajes").textContent = trajes.length
+    ? `${alumnas.length} alumnas · ${trajes.length} trajes · 📏 ${conMedidas} con medidas · ✂️ ${contar("confeccion")} · 📐 ${contar("tallaje")} · 🎁 ${contar("entregado")} entregados`
+    : "";
+
+  if (!alumnas.length) {
+    const hayFiltro = el("selectTrajesGrupo").value || el("inputTrajesBuscar").value.trim();
+    cont.appendChild(
+      crearEl("p", "lista-vacia", hayFiltro ? "Ninguna alumna coincide." : "Todavía no hay alumnas asignadas a bailes activos.")
+    );
+    return;
+  }
+
+  alumnas.forEach((a) => {
+    const tarjeta = crearEl("div", "show-tarjeta traje-tarjeta");
+    const titulo = crearEl("div", "show-tarjeta-fila");
+    titulo.appendChild(crearEl("span", "show-tarjeta-nombre", a.nombre));
+    const estado = etiquetaEstadoAlumna(a.estado);
+    if (estado) titulo.appendChild(estado);
+    tarjeta.appendChild(titulo);
+
+    const medidas = medidasDeAlumnaTraje(a.alumnaId);
+    const filaMedidas = crearEl("div", "traje-etapas traje-etapas-medidas");
+    filaMedidas.appendChild(
+      botonEtapaTraje("📏 Medidas", medidas, (boton) =>
+        marcarEtapaTraje({ etapa: "medidas", alumnaId: a.alumnaId }, !medidas, `“Medidas” de ${a.nombre}`, boton)
+      )
+    );
+    tarjeta.appendChild(filaMedidas);
+
+    a.trajes
+      .sort((x, y) => x.baile.nombre.localeCompare(y.baile.nombre, "es", { sensitivity: "base" }))
+      .forEach(({ baile, asignacion }) => {
+        const traje = crearEl("div", "traje-baile");
+        traje.appendChild(crearEl("p", "traje-baile-nombre", `👗 ${baile.nombre} · ${baile.grupoNombre}`));
+        const etapas = crearEl("div", "traje-etapas");
+        ETAPAS_TRAJE_RECEPCION.forEach((et) => {
+          const fecha = (asignacion.etapas || {})[et.id] || "";
+          etapas.appendChild(
+            botonEtapaTraje(et.nombre, fecha, (boton) =>
+              marcarEtapaTraje(
+                { etapa: et.id, asignacionId: asignacion.asignacionId },
+                !fecha,
+                `“${et.nombre.replace(/^\S+\s/, "")}” del traje ${baile.nombre} de ${a.nombre}`,
+                boton
+              )
+            )
+          );
+        });
+        traje.appendChild(etapas);
+        tarjeta.appendChild(traje);
+      });
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function marcarEtapaTraje(datos, marcar, descripcion, boton) {
+  if (!marcar && !window.confirm(`¿Desmarcar ${descripcion}? Se borra su fecha y hora.`)) return;
+  boton.disabled = true;
+  boton.querySelector(".traje-etapa-fecha").textContent = "Guardando...";
+  try {
+    const r = await llamarWorker({ accion: "showMarcarEtapaTraje", clave: claveRecepcion, marcar, ...datos });
+    // Se actualiza en memoria (sin recargar todo Alumnas Show).
+    const ids = new Set(r.asignacionIds || []);
+    showDatos.bailes.forEach((b) =>
+      b.alumnas.forEach((a) => {
+        if (ids.has(a.asignacionId)) a.etapas = { ...(a.etapas || {}), [r.etapa]: r.fecha || "" };
+      })
+    );
+    mensajeShow("mensajeShow", "");
+  } catch (e) {
+    mensajeShow("mensajeShow", e.message, "error");
+  }
+  renderTrajesShow();
 }
 
 // ---------- c) Link de la modista ----------

@@ -1060,6 +1060,65 @@ padding:3px 10px;
 
 #inputShowLinkModista{ font-size:12.5px; }
 
+/* Estado del traje: un botón por etapa. Marcada = rosa con su fecha. */
+.traje-resumen{
+margin:10px 0 4px;
+font-size:12.5px;
+font-weight:700;
+color:#ef4b9b;
+}
+
+.traje-tarjeta{ gap:8px; }
+
+.traje-baile{
+border-top:1px dashed #ffd1e6;
+padding-top:8px;
+}
+
+.traje-baile-nombre{
+margin:0 0 6px;
+font-size:13px;
+font-weight:800;
+color:#555;
+overflow-wrap:anywhere;
+}
+
+.traje-etapas{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(104px,1fr));
+gap:6px;
+}
+
+.traje-etapas-medidas{ grid-template-columns:minmax(0,1fr); }
+
+.traje-etapa{
+display:flex;
+flex-direction:column;
+align-items:flex-start;
+gap:2px;
+min-height:48px;
+border:2px solid #e8e8e8;
+background:white;
+color:#777;
+font-family:inherit;
+text-align:left;
+border-radius:12px;
+padding:7px 10px;
+cursor:pointer;
+}
+
+.traje-etapa:active{ transform:scale(.97); }
+.traje-etapa:disabled{ opacity:.6; cursor:wait; }
+
+.traje-etapa-nombre{ font-size:13px; font-weight:800; }
+.traje-etapa-fecha{ font-size:11.5px; font-weight:700; }
+
+.traje-etapa.marcada{
+border-color:#ef4b9b;
+background:#fff0f7;
+color:#d63384;
+}
+
 .show-total-pagos{
 display:flex;
 flex-direction:column;

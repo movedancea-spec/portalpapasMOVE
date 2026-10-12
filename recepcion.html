@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=fichas-v1" />
+<link rel="stylesheet" href="recepcion.css?v=trajes-v1" />
 </head>
 <body>
 
@@ -556,6 +556,7 @@
       <button class="chip activo" type="button" data-show-pestana="Catalogo">💃 Bailes</button>
       <button class="chip" type="button" data-show-pestana="Asignar">🩰 Asignar alumnas</button>
       <button class="chip" type="button" data-show-pestana="Resumen">📊 Resumen</button>
+      <button class="chip" type="button" data-show-pestana="Trajes">👗 Estado trajes</button>
       <button class="chip" type="button" data-show-pestana="Pagos">💸 Pagos modista</button>
       <button class="chip" type="button" data-show-pestana="Modista">🧵 Link modista</button>
     </div>
@@ -608,6 +609,28 @@
     <!-- Resumen: por cada baile, cuántas alumnas y cuáles -->
     <div id="vistaShowResumen" hidden>
       <div id="listaShowResumen" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
+    </div>
+
+    <!-- Estado del traje (lo que ven las familias en el portal) -->
+    <div id="vistaShowTrajes" hidden>
+      <div id="cajaTrajePortal" class="ficha-show apagada">
+        <p class="ficha-show-titulo">Mostrar estado del traje en el portal</p>
+        <div class="ficha-interruptor">
+          <button class="ficha-interruptor-btn" id="btnTrajePortalSi" type="button">Mostrar</button>
+          <button class="ficha-interruptor-btn" id="btnTrajePortalNo" type="button">No mostrar</button>
+        </div>
+        <p class="pista-campo" id="pistaTrajePortal">Cargando...</p>
+      </div>
+
+      <p class="etiqueta-campo">Grupo MOVE</p>
+      <select id="selectTrajesGrupo" class="input-select"></select>
+      <p class="etiqueta-campo">Alumna</p>
+      <input type="text" id="inputTrajesBuscar" class="input-texto" placeholder="Escribe para buscar..." autocomplete="off" />
+      <p class="pista-campo">
+        Toca una etapa para marcarla: se guarda sola con la fecha y hora de este momento. Si te equivocaste, tócala otra vez para desmarcarla. 📏 Medidas es una sola vez por alumna (sirve para todos sus trajes); lo demás es por traje.
+      </p>
+      <p class="traje-resumen" id="resumenTrajes"></p>
+      <div id="listaTrajes" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
     </div>
 
     <!-- d) Pagos a la modista -->
@@ -919,7 +942,7 @@
 
 </div>
 
-<script src="recepcion.js?v=fichas-v1"></script>
+<script src="recepcion.js?v=trajes-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="temas-fecha.css?v=emojis-rapidos-v2" />
-<link rel="stylesheet" href="portal.css?v=fechas-v1" />
+<link rel="stylesheet" href="portal.css?v=trajes-v1" />
 <link rel="stylesheet" href="juego-baile.css?v=1" />
 </head>
 <body>
@@ -129,6 +129,9 @@
       </div>
       <p class="racha-explicacion" id="rachaExplicacion">semanas seguidas de asistencia, sin faltar ninguna</p>
     </div>
+
+    <!-- "👗 Mi traje para el show": una tarjeta por traje, solo si Recepción lo encendió (ver portal.js, ESTADO DEL TRAJE). -->
+    <div id="bloqueTrajeShow" class="bloque-traje-show" hidden></div>
 
     <button class="btn-grande btn-siguiente" id="btnMensajesAnuncios" type="button">📢 Mensajes e información importante MOVE</button>
     <button class="btn-grande btn-siguiente" id="btnMensajesMaestra" type="button">👩‍🏫 Mensajes de tu maestra</button>
@@ -348,7 +351,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="temas-fecha.js?v=emojis-rapidos-v2"></script>
-<script src="portal.js?v=links-firmados-v1"></script>
+<script src="portal.js?v=trajes-v1"></script>
 <script src="juego-baile.js?v=1"></script>
 <script>
   if ("serviceWorker" in navigator) {

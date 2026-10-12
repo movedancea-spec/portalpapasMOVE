@@ -491,6 +491,10 @@ function mostrarPerfilDesdeDatos(datos) {
   // si Recepción tiene la evaluación encendida.
   actualizarBotonEvaluarMaestras();
 
+  // Igual: "👗 Mi traje para el show" solo aparece si Recepción lo
+  // encendió y la alumna está en algún baile activo.
+  actualizarTrajeShow();
+
   // Los Mensajes de Recepción y los Avisos de la maestra ya NO se
   // muestran solos al entrar — quedan detrás de sus propios botones
   // ("📢 Mensajes de Recepción" / "👩‍🏫 Mensajes de tu maestra"), cada
@@ -4256,6 +4260,127 @@ el("btnEvaluarMaestras").addEventListener("click", abrirEvalMaestras);
 el("btnAtrasEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
 el("btnAtrasEvalForm").addEventListener("click", abrirEvalMaestras);
 el("btnEnviarEvaluacion").addEventListener("click", enviarEvaluacionMaestra);
+
+// ==========================================
+// ESTADO DEL TRAJE ("👗 Mi traje para el show")
+// Seguimiento tipo rastreo de paquete que marca Recepción (Alumnas Show
+// → "👗 Estado trajes"). Una tarjeta por cada baile ACTIVO de la alumna;
+// si Recepción tiene el interruptor apagado, o la alumna no sale en
+// ningún baile, no se ve nada. El Worker (trajeShowDeAlumna) decide todo
+// eso y solo manda nombre del baile + fechas.
+// No se exige orden: si Recepción marcó una etapa más adelante, las de
+// antes que no se marcaron se ven en gris claro sin fecha (decisión de
+// Ana). "Devuelto" solo aparece si ya se marcó.
+// ==========================================
+
+const ETAPAS_TRAJE_PORTAL = [
+  { id: "medidas", hecho: "Medidas tomadas", pendiente: "Toma de medidas" },
+  { id: "confeccion", hecho: "En confección", pendiente: "En confección" },
+  { id: "tallaje", hecho: "Tallaje del traje", pendiente: "Tallaje del traje" },
+  { id: "entregado", hecho: "Entregado", pendiente: "Entrega" },
+  { id: "devuelto", hecho: "Devuelto", pendiente: "Devuelto", soloSiMarcado: true },
+];
+const MESES_CORTOS_TRAJE = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const FORMATO_HORA_GUATEMALA_TRAJE = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Guatemala",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+// "14 oct, 4:30 p.m.", siempre en hora de Guatemala aunque el teléfono
+// tenga otra zona horaria. Misma función en recepcion.js.
+function fechaHoraTraje(iso) {
+  const fecha = new Date(iso);
+  if (isNaN(fecha.getTime())) return "";
+  const p = {};
+  FORMATO_HORA_GUATEMALA_TRAJE.formatToParts(fecha).forEach((x) => (p[x.type] = x.value));
+  const hora = Number(p.hour) % 24;
+  return `${Number(p.day)} ${MESES_CORTOS_TRAJE[Number(p.month) - 1]}, ${hora % 12 || 12}:${p.minute} ${hora < 12 ? "a.m." : "p.m."}`;
+}
+
+async function actualizarTrajeShow() {
+  const bloque = el("bloqueTrajeShow");
+  bloque.hidden = true;
+  bloque.innerHTML = "";
+  if (!alumnaSeleccionada) return;
+  const alumnaDeEstaConsulta = alumnaSeleccionada.id;
+  try {
+    const datos = await llamarWorker({
+      accion: "trajeShowDeAlumna",
+      alumnaId: alumnaDeEstaConsulta,
+      ...credencialesAlumna(),
+    });
+    // Si mientras tanto cambió de hermana, esta respuesta ya no aplica.
+    if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
+    const trajes = datos.activo ? datos.trajes || [] : [];
+    bloque.innerHTML = "";
+    trajes.forEach((t) => bloque.appendChild(tarjetaTrajeShow(t)));
+    bloque.hidden = !trajes.length;
+  } catch (e) {
+    // Es un extra del perfil: si falla, simplemente no se muestra.
+    bloque.hidden = true;
+  }
+}
+
+function tarjetaTrajeShow(traje) {
+  const etapas = traje.etapas || {};
+  const visibles = ETAPAS_TRAJE_PORTAL.filter((et) => !et.soloSiMarcado || etapas[et.id]);
+  let ultimaMarcada = -1;
+  visibles.forEach((et, i) => {
+    if (etapas[et.id]) ultimaMarcada = i;
+  });
+
+  const tarjeta = document.createElement("section");
+  tarjeta.className = "traje-show";
+  const titulo = document.createElement("p");
+  titulo.className = "traje-show-titulo";
+  titulo.textContent = "👗 Mi traje para el show";
+  const baile = document.createElement("p");
+  baile.className = "traje-show-baile";
+  baile.textContent = traje.baile;
+  tarjeta.append(titulo, baile);
+
+  const linea = document.createElement("ol");
+  linea.className = "traje-linea";
+  let yaHayActual = false;
+  visibles.forEach((et, i) => {
+    const fecha = etapas[et.id];
+    let estado;
+    if (fecha) estado = "hecho";
+    else if (i < ultimaMarcada) estado = "saltado";
+    else if (!yaHayActual) {
+      estado = "actual";
+      yaHayActual = true;
+    } else estado = "pendiente";
+
+    const paso = document.createElement("li");
+    paso.className = "traje-paso traje-paso-" + estado;
+    if (estado === "actual") paso.setAttribute("aria-current", "step");
+    const punto = document.createElement("span");
+    punto.className = "traje-punto";
+    punto.setAttribute("aria-hidden", "true");
+    punto.textContent = estado === "hecho" ? "✓" : "";
+    const texto = document.createElement("div");
+    texto.className = "traje-paso-texto";
+    const nombre = document.createElement("span");
+    nombre.className = "traje-paso-nombre";
+    nombre.textContent = fecha ? et.hecho : et.pendiente;
+    texto.appendChild(nombre);
+    if (estado === "hecho" || estado === "actual") {
+      const detalle = document.createElement("span");
+      detalle.className = "traje-paso-fecha";
+      detalle.textContent = estado === "hecho" ? fechaHoraTraje(fecha) : "Siguiente paso";
+      texto.appendChild(detalle);
+    }
+    paso.append(punto, texto);
+    linea.appendChild(paso);
+  });
+  tarjeta.appendChild(linea);
+  return tarjeta;
+}
 
 // ---------- arranque ----------
 iniciar();
