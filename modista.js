@@ -16,12 +16,18 @@
 // "Mis pagos": lo que la academia le ha pagado, con su comprobante. El
 // comprobante también se pide con el token (modistaComprobante), así que
 // si Recepción regenera el link, el viejo deja de verlos.
+//
+// Avance del traje (2026-10-13): junto a cada alumna, 📏 Medidas y
+// 🪡 Tallaje con el día en que Recepción los marcó, o "Pendiente". Es solo
+// para ver: aquí no hay ningún botón para marcar ni desmarcar, y el Worker
+// solo manda esas dos etapas (sin hora, sin las demás).
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
 let gruposModista = [];
 let pagosModista = [];
 let totalPagado = 0;
+let filtroAvance = "todas"; // "todas" | "medidas" | "tallaje" (las que faltan)
 
 function el(id) {
   return document.getElementById(id);
@@ -188,6 +194,51 @@ async function verComprobante(pagoId) {
   }
 }
 
+// "2026-10-14" → "14 oct" (sin pasar por Date: el Worker ya calculó el
+// día en hora de Guatemala).
+function formatoDiaCorto(fechaIso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaIso || "");
+  return m ? `${Number(m[3])} ${MESES_CORTOS[Number(m[2]) - 1]}` : "";
+}
+
+function indicadorAvance(icono, nombre, fechaIso) {
+  const hecho = Boolean(fechaIso);
+  const chip = crearEl("span", "avance-chip" + (hecho ? " hecho" : ""));
+  chip.textContent = `${icono} ${hecho ? "✓ " + formatoDiaCorto(fechaIso) : "Pendiente"}`;
+  chip.title = `${nombre}: ${hecho ? "listo el " + formatoDiaCorto(fechaIso) : "pendiente"}`;
+  return chip;
+}
+
+function listaConAvance(baile, tarjeta) {
+  const avance = baile.alumnasAvance;
+  const total = avance.length;
+  const conMedidas = avance.filter((a) => a.medidas).length;
+  const conTallaje = avance.filter((a) => a.tallaje).length;
+  tarjeta.appendChild(
+    crearEl("p", "avance-resumen", `📏 Medidas: ${conMedidas} de ${total} · 🪡 Tallaje: ${conTallaje} de ${total}`)
+  );
+
+  // Con el filtro, cada alumna conserva su número de la lista completa.
+  const visibles = avance
+    .map((a, i) => ({ ...a, numero: i + 1 }))
+    .filter((a) => filtroAvance === "todas" || !a[filtroAvance]);
+  if (!visibles.length) {
+    const texto = filtroAvance === "medidas" ? "Todas tienen medidas ✓" : "Todas tienen tallaje ✓";
+    tarjeta.appendChild(crearEl("p", "show-vacio", texto));
+    return;
+  }
+  const lista = crearEl("ol", "avance-alumnas");
+  visibles.forEach((a) => {
+    const fila = crearEl("li", "avance-alumna");
+    fila.value = a.numero;
+    const chips = crearEl("span", "avance-chips");
+    chips.append(indicadorAvance("📏", "Medidas", a.medidas), indicadorAvance("🪡", "Tallaje", a.tallaje));
+    fila.append(crearEl("span", "avance-nombre", a.nombre), chips);
+    lista.appendChild(fila);
+  });
+  tarjeta.appendChild(lista);
+}
+
 function tarjetaBaile(baile, grupo) {
   const tarjeta = crearEl("article", "show-baile");
   const encabezado = crearEl("div", "show-baile-encabezado");
@@ -201,6 +252,8 @@ function tarjetaBaile(baile, grupo) {
 
   if (!baile.alumnas.length) {
     tarjeta.appendChild(crearEl("p", "show-vacio", "Sin alumnas asignadas todavía."));
+  } else if (Array.isArray(baile.alumnasAvance)) {
+    listaConAvance(baile, tarjeta);
   } else {
     const lista = crearEl("ol", "show-alumnas");
     baile.alumnas.forEach((nombre) => lista.appendChild(crearEl("li", "", nombre)));
@@ -219,8 +272,20 @@ document.querySelectorAll(".pestana").forEach((boton) => {
     el("vistaGrupo").hidden = boton.dataset.vista !== "Grupo";
     el("vistaBaile").hidden = boton.dataset.vista !== "Baile";
     el("vistaPagos").hidden = boton.dataset.vista !== "Pagos";
-    // El conteo de trajes no aplica a "Mis pagos" (y así no sale al imprimirlos).
+    // El conteo de trajes y el filtro no aplican a "Mis pagos" (y así no salen al imprimirlos).
     el("resumenTrajes").hidden = boton.dataset.vista === "Pagos";
+    el("filtroAvance").hidden = boton.dataset.vista === "Pagos";
+  });
+});
+
+document.querySelectorAll(".filtro-btn").forEach((boton) => {
+  boton.addEventListener("click", () => {
+    filtroAvance = boton.dataset.filtro;
+    document.querySelectorAll(".filtro-btn").forEach((b) => {
+      b.classList.toggle("activo", b === boton);
+      b.setAttribute("aria-pressed", String(b === boton));
+    });
+    render();
   });
 });
 

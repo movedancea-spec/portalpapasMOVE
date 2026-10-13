@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="show-vista.css?v=pagos-y-no-activas-v1" />
-<link rel="stylesheet" href="modista.css?v=pagos-y-no-activas-v1" />
+<link rel="stylesheet" href="show-vista.css?v=avance-traje-v1" />
+<link rel="stylesheet" href="modista.css?v=avance-traje-v1" />
 </head>
 <body>
 
@@ -39,6 +39,13 @@
       <button class="btn-imprimir" type="button" id="btnImprimir">🖨️ Imprimir</button>
     </div>
 
+    <!-- Solo para ver: la modista no marca nada (eso lo hace Recepción). -->
+    <div class="filtro-avance" id="filtroAvance" role="group" aria-label="Filtrar alumnas">
+      <button class="filtro-btn activo" type="button" data-filtro="todas" aria-pressed="true">Todas</button>
+      <button class="filtro-btn" type="button" data-filtro="medidas" aria-pressed="false">Faltan medidas</button>
+      <button class="filtro-btn" type="button" data-filtro="tallaje" aria-pressed="false">Faltan tallaje</button>
+    </div>
+
     <section id="vistaGrupo"></section>
     <section id="vistaBaile" hidden></section>
     <section id="vistaPagos" hidden>
@@ -54,6 +61,6 @@
   <p class="cargando" id="textoCargando">Cargando...</p>
 </main>
 
-<script src="modista.js?v=pagos-y-no-activas-v1"></script>
+<script src="modista.js?v=avance-traje-v1"></script>
 </body>
 </html>

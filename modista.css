@@ -96,6 +96,71 @@ color:white;
 
 .btn-imprimir{ border-style:dashed; }
 
+/* ---------- Avance del traje (solo lectura) ---------- */
+.filtro-avance{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:6px;
+margin:10px 0 4px;
+}
+.filtro-avance[hidden]{ display:none; }
+
+.filtro-btn{
+border:1.5px solid #ffd8ea;
+background:white;
+color:#a15277;
+font-family:inherit;
+font-size:12.5px;
+font-weight:700;
+border-radius:999px;
+padding:6px 12px;
+cursor:pointer;
+}
+.filtro-btn.activo{ background:#ffe4f1; border-color:#ef4b9b; color:#d6377f; }
+
+.avance-resumen{
+margin:8px 0 0;
+font-size:12.5px;
+font-weight:700;
+color:#a15277;
+}
+
+.avance-alumnas{
+margin:8px 0 0;
+padding-left:22px;
+font-size:14px;
+font-weight:600;
+color:#555;
+}
+
+/* Nombre y chips en una fila; en un celular angosto los chips bajan solos. */
+.avance-alumna{
+padding:6px 0;
+border-bottom:1px dashed #ffe0ee;
+break-inside:avoid;
+}
+.avance-alumna:last-child{ border-bottom:0; }
+.avance-nombre{ margin-right:8px; overflow-wrap:anywhere; }
+.avance-chips{
+display:inline-flex;
+flex-wrap:wrap;
+gap:4px;
+vertical-align:1px;
+}
+
+.avance-chip{
+display:inline-block;
+font-size:11.5px;
+font-weight:700;
+white-space:nowrap;
+border-radius:999px;
+padding:1px 8px;
+background:#f2f2f2;
+color:#9a9a9a;
+}
+.avance-chip.hecho{ background:#ffe4f1; color:#d6377f; }
+
 .total-recibido{
 display:flex;
 flex-direction:column;
@@ -166,7 +231,7 @@ color:#a15277;
   body{ background:white; }
   .hoja{ max-width:none; padding:0; }
   .logo{ max-width:130px; }
-  .pestanas, .cargando, .btn-comprobante{ display:none !important; }
+  .pestanas, .filtro-avance, .cargando, .btn-comprobante{ display:none !important; }
   .total-recibido{ background:none; color:#ef4b9b; border:2px solid #ef4b9b; }
   .resumen-dato, .show-baile{ border-color:#ddd; }
   .show-grupo{ break-inside:auto; }
