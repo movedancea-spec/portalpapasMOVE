@@ -1624,3 +1624,55 @@ font-weight:800;
 .cuentas-privada-linea{ color:#6a3fb0; }
 .cuentas-privada-linea strong{ color:#6a3fb0; }
 .sin-precio strong{ color:#b26a00; }
+
+/* ---------- 💳 Pagos nuevos por link (arriba del menú) ---------- */
+.pagos-link{
+background:white;
+border:2px solid #ffd8ea;
+border-radius:16px;
+padding:10px 14px;
+margin:0 0 14px;
+}
+/* Si algún aviso falló, la caja se pinta naranja para que se note. */
+.pagos-link.con-problema{ border-color:#f0a030; background:#fffaf2; }
+.pagos-link-encabezado{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.pagos-link-titulo{ margin:0; font-size:14px; font-weight:800; color:#d63384; }
+.pagos-link-titulo{ flex:1; min-width:0; }
+.pagos-link-recargar{ margin:0; font-size:12.5px; width:auto; flex-shrink:0; padding:4px 0; }
+.pago-link .btn-chico, .pagos-link-prueba .btn-chico{ width:auto; margin-top:4px; }
+.pago-link{
+display:flex;
+flex-direction:column;
+align-items:flex-start;
+gap:3px;
+padding:8px 0;
+border-top:1px dashed #f1e1ea;
+}
+.pago-link-arriba{ display:flex; justify-content:space-between; gap:8px; width:100%; }
+.pago-link-alumna{ font-size:13.5px; font-weight:800; color:#444; overflow-wrap:anywhere; }
+.pago-link-monto{ font-size:13.5px; color:#333; white-space:nowrap; }
+.pago-link-detalle{ font-size:12px; font-weight:600; color:#888; }
+.pago-link-aviso{
+font-size:11.5px;
+font-weight:700;
+border-radius:999px;
+padding:2px 9px;
+}
+.pago-link-aviso.ok{ background:#e6f7ee; color:#1e7a46; }
+.pago-link-aviso.falla{ background:#fff0dc; color:#b26a00; }
+.pago-link-aviso.sin-registro{ background:#f2f2f2; color:#888; }
+.pagos-link-prueba{ border-top:1px dashed #f1e1ea; margin-top:6px; padding-top:8px; }
+.pagos-link-estado{ margin:0 0 6px; font-size:13px; font-weight:800; }
+.pagos-link-estado.ok{ color:#1e7a46; }
+.pagos-link-estado.falla{ color:#e0245e; }
+.pagos-link-respuesta{
+max-height:160px;
+overflow:auto;
+margin:0 0 8px;
+padding:8px;
+background:#f7f7f7;
+border-radius:10px;
+font-size:11px;
+white-space:pre-wrap;
+overflow-wrap:anywhere;
+}

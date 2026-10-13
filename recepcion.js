@@ -69,6 +69,8 @@ function mostrarPantalla(id) {
   PANTALLAS.forEach((p) => {
     el(p).hidden = p !== id;
   });
+  // Cada vez que se vuelve al menú se revisan los pagos por link.
+  if (id === "pantallaMenu" && claveRecepcion) cargarPagosPorLink();
 }
 
 async function llamarWorker(payload) {
@@ -5350,3 +5352,157 @@ el("btnVcActualizarAsistencia").addEventListener("click", async () => {
   await vcCargar();
   vcMensaje("mensajeVc", "✅ Actualizado.", "ok");
 });
+
+// ==========================================
+// PAGOS NUEVOS POR LINK (arriba del menú)
+// ==========================================
+// Los pagos por link de Paggo (mensualidades y pagos especiales) de las
+// últimas 48 h con el resultado de su aviso a la academia (WhatsApp a
+// cada número + correo), que el Worker guarda en "AVISO ENVIADO". Si un
+// aviso falló, se ve aquí y se puede reenviar (sale como "Aviso
+// atrasado"). Existe porque del 10 al 13 de octubre de 2026 los avisos
+// dejaron de salir y nadie se enteró. "🧪 Probar WhatsApp" pregunta a
+// Green API si la instancia está conectada y puede mandar un PRUEBA a
+// uno de los números del aviso.
+
+let cargandoPagosLink = false;
+
+function quetzalesPagoLink(monto) {
+  return "Q" + Number(monto || 0).toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fechaPagoLink(iso) {
+  const fecha = new Date(iso);
+  if (isNaN(fecha.getTime())) return "";
+  return fecha.toLocaleString("es-GT", { timeZone: "America/Guatemala", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+}
+
+async function cargarPagosPorLink() {
+  if (cargandoPagosLink) return;
+  cargandoPagosLink = true;
+  try {
+    const datos = await llamarWorker({ accion: "recepcionPagosPorLink", clave: claveRecepcion });
+    renderPagosPorLink(datos.pagos || []);
+  } catch (e) {
+    el("listaPagosLink").innerHTML = "";
+    el("listaPagosLink").appendChild(crearEl("p", "lista-vacia", e.message));
+  }
+  cargandoPagosLink = false;
+}
+
+function renderPagosPorLink(pagos) {
+  const lista = el("listaPagosLink");
+  lista.innerHTML = "";
+  const conProblema = pagos.filter((p) => !p.aviso.startsWith("✅"));
+  el("contadorPagosLink").textContent = pagos.length ? `(${pagos.length})` : "";
+  el("cajaPagosLink").classList.toggle("con-problema", conProblema.length > 0);
+  if (!pagos.length) {
+    lista.appendChild(crearEl("p", "lista-vacia", "Sin pagos por link en las últimas 48 horas."));
+    return;
+  }
+  pagos.forEach((p) => {
+    const fila = crearEl("div", "pago-link");
+    const arriba = crearEl("div", "pago-link-arriba");
+    arriba.append(crearEl("span", "pago-link-alumna", p.alumna), crearEl("strong", "pago-link-monto", quetzalesPagoLink(p.monto)));
+    fila.appendChild(arriba);
+    fila.appendChild(crearEl("span", "pago-link-detalle", `${p.concepto} · ${fechaPagoLink(p.fecha)}`));
+
+    const ok = p.aviso.startsWith("✅");
+    const aviso = crearEl(
+      "span",
+      "pago-link-aviso" + (ok ? " ok" : p.aviso ? " falla" : " sin-registro"),
+      p.aviso ? p.aviso.split(" · ").slice(0, 2).join(" · ") : "Sin registro de aviso"
+    );
+    aviso.title = p.aviso || "Este pago no tiene registro de que se haya avisado.";
+    fila.appendChild(aviso);
+    if (!ok) {
+      const boton = crearEl("button", "btn-secundario btn-chico", "Reenviar aviso");
+      boton.type = "button";
+      boton.addEventListener("click", () => reenviarAvisoPago(p, boton));
+      fila.appendChild(boton);
+    }
+    lista.appendChild(fila);
+  });
+}
+
+async function reenviarAvisoPago(pago, boton) {
+  if (!window.confirm(`¿Reenviar el aviso del pago de ${pago.alumna} (${quetzalesPagoLink(pago.monto)})? Sale marcado como “Aviso atrasado”.`)) return;
+  boton.disabled = true;
+  boton.textContent = "Enviando...";
+  try {
+    const r = await llamarWorker({ accion: "recepcionReenviarAvisoPago", clave: claveRecepcion, tipo: pago.tipo, id: pago.id });
+    mensajeShow("mensajePagosLink", r.todoBien ? "✅ Aviso reenviado." : `⚠️ ${r.resumen}`, r.todoBien ? "ok" : "error");
+  } catch (e) {
+    mensajeShow("mensajePagosLink", e.message, "error");
+  }
+  cargarPagosPorLink();
+}
+
+el("btnRecargarPagosLink").addEventListener("click", cargarPagosPorLink);
+
+async function abrirPruebaWhatsapp() {
+  const caja = el("cajaProbarWhatsapp");
+  caja.hidden = !caja.hidden;
+  if (caja.hidden) return;
+  const estado = el("estadoWhatsapp");
+  estado.innerHTML = "";
+  estado.appendChild(crearEl("p", "lista-vacia", "Revisando..."));
+  try {
+    const r = await llamarWorker({ accion: "diagnosticoWhatsapp", clave: claveRecepcion });
+    mostrarDiagnosticoWhatsapp(r);
+    const select = el("selectPruebaWhatsapp");
+    select.innerHTML = "";
+    (r.destinos || []).forEach((n) => select.appendChild(new Option(`+${n.slice(0, 3)} ${n.slice(3, 7)}-${n.slice(7)}`, n)));
+  } catch (e) {
+    estado.innerHTML = "";
+    estado.appendChild(crearEl("p", "lista-vacia", e.message));
+  }
+}
+
+// Muestra la respuesta de Green API tal cual (código y texto).
+function mostrarDiagnosticoWhatsapp(r) {
+  const estado = el("estadoWhatsapp");
+  estado.innerHTML = "";
+  const [state, wa] = r.llamadas || [];
+  const conectada = state && state.respuesta && state.respuesta.stateInstance === "authorized";
+  estado.appendChild(
+    crearEl(
+      "p",
+      "pagos-link-estado " + (conectada ? "ok" : "falla"),
+      conectada
+        ? `✅ WhatsApp conectado${wa && wa.respuesta && wa.respuesta.phone ? ` (número ${wa.respuesta.phone})` : ""}`
+        : "⚠️ WhatsApp NO está conectado"
+    )
+  );
+  const detalle = crearEl("pre", "pagos-link-respuesta");
+  detalle.textContent = JSON.stringify({ host: r.host, llamadas: r.llamadas, envio: r.envio }, null, 1);
+  estado.appendChild(detalle);
+}
+
+el("btnProbarWhatsapp").addEventListener("click", abrirPruebaWhatsapp);
+el("btnMandarPruebaWhatsapp").addEventListener("click", async () => {
+  const numero = el("selectPruebaWhatsapp").value;
+  if (!numero || !window.confirm(`¿Mandar “PRUEBA – aviso de pagos MOVE” al ${numero}?`)) return;
+  const boton = el("btnMandarPruebaWhatsapp");
+  boton.disabled = true;
+  mensajeShow("mensajePruebaWhatsapp", "Enviando...");
+  try {
+    const r = await llamarWorker({ accion: "diagnosticoWhatsapp", clave: claveRecepcion, enviarPrueba: true, telefono: numero });
+    mostrarDiagnosticoWhatsapp(r);
+    const ok = r.envio && r.envio.respuesta && r.envio.respuesta.idMessage;
+    mensajeShow(
+      "mensajePruebaWhatsapp",
+      ok ? "✅ Green API aceptó el mensaje. Revisa que haya llegado." : `⚠️ Green API respondió ${r.envio?.status || ""}: ${JSON.stringify(r.envio?.respuesta || r.envio?.error)}`,
+      ok ? "ok" : "error"
+    );
+  } catch (e) {
+    mensajeShow("mensajePruebaWhatsapp", e.message, "error");
+  }
+  boton.disabled = false;
+});
+
+// Con el menú abierto se vuelve a revisar cada 2 minutos (Recepción deja
+// la pantalla abierta todo el día).
+setInterval(() => {
+  if (claveRecepcion && !el("pantallaMenu").hidden) cargarPagosPorLink();
+}, 2 * 60 * 1000);

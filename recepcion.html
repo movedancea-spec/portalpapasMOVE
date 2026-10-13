@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=cuentas-modista-v1" />
+<link rel="stylesheet" href="recepcion.css?v=avisos-pagos-v1" />
 </head>
 <body>
 
@@ -37,6 +37,24 @@
 
   <!-- ============ PANTALLA MENÚ ============ -->
   <section id="pantallaMenu" class="pantalla" hidden>
+    <!-- Pagos por link de Paggo de las últimas 48 h y si su aviso salió (ver recepcion.js, PAGOS NUEVOS POR LINK). -->
+    <div class="pagos-link" id="cajaPagosLink">
+      <div class="pagos-link-encabezado">
+        <p class="pagos-link-titulo">💳 Pagos nuevos por link <span id="contadorPagosLink"></span></p>
+        <button class="btn-enlace pagos-link-recargar" id="btnRecargarPagosLink" type="button">↻ Actualizar</button>
+      </div>
+      <div id="listaPagosLink"><p class="lista-vacia">Cargando...</p></div>
+      <p class="mensaje-form" id="mensajePagosLink"></p>
+      <button class="btn-enlace" id="btnProbarWhatsapp" type="button">🧪 Probar WhatsApp</button>
+      <div id="cajaProbarWhatsapp" class="pagos-link-prueba" hidden>
+        <div id="estadoWhatsapp"><p class="lista-vacia">Revisando...</p></div>
+        <p class="etiqueta-campo">Mandar “PRUEBA – aviso de pagos MOVE” a:</p>
+        <select id="selectPruebaWhatsapp" class="input-select"></select>
+        <button class="btn-secundario btn-chico" id="btnMandarPruebaWhatsapp" type="button">Mandar PRUEBA</button>
+        <p class="mensaje-form" id="mensajePruebaWhatsapp"></p>
+      </div>
+    </div>
+
     <p class="subtitulo">¿Qué necesitas hacer?</p>
 
     <div class="menu-grid">
@@ -976,7 +994,7 @@
 
 </div>
 
-<script src="recepcion.js?v=cuentas-modista-v1"></script>
+<script src="recepcion.js?v=avisos-pagos-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
