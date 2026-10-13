@@ -18,7 +18,8 @@
 // si Recepción regenera el link, el viejo deja de verlos.
 //
 // Avance del traje (2026-10-13): junto a cada alumna, 📏 Medidas y
-// 🪡 Tallaje con el día en que Recepción los marcó, o "Pendiente". Es solo
+// 🪡 Tallaje con el día en que Recepción los marcó, o "Pendiente", y
+// 🧵 "Entregado por ti" (cuando Recepción recibió el traje). Es solo
 // para ver: aquí no hay ningún botón para marcar ni desmarcar, y el Worker
 // solo manda esas dos etapas (sin hora, sin las demás).
 
@@ -27,7 +28,7 @@ const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 let gruposModista = [];
 let pagosModista = [];
 let totalPagado = 0;
-let filtroAvance = "todas"; // "todas" | "medidas" | "tallaje" (las que faltan)
+let filtroAvance = "todas"; // "todas" | "medidas" | "tallaje" | "recibido" (las que faltan)
 
 function el(id) {
   return document.getElementById(id);
@@ -201,10 +202,10 @@ function formatoDiaCorto(fechaIso) {
   return m ? `${Number(m[3])} ${MESES_CORTOS[Number(m[2]) - 1]}` : "";
 }
 
-function indicadorAvance(icono, nombre, fechaIso) {
+function indicadorAvance(icono, nombre, fechaIso, etiqueta = "") {
   const hecho = Boolean(fechaIso);
   const chip = crearEl("span", "avance-chip" + (hecho ? " hecho" : ""));
-  chip.textContent = `${icono} ${hecho ? "✓ " + formatoDiaCorto(fechaIso) : "Pendiente"}`;
+  chip.textContent = `${icono} ${etiqueta}${hecho ? "✓ " + formatoDiaCorto(fechaIso) : "Pendiente"}`;
   chip.title = `${nombre}: ${hecho ? "listo el " + formatoDiaCorto(fechaIso) : "pendiente"}`;
   return chip;
 }
@@ -214,16 +215,28 @@ function listaConAvance(baile, tarjeta) {
   const total = avance.length;
   const conMedidas = avance.filter((a) => a.medidas).length;
   const conTallaje = avance.filter((a) => a.tallaje).length;
-  tarjeta.appendChild(
-    crearEl("p", "avance-resumen", `📏 Medidas: ${conMedidas} de ${total} · 🪡 Tallaje: ${conTallaje} de ${total}`)
+  const entregados = avance.filter((a) => a.recibido).length;
+  // Cada parte en su propio span para que, al bajar de línea, el ícono
+  // no se quede separado de su texto.
+  const resumen = crearEl("p", "avance-resumen");
+  [`📏 Medidas: ${conMedidas} de ${total}`, `🪡 Tallaje: ${conTallaje} de ${total}`, `🧵 Entregados: ${entregados} de ${total}`].forEach(
+    (texto, i) => {
+      if (i) resumen.append(" · ");
+      resumen.appendChild(crearEl("span", "avance-resumen-parte", texto));
+    }
   );
+  tarjeta.appendChild(resumen);
 
   // Con el filtro, cada alumna conserva su número de la lista completa.
   const visibles = avance
     .map((a, i) => ({ ...a, numero: i + 1 }))
     .filter((a) => filtroAvance === "todas" || !a[filtroAvance]);
   if (!visibles.length) {
-    const texto = filtroAvance === "medidas" ? "Todas tienen medidas ✓" : "Todas tienen tallaje ✓";
+    const texto = {
+      medidas: "Todas tienen medidas ✓",
+      tallaje: "Todas tienen tallaje ✓",
+      recibido: "Ya entregaste todos los trajes de este baile ✓",
+    }[filtroAvance];
     tarjeta.appendChild(crearEl("p", "show-vacio", texto));
     return;
   }
@@ -232,7 +245,11 @@ function listaConAvance(baile, tarjeta) {
     const fila = crearEl("li", "avance-alumna");
     fila.value = a.numero;
     const chips = crearEl("span", "avance-chips");
-    chips.append(indicadorAvance("📏", "Medidas", a.medidas), indicadorAvance("🪡", "Tallaje", a.tallaje));
+    chips.append(
+      indicadorAvance("📏", "Medidas", a.medidas),
+      indicadorAvance("🪡", "Tallaje", a.tallaje),
+      indicadorAvance("🧵", "Entregado por ti", a.recibido, "Entregado por ti: ")
+    );
     fila.append(crearEl("span", "avance-nombre", a.nombre), chips);
     lista.appendChild(fila);
   });

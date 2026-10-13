@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=trajes-v1" />
+<link rel="stylesheet" href="recepcion.css?v=traje-recibido-v1" />
 </head>
 <body>
 
@@ -557,6 +557,7 @@
       <button class="chip" type="button" data-show-pestana="Asignar">🩰 Asignar alumnas</button>
       <button class="chip" type="button" data-show-pestana="Resumen">📊 Resumen</button>
       <button class="chip" type="button" data-show-pestana="Trajes">👗 Estado trajes</button>
+      <button class="chip" type="button" data-show-pestana="Recibir">🧵 Recibir trajes</button>
       <button class="chip" type="button" data-show-pestana="Pagos">💸 Pagos modista</button>
       <button class="chip" type="button" data-show-pestana="Modista">🧵 Link modista</button>
     </div>
@@ -631,6 +632,21 @@
       </p>
       <p class="traje-resumen" id="resumenTrajes"></p>
       <div id="listaTrajes" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
+    </div>
+
+    <!-- Recibir trajes de la modista (etapa INTERNA: el portal nunca la ve) -->
+    <div id="vistaShowRecibir" hidden>
+      <p class="pista-campo">
+        🔒 Interno: sirve para llevar el control de qué trajes ya entregó la modista. Las familias no lo ven en el portal; la modista sí lo ve en su link. Escoge el baile, marca las alumnas cuyo traje llegó y toca “Marcar como recibidos”: todos quedan con la fecha y hora de este momento. Para desmarcar uno, hazlo desde 👗 Estado trajes.
+      </p>
+      <p class="etiqueta-campo">Baile</p>
+      <select id="selectRecibirBaile" class="input-select"></select>
+      <p class="traje-resumen" id="resumenRecibir"></p>
+      <div id="listaRecibir" class="checklist-contenedor traje-recibir-lista" hidden></div>
+      <button class="btn-grande btn-siguiente" id="btnMarcarRecibidos" type="button" hidden disabled>Marcar como recibidos</button>
+      <div class="separador-lista"></div>
+      <p class="subtitulo">Recibidos por baile</p>
+      <div id="resumenRecibirBailes" class="show-lista"></div>
     </div>
 
     <!-- d) Pagos a la modista -->
@@ -942,7 +958,7 @@
 
 </div>
 
-<script src="recepcion.js?v=traje-listo-v1"></script>
+<script src="recepcion.js?v=traje-recibido-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

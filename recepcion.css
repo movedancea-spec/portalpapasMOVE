@@ -1119,6 +1119,45 @@ background:#fff0f7;
 color:#d63384;
 }
 
+/* Etapa interna (🧵 Recibido): las familias no la ven, por eso otro color
+   y borde punteado. */
+.traje-etapa.interna{ position:relative; border-style:dashed; border-color:#cdb8ef; color:#8a6fb8; }
+/* El candado va en la esquina para no robarle una línea al botón. */
+.traje-etapa.interna::after{ content:"🔒"; position:absolute; top:6px; right:8px; font-size:11px; }
+.traje-etapa.interna.marcada{ border-color:#7c4dbd; background:#f4eeff; color:#6a3fb0; }
+
+/* Toda la lista del baile a la vista (el checklist normal tiene tope de
+   180 px); display:flex le gana a hidden, por eso la regla aparte. */
+.traje-recibir-lista{ margin-top:8px; max-height:none; }
+.traje-recibir-lista[hidden]{ display:none; }
+.traje-recibir-opcion{ border-bottom:1px dashed #eee; padding:9px 0; }
+.traje-recibir-opcion:last-child{ border-bottom:0; }
+.traje-recibir-opcion.ya-recibido{ cursor:default; color:#888; }
+.traje-recibir-opcion input[type="checkbox"]{ accent-color:#7c4dbd; }
+.traje-recibir-texto{
+display:flex;
+flex-wrap:wrap;
+align-items:center;
+gap:2px 8px;
+min-width:0;
+overflow-wrap:anywhere;
+}
+.traje-recibir-fecha{ font-size:11.5px; font-weight:700; color:#6a3fb0; }
+
+.traje-recibir-fila{
+gap:8px;
+padding:8px 0;
+border-bottom:1px dashed #eee;
+}
+.traje-recibir-conteo{
+flex-shrink:0;
+font-size:12px;
+font-weight:800;
+color:#8a6fb8;
+white-space:nowrap;
+}
+.traje-recibir-fila.completo .traje-recibir-conteo{ color:#1e9e5a; }
+
 .show-total-pagos{
 display:flex;
 flex-direction:column;

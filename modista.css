@@ -119,6 +119,8 @@ cursor:pointer;
 }
 .filtro-btn.activo{ background:#ffe4f1; border-color:#ef4b9b; color:#d6377f; }
 
+.avance-resumen-parte{ white-space:nowrap; }
+
 .avance-resumen{
 margin:8px 0 0;
 font-size:12.5px;

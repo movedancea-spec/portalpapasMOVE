@@ -3091,7 +3091,7 @@ function cambiarPestanaShow(nombre) {
   document.querySelectorAll("[data-show-pestana]").forEach((chip) => {
     chip.classList.toggle("activo", chip.dataset.showPestana === nombre);
   });
-  ["Catalogo", "Asignar", "Resumen", "Trajes", "Pagos", "Modista"].forEach((n) => {
+  ["Catalogo", "Asignar", "Resumen", "Trajes", "Recibir", "Pagos", "Modista"].forEach((n) => {
     el("vistaShow" + n).hidden = n !== nombre;
   });
   if (nombre === "Asignar" && !showAlumnas) cargarAlumnasShow();
@@ -3113,6 +3113,7 @@ async function recargarDatosShow() {
   renderTrajePortal();
   renderSelectGruposTrajes();
   renderTrajesShow();
+  renderRecibirTrajes();
   renderChecklistBailesPago();
   if (showAlumnaElegida) renderAlumnaShow();
 }
@@ -3594,10 +3595,14 @@ function renderResumenShow() {
 // demás es por traje (cada baile asignado). No se exige orden: se puede
 // marcar "Entregado" aunque falte "Tallaje" (decisión de Ana). Solo salen
 // los bailes ACTIVOS, que son los mismos que ve el portal.
+// "🧵 Recibido" (la modista ya nos entregó el traje) es INTERNA: el
+// Worker nunca la manda al portal. Va con borde punteado morado y 🔒
+// para que no se confunda con lo que ven las familias.
 
 const ETAPAS_TRAJE_RECEPCION = [
   { id: "confeccion", nombre: "✂️ Confección" },
   { id: "tallaje", nombre: "📐 Tallaje" },
+  { id: "recibido", nombre: "🧵 Recibido", interna: true },
   { id: "listo", nombre: "📦 Listo" },
   { id: "entregado", nombre: "🎁 Entregado" },
   { id: "devuelto", nombre: "↩️ Devuelto" },
@@ -3715,9 +3720,10 @@ function medidasDeAlumnaTraje(alumnaId) {
   return fechas[0] || "";
 }
 
-function botonEtapaTraje(nombre, fecha, alGuardar) {
-  const boton = crearEl("button", "traje-etapa" + (fecha ? " marcada" : ""));
+function botonEtapaTraje(nombre, fecha, alGuardar, interna = false) {
+  const boton = crearEl("button", "traje-etapa" + (fecha ? " marcada" : "") + (interna ? " interna" : ""));
   boton.type = "button";
+  if (interna) boton.title = "Interno: las familias no lo ven en el portal";
   boton.setAttribute("aria-pressed", fecha ? "true" : "false");
   boton.appendChild(crearEl("span", "traje-etapa-nombre", nombre));
   boton.appendChild(crearEl("span", "traje-etapa-fecha", fecha ? "✓ " + fechaHoraTraje(fecha) : "Sin marcar"));
@@ -3734,7 +3740,7 @@ function renderTrajesShow() {
   const contar = (etapa) => trajes.filter((t) => t.asignacion.etapas && t.asignacion.etapas[etapa]).length;
   const conMedidas = alumnas.filter((a) => medidasDeAlumnaTraje(a.alumnaId)).length;
   el("resumenTrajes").textContent = trajes.length
-    ? `${alumnas.length} alumnas · ${trajes.length} trajes · 📏 ${conMedidas} con medidas · ✂️ ${contar("confeccion")} · 📐 ${contar("tallaje")} · 📦 ${contar("listo")} · 🎁 ${contar("entregado")} entregados`
+    ? `${alumnas.length} alumnas · ${trajes.length} trajes · 📏 ${conMedidas} con medidas · ✂️ ${contar("confeccion")} · 📐 ${contar("tallaje")} · 🧵 ${contar("recibido")} · 📦 ${contar("listo")} · 🎁 ${contar("entregado")} entregados`
     : "";
 
   if (!alumnas.length) {
@@ -3777,7 +3783,8 @@ function renderTrajesShow() {
                 !fecha,
                 `“${et.nombre.replace(/^\S+\s/, "")}” del traje ${baile.nombre} de ${a.nombre}`,
                 boton
-              )
+              ),
+              et.interna
             )
           );
         });
@@ -3806,7 +3813,130 @@ async function marcarEtapaTraje(datos, marcar, descripcion, boton) {
     mensajeShow("mensajeShow", e.message, "error");
   }
   renderTrajesShow();
+  renderRecibirTrajes();
 }
+
+// ---------- Recibir trajes de la modista ----------
+// Marca "🧵 Recibido" en varios trajes de un baile con un solo toque
+// (cuando la modista llega con una bolsa de trajes). Los que ya estaban
+// recibidos salen marcados y bloqueados: aquí solo se marca; desmarcar es
+// traje por traje en "Estado trajes", con su confirmación.
+
+let guardandoRecibidos = false;
+
+function conteoRecibidos(baile) {
+  return { recibidos: baile.alumnas.filter((a) => a.etapas && a.etapas.recibido).length, total: baile.alumnas.length };
+}
+
+function nombreBaileRecibir(baile) {
+  return `${baile.nombre} · ${baile.grupoNombre}`;
+}
+
+function bailesParaRecibir() {
+  return bailesActivosTrajes()
+    .filter((b) => b.alumnas.length)
+    .sort((x, y) => nombreBaileRecibir(x).localeCompare(nombreBaileRecibir(y), "es", { sensitivity: "base", numeric: true }));
+}
+
+function renderRecibirTrajes() {
+  if (!showDatos) return;
+  const select = el("selectRecibirBaile");
+  const elegido = select.value;
+  const bailes = bailesParaRecibir();
+  select.innerHTML = "";
+  select.appendChild(new Option(bailes.length ? "Escoge un baile..." : "No hay bailes activos con alumnas", ""));
+  bailes.forEach((b) => {
+    const { recibidos, total } = conteoRecibidos(b);
+    select.appendChild(new Option(`${nombreBaileRecibir(b)} (${recibidos} de ${total})`, b.id));
+  });
+  if ([...select.options].some((o) => o.value === elegido)) select.value = elegido;
+
+  // Resumen de todos los bailes, para ver de un vistazo qué falta.
+  const resumen = el("resumenRecibirBailes");
+  resumen.innerHTML = "";
+  if (!bailes.length) resumen.appendChild(crearEl("p", "lista-vacia", "Todavía no hay alumnas asignadas a bailes activos."));
+  bailes.forEach((b) => {
+    const { recibidos, total } = conteoRecibidos(b);
+    const fila = crearEl("div", "show-tarjeta-fila traje-recibir-fila" + (recibidos === total ? " completo" : ""));
+    fila.append(
+      crearEl("span", "show-tarjeta-nombre", nombreBaileRecibir(b)),
+      crearEl("span", "traje-recibir-conteo", `Recibidos: ${recibidos} de ${total}`)
+    );
+    resumen.appendChild(fila);
+  });
+
+  renderListaRecibir();
+}
+
+function renderListaRecibir() {
+  const baile = bailesParaRecibir().find((b) => b.id === el("selectRecibirBaile").value);
+  const lista = el("listaRecibir");
+  const boton = el("btnMarcarRecibidos");
+  lista.hidden = !baile;
+  boton.hidden = !baile;
+  if (!baile) {
+    el("resumenRecibir").textContent = "";
+    return;
+  }
+  const marcadas = new Set([...lista.querySelectorAll("input:checked:not(:disabled)")].map((c) => c.value));
+  if (lista.dataset.baileId !== baile.id) marcadas.clear();
+  lista.dataset.baileId = baile.id;
+  lista.innerHTML = "";
+
+  const { recibidos, total } = conteoRecibidos(baile);
+  el("resumenRecibir").textContent = `🧵 Recibidos: ${recibidos} de ${total}`;
+  [...baile.alumnas]
+    .sort((x, y) => x.nombre.localeCompare(y.nombre, "es", { sensitivity: "base" }))
+    .forEach((a) => {
+      const recibido = (a.etapas || {}).recibido || "";
+      const etiqueta = crearEl("label", "opcion-checkbox traje-recibir-opcion" + (recibido ? " ya-recibido" : ""));
+      const casilla = document.createElement("input");
+      casilla.type = "checkbox";
+      casilla.value = a.asignacionId;
+      casilla.checked = Boolean(recibido) || marcadas.has(a.asignacionId);
+      casilla.disabled = Boolean(recibido) || guardandoRecibidos;
+      casilla.addEventListener("change", actualizarBotonRecibidos);
+      const texto = crearEl("span", "traje-recibir-texto");
+      texto.appendChild(crearEl("span", "", a.nombre));
+      if (a.estado) texto.appendChild(etiquetaEstadoAlumna(a.estado));
+      if (recibido) texto.appendChild(crearEl("span", "traje-recibir-fecha", "✓ Recibido " + fechaHoraTraje(recibido)));
+      etiqueta.append(casilla, texto);
+      lista.appendChild(etiqueta);
+    });
+  actualizarBotonRecibidos();
+}
+
+function actualizarBotonRecibidos() {
+  const n = el("listaRecibir").querySelectorAll("input:checked:not(:disabled)").length;
+  const boton = el("btnMarcarRecibidos");
+  boton.disabled = guardandoRecibidos || n === 0;
+  boton.textContent = guardandoRecibidos ? "Guardando..." : n ? `Marcar como recibidos (${n})` : "Marcar como recibidos";
+}
+
+async function marcarRecibidos() {
+  const ids = [...el("listaRecibir").querySelectorAll("input:checked:not(:disabled)")].map((c) => c.value);
+  if (!ids.length || guardandoRecibidos) return;
+  guardandoRecibidos = true;
+  renderListaRecibir();
+  try {
+    const r = await llamarWorker({ accion: "showMarcarRecibidosModista", clave: claveRecepcion, asignacionIds: ids });
+    const fechas = r.fechas || {};
+    showDatos.bailes.forEach((b) =>
+      b.alumnas.forEach((a) => {
+        if (fechas[a.asignacionId]) a.etapas = { ...(a.etapas || {}), recibido: fechas[a.asignacionId] };
+      })
+    );
+    mensajeShow("mensajeShow", `✅ ${r.marcados} traje${r.marcados === 1 ? "" : "s"} marcado${r.marcados === 1 ? "" : "s"} como recibido${r.marcados === 1 ? "" : "s"}.`, "ok");
+  } catch (e) {
+    mensajeShow("mensajeShow", e.message, "error");
+  }
+  guardandoRecibidos = false;
+  renderRecibirTrajes();
+  renderTrajesShow();
+}
+
+el("selectRecibirBaile").addEventListener("change", () => renderListaRecibir());
+el("btnMarcarRecibidos").addEventListener("click", marcarRecibidos);
 
 // ---------- c) Link de la modista ----------
 
