@@ -106,6 +106,10 @@ margin:10px 0 4px;
 }
 .filtro-avance[hidden]{ display:none; }
 
+/* En celular los 5 botones quedan en dos filas (3 + 2), sin scroll: los
+   números van en la línea de "Mostrando…", no en los botones, para que
+   quepan aunque haya muchos trajes. */
+
 .filtro-btn{
 border:1.5px solid #ffd8ea;
 background:white;
@@ -113,11 +117,28 @@ color:#a15277;
 font-family:inherit;
 font-size:12.5px;
 font-weight:700;
+white-space:nowrap;
 border-radius:999px;
-padding:6px 12px;
+padding:6px 11px;
 cursor:pointer;
+-webkit-tap-highlight-color:transparent;
+touch-action:manipulation;
 }
-.filtro-btn.activo{ background:#ffe4f1; border-color:#ef4b9b; color:#d6377f; }
+/* El activo, igual de claro que las pestañas de arriba. */
+.filtro-btn.activo{
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+border-color:#ef4b9b;
+color:white;
+}
+
+.filtro-estado{
+margin:4px 0 0;
+text-align:center;
+font-size:12.5px;
+font-weight:700;
+color:#a15277;
+}
+.filtro-estado[hidden]{ display:none; }
 
 .avance-resumen-parte{ white-space:nowrap; }
 
@@ -233,7 +254,7 @@ color:#a15277;
   body{ background:white; }
   .hoja{ max-width:none; padding:0; }
   .logo{ max-width:130px; }
-  .pestanas, .filtro-avance, .cargando, .btn-comprobante{ display:none !important; }
+  .pestanas, .filtro-avance, .filtro-estado, .cargando, .btn-comprobante{ display:none !important; }
   .total-recibido{ background:none; color:#ef4b9b; border:2px solid #ef4b9b; }
   .resumen-dato, .show-baile{ border-color:#ddd; }
   .show-grupo{ break-inside:auto; }

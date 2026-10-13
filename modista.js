@@ -28,7 +28,17 @@ const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 let gruposModista = [];
 let pagosModista = [];
 let totalPagado = 0;
-let filtroAvance = "todas"; // "todas" | "medidas" | "tallaje" | "recibido" (las que faltan)
+let filtroAvance = "todas";
+
+// Qué trajes deja ver cada botón del filtro. Se cuenta por traje (una
+// fila por alumna en cada baile), igual que el "N trajes" de cada baile.
+const FILTROS_AVANCE = {
+  todas: () => true,
+  medidas: (a) => !a.medidas,
+  tallaje: (a) => !a.tallaje,
+  recibido: (a) => !a.recibido,
+  entregados: (a) => Boolean(a.recibido),
+};
 
 function el(id) {
   return document.getElementById(id);
@@ -122,6 +132,7 @@ function render() {
   vistaBaile.appendChild(seccion);
 
   renderPagos();
+  actualizarFiltros();
 }
 
 function formatoQuetzales(monto) {
@@ -228,16 +239,10 @@ function listaConAvance(baile, tarjeta) {
   tarjeta.appendChild(resumen);
 
   // Con el filtro, cada alumna conserva su número de la lista completa.
-  const visibles = avance
-    .map((a, i) => ({ ...a, numero: i + 1 }))
-    .filter((a) => filtroAvance === "todas" || !a[filtroAvance]);
+  // El resumen de arriba siempre lleva los totales reales del baile.
+  const visibles = avance.map((a, i) => ({ ...a, numero: i + 1 })).filter(FILTROS_AVANCE[filtroAvance]);
   if (!visibles.length) {
-    const texto = {
-      medidas: "Todas tienen medidas ✓",
-      tallaje: "Todas tienen tallaje ✓",
-      recibido: "Ya entregaste todos los trajes de este baile ✓",
-    }[filtroAvance];
-    tarjeta.appendChild(crearEl("p", "show-vacio", texto));
+    tarjeta.appendChild(crearEl("p", "show-vacio", "Ninguna en este baile"));
     return;
   }
   const lista = crearEl("ol", "avance-alumnas");
@@ -292,18 +297,36 @@ document.querySelectorAll(".pestana").forEach((boton) => {
     // El conteo de trajes y el filtro no aplican a "Mis pagos" (y así no salen al imprimirlos).
     el("resumenTrajes").hidden = boton.dataset.vista === "Pagos";
     el("filtroAvance").hidden = boton.dataset.vista === "Pagos";
+    el("textoFiltro").hidden = boton.dataset.vista === "Pagos";
   });
 });
 
-document.querySelectorAll(".filtro-btn").forEach((boton) => {
-  boton.addEventListener("click", () => {
-    filtroAvance = boton.dataset.filtro;
-    document.querySelectorAll(".filtro-btn").forEach((b) => {
-      b.classList.toggle("activo", b === boton);
-      b.setAttribute("aria-pressed", String(b === boton));
-    });
-    render();
+// Aviso de cuántos trajes se están viendo: sin eso, al empezar el show
+// (nada marcado todavía) "Faltan medidas" muestra la misma lista que
+// "Todas" y parecía que el botón no hacía nada (reporte de Ana,
+// 2026-10-13).
+function actualizarFiltros() {
+  const trajes = gruposModista.flatMap((g) => g.bailes).flatMap((b) => b.alumnasAvance || []);
+  document.querySelectorAll(".filtro-btn").forEach((b) => {
+    const activo = b.dataset.filtro === filtroAvance;
+    b.classList.toggle("activo", activo);
+    b.setAttribute("aria-pressed", String(activo));
   });
+  const vistos = trajes.filter(FILTROS_AVANCE[filtroAvance]).length;
+  const aviso = el("textoFiltro");
+  aviso.hidden = false;
+  aviso.textContent =
+    filtroAvance !== "todas" && vistos === trajes.length
+      ? `Mostrando ${vistos} de ${trajes.length} trajes: a todos les aplica este filtro.`
+      : `Mostrando ${vistos} de ${trajes.length} trajes.`;
+}
+
+// Un solo listener en el contenedor de los botones.
+el("filtroAvance").addEventListener("click", (evento) => {
+  const boton = evento.target.closest(".filtro-btn");
+  if (!boton || !FILTROS_AVANCE[boton.dataset.filtro]) return;
+  filtroAvance = boton.dataset.filtro;
+  render();
 });
 
 el("btnImprimir").addEventListener("click", () => window.print());
