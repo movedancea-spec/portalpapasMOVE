@@ -495,6 +495,7 @@ function mostrarPerfilDesdeDatos(datos) {
   // Igual: el botón "👗 Estado de trajes" solo aparece si Recepción lo
   // encendió y la alumna está en algún baile activo.
   actualizarTrajeShow();
+  actualizarAvisoEntradas();
 
   // Los Mensajes de Recepción y los Avisos de la maestra ya NO se
   // muestran solos al entrar — quedan detrás de sus propios botones
@@ -976,6 +977,20 @@ function renderInfoImportante(avisos) {
 // guardados para siempre (no se filtran por mes).
 // ==========================================
 
+// Recepción decide si el botón se ve (casilla AVISO ENTRADAS PORTAL,
+// pantalla "🎟️ Venta de entradas"; se apaga solo el 1 de enero). Se
+// pregunta al entrar al perfil. Arranca visible, como siempre estuvo; si
+// el Worker no responde se deja como está (los avisos son importantes y
+// un error pasajero no debería esconderlos).
+async function actualizarAvisoEntradas() {
+  try {
+    const datos = await llamarWorker({ accion: "avisoEntradasPortalVisible" });
+    el("btnAvisosEntradas").hidden = datos.activo !== true;
+  } catch (e) {
+    // Sin cambio.
+  }
+}
+
 el("btnAvisosEntradas").addEventListener("click", abrirAvisosEntradas);
 el("btnAtrasAvisosEntradas").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
 
@@ -991,6 +1006,12 @@ async function abrirAvisosEntradas() {
 
   try {
     const datos = await llamarWorker({ accion: "avisosEntradasDeAlumna", alumnaId: alumnaSeleccionada.id, ...credencialesAlumna() });
+    // Recepción lo apagó mientras el perfil estaba abierto.
+    if (datos.activo === false) {
+      el("btnAvisosEntradas").hidden = true;
+      mostrarPantalla("pantallaPerfil");
+      return;
+    }
     renderAvisosEntradas(datos.avisos || []);
   } catch (e) {
     cont.innerHTML = "";

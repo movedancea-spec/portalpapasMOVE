@@ -406,6 +406,7 @@ el("btnMenuEstadoPortal").addEventListener("click", () => {
 el("btnMenuVentaEntradas").addEventListener("click", () => {
   mostrarPantalla("pantallaVentaEntradas");
   cargarVentaEntradas();
+  cargarAvisoEntradas();
 });
 
 el("btnMenuAnuncios").addEventListener("click", () => {
@@ -1356,6 +1357,77 @@ async function guardarVentaEntradas(activa) {
     mensajeEl.textContent = ventaEntradasActual
       ? "✅ Listo — el botón aparecerá en la pantalla de bienvenida en alrededor de un minuto."
       : "✅ Listo — el botón desaparecerá de la pantalla de bienvenida en alrededor de un minuto.";
+    mensajeEl.classList.add("mensaje-form-ok");
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.classList.add("mensaje-form-error");
+  }
+}
+
+// ---------- Aviso de entradas en el portal ----------
+// Muestra u oculta el botón "🎟️ Avisos de entradas" del perfil del
+// portal de alumnas (casilla "AVISO ENTRADAS PORTAL" de CONFIGURACION
+// GENERAL). Solo se cambia aquí, con la clave de Recepción. Apagado, el
+// Worker tampoco manda los avisos, pero no los borra. El 1 de enero el
+// Worker lo apaga solo con los demás interruptores del show.
+
+const OPCIONES_AVISO_ENTRADAS = [
+  { activo: true, titulo: "🟢 Aviso de entradas: Se muestra", detalle: "Las familias ven el botón “🎟️ Avisos de entradas” en el perfil del portal." },
+  { activo: false, titulo: "⚪ Aviso de entradas: Oculto", detalle: "El botón no aparece en el portal. Los avisos se quedan guardados." },
+];
+
+let avisoEntradasActual = null; // true / false, o null mientras carga
+
+async function cargarAvisoEntradas() {
+  const cont = el("opcionesAvisoEntradas");
+  const mensajeEl = el("mensajeAvisoEntradas");
+  mensajeEl.textContent = "";
+  mensajeEl.className = "mensaje-form";
+  cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    const datos = await llamarWorker({ accion: "recepcionObtenerAvisoEntradas", clave: claveRecepcion });
+    avisoEntradasActual = !!datos.activo;
+    renderAvisoEntradas();
+  } catch (e) {
+    cont.innerHTML = "";
+    cont.appendChild(crearEl("p", "lista-vacia", e.message));
+  }
+}
+
+function renderAvisoEntradas() {
+  const cont = el("opcionesAvisoEntradas");
+  cont.innerHTML = "";
+  OPCIONES_AVISO_ENTRADAS.forEach((op) => {
+    const activo = avisoEntradasActual === op.activo;
+    const tarjeta = document.createElement("button");
+    tarjeta.type = "button";
+    tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
+    tarjeta.setAttribute("aria-pressed", activo ? "true" : "false");
+    tarjeta.append(
+      crearEl("span", "tarjeta-resultado-nombre", op.titulo + (activo ? " — ASÍ ESTÁ AHORA" : "")),
+      crearEl("span", "tarjeta-resultado-detalle", op.detalle)
+    );
+    if (!activo) tarjeta.addEventListener("click", () => guardarAvisoEntradas(op.activo));
+    cont.appendChild(tarjeta);
+  });
+}
+
+async function guardarAvisoEntradas(activo) {
+  const pregunta = activo
+    ? "¿Mostrar el aviso de entradas en el portal? Las familias verán el botón “🎟️ Avisos de entradas” en el perfil de su alumna."
+    : "¿Ocultar el aviso de entradas en el portal? Las familias dejarán de ver el botón “🎟️ Avisos de entradas” (los avisos no se borran).";
+  if (!window.confirm(pregunta)) return;
+
+  const mensajeEl = el("mensajeAvisoEntradas");
+  mensajeEl.textContent = "Guardando...";
+  mensajeEl.className = "mensaje-form";
+  try {
+    const datos = await llamarWorker({ accion: "recepcionGuardarAvisoEntradas", clave: claveRecepcion, activo });
+    avisoEntradasActual = !!datos.activo;
+    renderAvisoEntradas();
+    mensajeEl.textContent = avisoEntradasActual
+      ? "✅ Listo — las familias verán el botón al entrar al perfil (puede tardar unos 20 segundos)."
+      : "✅ Listo — el botón deja de verse en el portal (puede tardar unos 20 segundos).";
     mensajeEl.classList.add("mensaje-form-ok");
   } catch (e) {
     mensajeEl.textContent = e.message;
