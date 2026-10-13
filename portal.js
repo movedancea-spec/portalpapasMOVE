@@ -4279,6 +4279,7 @@ const ETAPAS_TRAJE_PORTAL = [
   { id: "medidas", hecho: "Medidas tomadas", pendiente: "Toma de medidas" },
   { id: "confeccion", hecho: "En confección", pendiente: "En confección" },
   { id: "tallaje", hecho: "Tallaje del traje", pendiente: "Tallaje del traje" },
+  { id: "listo", hecho: "Listo para entrega", pendiente: "Listo para entrega" },
   { id: "entregado", hecho: "Entregado", pendiente: "Entrega" },
   { id: "devuelto", hecho: "Devuelto", pendiente: "Devuelto", soloSiMarcado: true },
 ];

@@ -3598,6 +3598,7 @@ function renderResumenShow() {
 const ETAPAS_TRAJE_RECEPCION = [
   { id: "confeccion", nombre: "✂️ Confección" },
   { id: "tallaje", nombre: "📐 Tallaje" },
+  { id: "listo", nombre: "📦 Listo" },
   { id: "entregado", nombre: "🎁 Entregado" },
   { id: "devuelto", nombre: "↩️ Devuelto" },
 ];
@@ -3733,7 +3734,7 @@ function renderTrajesShow() {
   const contar = (etapa) => trajes.filter((t) => t.asignacion.etapas && t.asignacion.etapas[etapa]).length;
   const conMedidas = alumnas.filter((a) => medidasDeAlumnaTraje(a.alumnaId)).length;
   el("resumenTrajes").textContent = trajes.length
-    ? `${alumnas.length} alumnas · ${trajes.length} trajes · 📏 ${conMedidas} con medidas · ✂️ ${contar("confeccion")} · 📐 ${contar("tallaje")} · 🎁 ${contar("entregado")} entregados`
+    ? `${alumnas.length} alumnas · ${trajes.length} trajes · 📏 ${conMedidas} con medidas · ✂️ ${contar("confeccion")} · 📐 ${contar("tallaje")} · 📦 ${contar("listo")} · 🎁 ${contar("entregado")} entregados`
     : "";
 
   if (!alumnas.length) {
