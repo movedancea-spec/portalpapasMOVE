@@ -1579,3 +1579,48 @@ color:#a15277;
 }
 
 .ficha-vista-previa iframe{ flex:1; width:100%; border:none; background:white; border-radius:0 0 14px 14px; }
+
+/* ---------- Cuentas con la modista (📊 Resumen de Alumnas Show) ---------- */
+.cuentas-caja{
+background:white;
+border:2px solid #ffd8ea;
+border-radius:16px;
+padding:12px 14px;
+margin:0 0 12px;
+}
+/* La venta a papás y la ganancia son solo de Recepción: otro color para
+   que nunca se confunda con lo que ve la modista. */
+.cuentas-privada{ border-style:dashed; border-color:#cdb8ef; background:#fbf8ff; }
+.cuentas-titulo{ margin:0 0 6px; font-size:13px; font-weight:800; color:#a15277; }
+.cuentas-privada .cuentas-titulo{ color:#6a3fb0; }
+.cuentas-linea{
+display:flex;
+justify-content:space-between;
+align-items:baseline;
+gap:10px;
+padding:3px 0;
+font-size:13.5px;
+font-weight:600;
+color:#555;
+}
+.cuentas-linea strong{ white-space:nowrap; font-weight:800; color:#333; }
+.cuentas-saldo{
+margin-top:6px;
+padding:8px 10px;
+border-radius:12px;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+font-size:14px;
+font-weight:800;
+}
+.cuentas-saldo strong{ color:white; font-size:18px; }
+.cuentas-saldo.a-favor{ background:linear-gradient(180deg,#34c27a,#1e9e5a); }
+.cuentas-ganancia strong{ color:#1e9e5a; font-size:16px; }
+.cuentas-ganancia.negativa strong{ color:#e0245e; }
+.cuentas-aviso{ margin:8px 0 0; font-size:12px; font-weight:700; color:#b26a00; }
+.cuentas-nota{ margin:4px 0 0; font-size:11.5px; font-weight:600; color:#888; }
+.cuentas-precios{ margin-top:6px; border-top:1px dashed #eee; padding-top:4px; }
+.cuentas-precios .cuentas-linea{ font-size:12.5px; }
+.cuentas-privada-linea{ color:#6a3fb0; }
+.cuentas-privada-linea strong{ color:#6a3fb0; }
+.sin-precio strong{ color:#b26a00; }

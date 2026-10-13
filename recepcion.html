@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=traje-recibido-v1" />
+<link rel="stylesheet" href="recepcion.css?v=cuentas-modista-v1" />
 </head>
 <body>
 
@@ -582,8 +582,12 @@
         <select id="selectShowGrupoBaile" class="input-select"></select>
         <p class="etiqueta-campo">Nombre del baile</p>
         <input type="text" id="inputShowNombreBaile" class="input-texto" placeholder="Ej. Vals de las flores" maxlength="100" />
-        <p class="etiqueta-campo">Precio del traje (Q)</p>
+        <p class="etiqueta-campo">Precio modista (Q por traje)</p>
         <input type="number" id="inputShowPrecioBaile" class="input-texto" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+        <p class="pista-campo">Lo que se le paga a la modista por cada traje. Ella lo ve en su link.</p>
+        <p class="etiqueta-campo">Precio venta a papás (Q por traje)</p>
+        <input type="number" id="inputShowPrecioVentaBaile" class="input-texto" placeholder="Sin precio" min="0" step="0.01" inputmode="decimal" />
+        <p class="pista-campo">🔒 Solo lo ve Recepción (ni la modista, ni las maestras, ni las familias). Si lo dejas vacío queda “Sin precio”.</p>
         <button class="btn-grande btn-siguiente" id="btnGuardarBaile" type="button">Agregar baile</button>
         <button class="btn-enlace" id="btnCancelarEdicionBaile" type="button" hidden>Cancelar edición</button>
         <p class="mensaje-form" id="mensajeFormBaile"></p>
@@ -620,6 +624,9 @@
 
     <!-- Resumen: por cada baile, cuántas alumnas y cuáles -->
     <div id="vistaShowResumen" hidden>
+      <!-- Cuentas con la modista (y venta a papás, solo Recepción): las calcula el Worker. -->
+      <div id="cuentasShowResumen"></div>
+      <p class="subtitulo">Alumnas por baile</p>
       <div id="listaShowResumen" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
     </div>
 
@@ -969,7 +976,7 @@
 
 </div>
 
-<script src="recepcion.js?v=aviso-entradas-v1"></script>
+<script src="recepcion.js?v=cuentas-modista-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

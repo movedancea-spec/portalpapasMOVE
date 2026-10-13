@@ -3236,7 +3236,7 @@ function renderCatalogoShow() {
         crearEl(
           "span",
           "tarjeta-resultado-detalle",
-          `${formatoQuetzales(b.precio)} · ${b.alumnas.length} alumna${b.alumnas.length === 1 ? "" : "s"}`
+          `Modista ${formatoQuetzales(b.precio)} · Venta ${formatoQuetzales(b.precioVenta)} · ${b.alumnas.length} alumna${b.alumnas.length === 1 ? "" : "s"}`
         )
       );
 
@@ -3263,6 +3263,7 @@ function editarBaileShow(baile) {
   el("selectShowGrupoBaile").value = baile.grupoId;
   el("inputShowNombreBaile").value = baile.nombre;
   el("inputShowPrecioBaile").value = typeof baile.precio === "number" ? baile.precio : "";
+  el("inputShowPrecioVentaBaile").value = typeof baile.precioVenta === "number" ? baile.precioVenta : "";
   el("btnGuardarBaile").textContent = "Guardar cambios";
   el("btnCancelarEdicionBaile").hidden = false;
   mensajeShow("mensajeFormBaile", "");
@@ -3274,6 +3275,7 @@ function limpiarFormularioBaile() {
   el("tituloFormBaile").textContent = "Agregar baile";
   el("inputShowNombreBaile").value = "";
   el("inputShowPrecioBaile").value = "";
+  el("inputShowPrecioVentaBaile").value = "";
   el("btnGuardarBaile").textContent = "Agregar baile";
   el("btnCancelarEdicionBaile").hidden = true;
 }
@@ -3287,10 +3289,14 @@ el("btnGuardarBaile").addEventListener("click", async () => {
   const grupoId = el("selectShowGrupoBaile").value;
   const nombre = el("inputShowNombreBaile").value.trim();
   const precio = el("inputShowPrecioBaile").value;
+  const precioVenta = el("inputShowPrecioVentaBaile").value;
   if (!grupoId) return mensajeShow("mensajeFormBaile", "Escoge el Grupo MOVE.", "error");
   if (!nombre) return mensajeShow("mensajeFormBaile", "Escribe el nombre del baile.", "error");
   if (precio === "" || Number(precio) < 0) {
-    return mensajeShow("mensajeFormBaile", "Escribe el precio del traje.", "error");
+    return mensajeShow("mensajeFormBaile", "Escribe el precio de la modista.", "error");
+  }
+  if (precioVenta !== "" && Number(precioVenta) < 0) {
+    return mensajeShow("mensajeFormBaile", "El precio de venta no puede ser negativo (o déjalo vacío).", "error");
   }
 
   const boton = el("btnGuardarBaile");
@@ -3306,6 +3312,8 @@ el("btnGuardarBaile").addEventListener("click", async () => {
       grupoId,
       nombre,
       precio: Number(precio),
+      // Vacío = "Sin precio" (el Worker lo borra en Airtable).
+      precioVenta: precioVenta === "" ? "" : Number(precioVenta),
     });
     limpiarFormularioBaile();
     mensajeShow("mensajeFormBaile", editando ? "✅ Cambios guardados." : "✅ Baile agregado.", "ok");
@@ -3630,7 +3638,71 @@ async function quitarAsignacionShow(baile, asignacion, boton) {
 
 // ---------- Resumen por baile ----------
 
+// Cuentas con la modista y venta a papás. Todo viene calculado del
+// Worker (showDatos.cuentas); aquí solo se pinta. Un baile sin precio
+// sale "Sin precio" y arriba se avisa que el total no lo incluye.
+function renderCuentasShow() {
+  const cont = el("cuentasShowResumen");
+  cont.innerHTML = "";
+  const c = showDatos.cuentas;
+  if (!c) return;
+
+  const linea = (etiqueta, valor, clase = "") => {
+    const fila = crearEl("div", "cuentas-linea " + clase);
+    fila.append(crearEl("span", "", etiqueta), crearEl("strong", "", valor));
+    return fila;
+  };
+  const aviso = (n, que) =>
+    n ? crearEl("p", "cuentas-aviso", `⚠️ ${n} baile${n === 1 ? "" : "s"} con alumnas sin ${que}: el total no ${n === 1 ? "lo" : "los"} incluye.`) : null;
+
+  const modista = crearEl("div", "cuentas-caja");
+  modista.appendChild(crearEl("p", "cuentas-titulo", `🧵 Modista · ${c.totalTrajes} traje${c.totalTrajes === 1 ? "" : "s"}`));
+  modista.append(linea("Total trajes", formatoQuetzales(c.totalModista)), linea("Pagado", formatoQuetzales(c.pagado)));
+  modista.appendChild(
+    c.saldo < 0
+      ? linea("Saldo a favor de la academia", formatoQuetzales(-c.saldo), "cuentas-saldo a-favor")
+      : linea("Saldo pendiente", formatoQuetzales(c.saldo), "cuentas-saldo")
+  );
+  const avisoModista = aviso(c.bailesSinPrecio, "precio de modista");
+  if (avisoModista) modista.appendChild(avisoModista);
+  cont.appendChild(modista);
+
+  const venta = crearEl("div", "cuentas-caja cuentas-privada");
+  venta.appendChild(crearEl("p", "cuentas-titulo", "🔒 Venta a papás (solo Recepción)"));
+  venta.append(
+    linea("Total venta a papás", formatoQuetzales(c.totalVenta)),
+    linea("Ganancia estimada", formatoQuetzales(c.ganancia), "cuentas-ganancia" + (c.ganancia < 0 ? " negativa" : ""))
+  );
+  const avisoVenta = aviso(c.bailesSinPrecioVenta, "precio de venta");
+  if (avisoVenta) venta.appendChild(avisoVenta);
+  if (c.bailesSinPrecioVenta) {
+    venta.appendChild(crearEl("p", "cuentas-nota", "La ganancia solo cuenta los bailes que tienen los dos precios."));
+  }
+  cont.appendChild(venta);
+
+  cont.appendChild(crearEl("p", "subtitulo", "Detalle por baile"));
+  const lista = crearEl("div", "show-lista");
+  if (!c.detalle.length) lista.appendChild(crearEl("p", "lista-vacia", "Todavía no hay bailes."));
+  c.detalle.forEach((d) => {
+    const tarjeta = crearEl("div", "show-tarjeta cuentas-baile" + (d.activo ? "" : " inactivo"));
+    const fila = crearEl("div", "show-tarjeta-fila");
+    fila.appendChild(crearEl("span", "show-tarjeta-nombre", `${d.nombre}${d.activo ? "" : " (desactivado)"}`));
+    fila.appendChild(crearEl("span", "show-contador", String(d.trajes)));
+    tarjeta.appendChild(fila);
+    tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", `${d.grupo} · ${d.trajes} traje${d.trajes === 1 ? "" : "s"}`));
+    const precios = crearEl("div", "cuentas-precios");
+    precios.append(
+      linea(`Modista ${formatoQuetzales(d.precio)} × ${d.trajes}`, formatoQuetzales(d.subtotal), d.subtotal === null ? "sin-precio" : ""),
+      linea(`Venta ${formatoQuetzales(d.precioVenta)} × ${d.trajes}`, formatoQuetzales(d.subtotalVenta), "cuentas-privada-linea" + (d.subtotalVenta === null ? " sin-precio" : ""))
+    );
+    tarjeta.appendChild(precios);
+    lista.appendChild(tarjeta);
+  });
+  cont.appendChild(lista);
+}
+
 function renderResumenShow() {
+  renderCuentasShow();
   const cont = el("listaShowResumen");
   cont.innerHTML = "";
   if (!showDatos.bailes.length) {

@@ -199,6 +199,49 @@ color:#9a9a9a;
 }
 .avance-chip.hecho{ background:#ffe4f1; color:#d6377f; }
 
+/* ---------- Cuentas de "Mis pagos" ---------- */
+.cuentas-caja{
+margin:18px 0 10px;
+background:white;
+border:2px solid #ffd8ea;
+border-radius:18px;
+padding:12px 14px;
+}
+.cuentas-titulo{ margin:0 0 6px; font-size:13px; font-weight:800; color:#a15277; }
+.cuentas-linea{
+display:flex;
+justify-content:space-between;
+align-items:baseline;
+gap:10px;
+padding:3px 0;
+font-size:14px;
+font-weight:600;
+color:#555;
+}
+.cuentas-linea strong{ white-space:nowrap; font-weight:800; color:#333; }
+.cuentas-saldo{
+margin-top:6px;
+padding:9px 12px;
+border-radius:14px;
+background:linear-gradient(180deg,#ff72b7,#ef4b9b);
+color:white;
+font-weight:800;
+}
+.cuentas-saldo strong{ color:white; font-size:clamp(18px,5.5vw,22px); }
+.cuentas-saldo.a-favor{ background:linear-gradient(180deg,#34c27a,#1e9e5a); }
+.cuentas-aviso{ margin:8px 0 0; font-size:12px; font-weight:700; color:#b26a00; }
+.cuentas-detalle{
+margin:0 0 6px;
+background:white;
+border:2px solid #ffd8ea;
+border-radius:14px;
+padding:8px 14px;
+}
+.cuentas-detalle summary{ cursor:pointer; font-size:13.5px; font-weight:800; color:#ef4b9b; }
+.cuentas-detalle .cuentas-linea{ font-size:12.5px; border-top:1px dashed #ffe0ee; }
+.cuentas-detalle .cuentas-linea span{ min-width:0; overflow-wrap:anywhere; }
+.sin-precio strong{ color:#b26a00; }
+
 .total-recibido{
 display:flex;
 flex-direction:column;

@@ -28,6 +28,7 @@ const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 let gruposModista = [];
 let pagosModista = [];
 let totalPagado = 0;
+let cuentasModista = null; // { totalTrajes, totalModista, pagado, saldo, bailesSinPrecio, detalle }
 let filtroAvance = "todas";
 
 // Qué trajes deja ver cada botón del filtro. Se cuenta por traje (una
@@ -83,6 +84,7 @@ async function cargar() {
     gruposModista = datos.grupos || [];
     pagosModista = datos.pagos || [];
     totalPagado = datos.totalPagado || 0;
+    cuentasModista = datos.cuentas || null;
     el("textoActualizado").textContent = datos.actualizado ? `Actualizado: ${formatoFecha(datos.actualizado)}` : "";
     render();
   } catch (e) {
@@ -158,8 +160,53 @@ function formatoFechaCorta(fechaIso) {
   return m ? `${Number(m[3])} ${MESES_CORTOS[Number(m[2]) - 1]} ${m[1]}` : "Sin fecha";
 }
 
+// Resumen de "Mis pagos": total de los trajes con su precio, lo pagado y
+// el saldo, y el detalle por baile (trajes × precio = subtotal). Todo
+// viene calculado del Worker; aquí no se suma nada.
+function renderCuentasModista() {
+  const cont = el("cuentasModista");
+  cont.innerHTML = "";
+  const c = cuentasModista;
+  if (!c) return;
+  const linea = (etiqueta, valor, clase = "") => {
+    const fila = crearEl("div", "cuentas-linea " + clase);
+    fila.append(crearEl("span", "", etiqueta), crearEl("strong", "", valor));
+    return fila;
+  };
+  const precio = (monto) => (typeof monto === "number" ? formatoQuetzales(monto) : "Sin precio");
+
+  const caja = crearEl("div", "cuentas-caja");
+  caja.appendChild(crearEl("p", "cuentas-titulo", `🧵 Tus trajes · ${c.totalTrajes} traje${c.totalTrajes === 1 ? "" : "s"}`));
+  caja.append(linea("Total trajes", formatoQuetzales(c.totalModista)), linea("Pagado", formatoQuetzales(c.pagado)));
+  caja.appendChild(
+    c.saldo < 0
+      ? linea("Saldo a favor de la academia", formatoQuetzales(-c.saldo), "cuentas-saldo a-favor")
+      : linea("Saldo pendiente", formatoQuetzales(c.saldo), "cuentas-saldo")
+  );
+  if (c.bailesSinPrecio) {
+    caja.appendChild(
+      crearEl("p", "cuentas-aviso", `⚠️ ${c.bailesSinPrecio} baile${c.bailesSinPrecio === 1 ? "" : "s"} todavía sin precio: no ${c.bailesSinPrecio === 1 ? "está sumado" : "están sumados"} en el total.`)
+    );
+  }
+  cont.appendChild(caja);
+
+  const detalle = crearEl("details", "cuentas-detalle");
+  detalle.appendChild(crearEl("summary", "", "Ver detalle por baile"));
+  c.detalle.forEach((d) => {
+    detalle.appendChild(
+      linea(
+        `${d.nombre}${d.activo ? "" : " (desactivado)"} · ${d.grupo} — ${d.trajes} × ${precio(d.precio)}`,
+        precio(d.subtotal),
+        d.subtotal === null ? "sin-precio" : ""
+      )
+    );
+  });
+  cont.appendChild(detalle);
+}
+
 // 3) Mis pagos: total recibido y cada pago, del más reciente al más viejo.
 function renderPagos() {
+  renderCuentasModista();
   el("totalRecibido").textContent = formatoQuetzales(totalPagado);
   const lista = el("listaPagos");
   lista.innerHTML = "";
