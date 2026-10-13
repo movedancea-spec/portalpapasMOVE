@@ -104,20 +104,30 @@ function render() {
   el("totalTrajes").textContent = bailes.reduce((suma, b) => suma + b.total, 0);
   el("totalBailes").textContent = bailes.length;
 
+  // Con un filtro activo solo quedan los bailes (y grupos) que tienen al
+  // menos una alumna en ese filtro: si no, los de arriba no cambiaban y
+  // no se notaba el filtro (pedido de Ana, 2026-10-13).
+  const filtrando = filtroAvance !== "todas";
+  const enFiltro = (b) => (b.alumnasAvance || []).filter(FILTROS_AVANCE[filtroAvance]).length;
+  const visible = (b) => !filtrando || enFiltro(b) > 0;
+  const textoVacio = filtrando ? "No hay trajes en este filtro" : "Todavía no hay bailes cargados.";
+
   // 1) Por Grupo MOVE: grupo → bailes → alumnas
   const vistaGrupo = el("vistaGrupo");
   vistaGrupo.innerHTML = "";
-  if (!gruposModista.length) {
-    vistaGrupo.appendChild(crearEl("p", "show-vacio", "Todavía no hay bailes cargados."));
-  }
-  gruposModista.forEach((g) => {
+  const gruposVisibles = gruposModista.filter((g) => g.bailes.some(visible));
+  if (!gruposVisibles.length) vistaGrupo.appendChild(crearEl("p", "show-vacio filtro-vacio", textoVacio));
+  gruposVisibles.forEach((g) => {
     const seccion = crearEl("section", "show-grupo");
     const encabezado = crearEl("div", "show-grupo-encabezado");
     const trajes = g.bailes.reduce((suma, b) => suma + b.total, 0);
+    const vistos = g.bailes.reduce((suma, b) => suma + enFiltro(b), 0);
     encabezado.appendChild(crearEl("h2", "show-grupo-nombre", g.nombre));
-    encabezado.appendChild(crearEl("span", "show-grupo-total", `${trajes} traje${trajes === 1 ? "" : "s"}`));
+    encabezado.appendChild(
+      crearEl("span", "show-grupo-total", filtrando ? `${vistos} de ${trajes} trajes` : `${trajes} traje${trajes === 1 ? "" : "s"}`)
+    );
     seccion.appendChild(encabezado);
-    g.bailes.forEach((b) => seccion.appendChild(tarjetaBaile(b, "")));
+    g.bailes.filter(visible).forEach((b) => seccion.appendChild(tarjetaBaile(b, "")));
     vistaGrupo.appendChild(seccion);
   });
 
@@ -125,10 +135,11 @@ function render() {
   const vistaBaile = el("vistaBaile");
   vistaBaile.innerHTML = "";
   const seccion = crearEl("section", "show-grupo");
-  bailes
+  const bailesVisibles = bailes.filter(visible);
+  bailesVisibles
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base", numeric: true }) || a.grupo.localeCompare(b.grupo, "es"))
     .forEach((b) => seccion.appendChild(tarjetaBaile(b, b.grupo)));
-  if (!bailes.length) seccion.appendChild(crearEl("p", "show-vacio", "Todavía no hay bailes cargados."));
+  if (!bailesVisibles.length) seccion.appendChild(crearEl("p", "show-vacio filtro-vacio", textoVacio));
   vistaBaile.appendChild(seccion);
 
   renderPagos();
@@ -241,10 +252,8 @@ function listaConAvance(baile, tarjeta) {
   // Con el filtro, cada alumna conserva su número de la lista completa.
   // El resumen de arriba siempre lleva los totales reales del baile.
   const visibles = avance.map((a, i) => ({ ...a, numero: i + 1 })).filter(FILTROS_AVANCE[filtroAvance]);
-  if (!visibles.length) {
-    tarjeta.appendChild(crearEl("p", "show-vacio", "Ninguna en este baile"));
-    return;
-  }
+  // Respaldo: render() ya oculta los bailes sin alumnas en el filtro.
+  if (!visibles.length) return;
   const lista = crearEl("ol", "avance-alumnas");
   visibles.forEach((a) => {
     const fila = crearEl("li", "avance-alumna");
@@ -315,10 +324,9 @@ function actualizarFiltros() {
   const vistos = trajes.filter(FILTROS_AVANCE[filtroAvance]).length;
   const aviso = el("textoFiltro");
   aviso.hidden = false;
-  aviso.textContent =
-    filtroAvance !== "todas" && vistos === trajes.length
-      ? `Mostrando ${vistos} de ${trajes.length} trajes: a todos les aplica este filtro.`
-      : `Mostrando ${vistos} de ${trajes.length} trajes.`;
+  aviso.classList.toggle("filtrando", filtroAvance !== "todas");
+  aviso.textContent = "Mostrando ";
+  aviso.append(crearEl("strong", "", String(vistos)), ` de ${trajes.length} trajes`);
 }
 
 // Un solo listener en el contenedor de los botones.
@@ -327,6 +335,10 @@ el("filtroAvance").addEventListener("click", (evento) => {
   if (!boton || !FILTROS_AVANCE[boton.dataset.filtro]) return;
   filtroAvance = boton.dataset.filtro;
   render();
+  // Regresa al inicio de la lista: los botones y el conteo quedan arriba.
+  const inicio = el("filtroAvance").getBoundingClientRect().top + window.scrollY - 8;
+  // Directo, sin animación: la lista ya cambió y así se ve al instante.
+  if (window.scrollY > inicio) window.scrollTo(0, inicio);
 });
 
 el("btnImprimir").addEventListener("click", () => window.print());

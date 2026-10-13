@@ -131,12 +131,27 @@ border-color:#ef4b9b;
 color:white;
 }
 
+/* Conteo justo debajo de los botones; con un filtro activo se resalta
+   para que se note el cambio. */
 .filtro-estado{
-margin:4px 0 0;
+width:fit-content;
+margin:8px auto 4px;
 text-align:center;
-font-size:12.5px;
+font-size:14px;
 font-weight:700;
 color:#a15277;
+background:white;
+border:2px solid #ffd8ea;
+border-radius:999px;
+padding:6px 16px;
+}
+.filtro-estado strong{ font-size:16px; font-weight:800; color:#ef4b9b; }
+.filtro-estado.filtrando{ background:#ffe4f1; border-color:#ef4b9b; color:#d6377f; }
+
+.filtro-vacio{
+margin:18px 0;
+text-align:center;
+font-size:14px;
 }
 .filtro-estado[hidden]{ display:none; }
 
