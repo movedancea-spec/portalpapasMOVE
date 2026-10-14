@@ -12,7 +12,7 @@
 // página — sin tener que borrar caché a mano ni subir un número de versión
 // nuevo cada vez.
 
-const CACHE_NAME = "move-portal-v71";
+const CACHE_NAME = "move-portal-v72";
 
 const ARCHIVOS_APP = [
   "./",
@@ -135,7 +135,9 @@ self.addEventListener("push", (event) => {
     // (incluye el ID de evento), así que en la práctica no se
     // reemplazan entre sí, solo evita duplicados exactos.
     tag: datos.tag || "move-notificacion",
-    data: { url: datos.url || "./index.html" },
+    // "abrirPagina" (2026-10-14): solo la push de reacciones a los
+    // reconocimientos lo manda; las demás se comportan como siempre.
+    data: { url: datos.url || "./index.html", abrirPagina: datos.abrirPagina === true },
     vibrate: [200, 100, 200],
   };
 
@@ -148,6 +150,33 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || "./index.html";
+
+  // Notificaciones que tienen que llevar a SU página (la reacción a un
+  // reconocimiento abre el historial de reconocimientos de la maestra):
+  // si esa página ya está abierta se enfoca; si no, se lleva ahí una
+  // ventana abierta del portal o se abre una nueva. Las demás siguen
+  // con el comportamiento de siempre (abajo).
+  if (event.notification.data && event.notification.data.abrirPagina) {
+    const destino = new URL(url, self.registration.scope);
+    event.waitUntil(
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (listaClientes) => {
+        const enLaPagina = listaClientes.find((c) => new URL(c.url).pathname === destino.pathname);
+        if (enLaPagina) {
+          if (enLaPagina.url !== destino.href && "navigate" in enLaPagina) {
+            await enLaPagina.navigate(destino.href).catch(() => {});
+          }
+          return enLaPagina.focus();
+        }
+        const otra = listaClientes.find((c) => "navigate" in c);
+        if (otra) {
+          const llevada = await otra.navigate(destino.href).catch(() => null);
+          if (llevada) return llevada.focus();
+        }
+        if (self.clients.openWindow) return self.clients.openWindow(destino.href);
+      })
+    );
+    return;
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((listaClientes) => {

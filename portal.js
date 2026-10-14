@@ -667,7 +667,72 @@ function crearTarjetaReconocimiento(r) {
     caja.appendChild(grupo);
   }
 
+  caja.appendChild(filaReaccionesReconocimiento(r));
   return caja;
+}
+
+// Reacciones (2026-10-14): opcionales, una por mensaje. Tocar la elegida
+// la quita, tocar otra la cambia. Nada se marca solo: la maestra solo se
+// entera si reaccionan (no hay "leído"). El Worker revisa que el
+// reconocimiento sea de esta alumna.
+const REACCIONES_RECONOCIMIENTO = [
+  { emoji: "❤️", nombre: "Me encanta" },
+  { emoji: "🥰", nombre: "Qué lindo" },
+  { emoji: "👏", nombre: "Aplausos" },
+  { emoji: "🤩", nombre: "Wow" },
+  { emoji: "🙏", nombre: "Gracias" },
+];
+
+function filaReaccionesReconocimiento(r) {
+  const fila = document.createElement("div");
+  fila.className = "reacciones-reconocimiento";
+  fila.setAttribute("role", "group");
+  fila.setAttribute("aria-label", "Reaccionar a este reconocimiento");
+  const pintar = () => {
+    fila.querySelectorAll(".reaccion-btn").forEach((b) => {
+      const elegida = b.dataset.emoji === r.reaccion;
+      b.classList.toggle("elegida", elegida);
+      b.setAttribute("aria-pressed", String(elegida));
+    });
+  };
+  REACCIONES_RECONOCIMIENTO.forEach(({ emoji, nombre }) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "reaccion-btn";
+    b.dataset.emoji = emoji;
+    b.textContent = emoji;
+    b.title = nombre;
+    b.setAttribute("aria-label", nombre);
+    b.addEventListener("click", async () => {
+      if (fila.dataset.guardando) return;
+      const anterior = r.reaccion || "";
+      const nueva = anterior === emoji ? "" : emoji;
+      // Se ve al instante; si el Worker falla, se regresa a como estaba.
+      r.reaccion = nueva;
+      pintar();
+      b.classList.remove("rebote");
+      void b.offsetWidth;
+      b.classList.add("rebote");
+      fila.dataset.guardando = "1";
+      try {
+        await llamarWorker({
+          accion: "reaccionarReconocimiento",
+          alumnaId: alumnaSeleccionada.id,
+          reconocimientoId: r.id,
+          reaccion: nueva,
+          ...credencialesAlumna(),
+        });
+      } catch (e) {
+        r.reaccion = anterior;
+        pintar();
+        mostrarError(e.message);
+      }
+      delete fila.dataset.guardando;
+    });
+    fila.appendChild(b);
+  });
+  pintar();
+  return fila;
 }
 
 function renderReconocimientosAgrupados(reconocimientos) {

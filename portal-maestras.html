@@ -131,6 +131,22 @@ body{
 
 .tarjeta-texto{flex:1;}
 
+/* Reacciones nuevas de las alumnas a los reconocimientos (2026-10-14). */
+.indicador-reacciones{
+  display:inline-block;
+  margin-left:6px;
+  font-size:12px;
+  font-weight:800;
+  color:white;
+  background:#ef4b9b;
+  border-radius:999px;
+  padding:1px 9px;
+  vertical-align:2px;
+  animation:latidoReaccion 1.6s ease-in-out infinite;
+}
+.indicador-reacciones[hidden]{ display:none; }
+@keyframes latidoReaccion{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
+
 .tarjeta-titulo{
   font-size:clamp(15.5px,4.2vw,17.5px);
   font-weight:800;
@@ -395,7 +411,7 @@ button.tarjeta-enlace{
       <a class="tarjeta-enlace" href="reconocimientos.html">
         <div class="tarjeta-emoji">💌</div>
         <div class="tarjeta-texto">
-          <p class="tarjeta-titulo">Reconocimientos</p>
+          <p class="tarjeta-titulo">Reconocimientos <span class="indicador-reacciones" id="indicadorReaccionesPortal" hidden></span></p>
           <p class="tarjeta-descripcion">Manda una notita a una alumna de tus clases — se ve en su Portal</p>
         </div>
         <div class="tarjeta-flecha">→</div>
@@ -491,6 +507,20 @@ button.tarjeta-enlace{
     actualizarBloqueNotificacionesPushMaestra();
     cargarAnunciosPortalMaestra();
     cargarCumpleanosMaestra();
+    cargarIndicadorReacciones();
+  }
+
+  // Cuántas reacciones nuevas tiene en sus reconocimientos (se quitan al
+  // abrir su historial en reconocimientos.html). Si falla, no se muestra.
+  async function cargarIndicadorReacciones() {
+    const ind = el("indicadorReaccionesPortal");
+    try {
+      const datos = await llamarWorkerComoMaestra({ accion: "maestraReaccionesNuevas" });
+      ind.textContent = `💗 ${datos.nuevas} nueva${datos.nuevas === 1 ? "" : "s"}`;
+      ind.hidden = !datos.nuevas;
+    } catch (e) {
+      ind.hidden = true;
+    }
   }
 
   // ==========================================

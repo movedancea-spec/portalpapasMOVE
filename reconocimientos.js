@@ -69,6 +69,9 @@ async function entrarMaestra(claveAuto) {
     const datos = await llamarWorker({ accion: "maestraEntrar", clave });
     guardarSesionMaestraCompartida(clave, datos.nombre || "Maestra", datos.token);
     await cargarGrupos();
+    // La push de una reacción abre reconocimientos.html#historial.
+    if (location.hash === "#historial") cargarHistorial();
+    else actualizarIndicadorReacciones();
   } catch (e) {
     if (esAuto) {
       borrarSesionMaestraCompartida();
@@ -290,15 +293,51 @@ async function cargarHistorial() {
         caja.appendChild(grupo);
       }
 
+      // Solo si la alumna o su familia reaccionaron; si no, nada.
+      if (r.reaccion) {
+        const reaccion = document.createElement("p");
+        reaccion.className = "tarjeta-reconocimiento-historial-reaccion" + (r.reaccionNueva ? " nueva" : "");
+        reaccion.textContent = `${r.reaccion} Reaccionó · ${formatearFechaHistorial(r.reaccionFecha)}${r.reaccionNueva ? " · ¡nueva!" : ""}`;
+        caja.appendChild(reaccion);
+      }
+
       cont.appendChild(caja);
     });
+
+    // Ya las vio: dejan de contar como nuevas (el resaltado se queda
+    // mientras esté en esta pantalla).
+    if (reconocimientos.some((r) => r.reaccionNueva)) {
+      llamarWorkerComoMaestra({ accion: "maestraMarcarReaccionesVistas" }).catch(() => {});
+    }
+    el("indicadorReacciones").hidden = true;
   } catch (e) {
     mensajeError.textContent = e.message;
     cont.innerHTML = "";
   }
 }
 
-el("btnVolverGruposDesdeHistorial").addEventListener("click", () => mostrarPantalla("pantallaGrupos"));
+el("btnVolverGruposDesdeHistorial").addEventListener("click", () => {
+  if (location.hash === "#historial") history.replaceState(null, "", location.pathname);
+  mostrarPantalla("pantallaGrupos");
+});
+
+// Si la página ya estaba abierta, la push de una reacción solo cambia el
+// #historial de la dirección (sin recargar): se abre el historial igual.
+window.addEventListener("hashchange", () => {
+  if (location.hash === "#historial" && leerSesionMaestraCompartida()) cargarHistorial();
+});
+
+// Indicador de reacciones nuevas en "📜 Ver lo que ya he mandado".
+async function actualizarIndicadorReacciones() {
+  const ind = el("indicadorReacciones");
+  try {
+    const datos = await llamarWorkerComoMaestra({ accion: "maestraReaccionesNuevas" });
+    ind.textContent = `💗 ${datos.nuevas} nueva${datos.nuevas === 1 ? "" : "s"}`;
+    ind.hidden = !datos.nuevas;
+  } catch (e) {
+    ind.hidden = true;
+  }
+}
 
 // ---------- sesión compartida (Portal de Maestras) ----------
 const sesionCompartidaReconocimientos = leerSesionMaestraCompartida();

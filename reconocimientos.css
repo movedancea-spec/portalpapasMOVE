@@ -67,3 +67,28 @@ font-weight:600;
 color:#a889e8;
 margin-top:4px;
 }
+
+/* Reacción de la alumna a un reconocimiento (2026-10-14). */
+.tarjeta-reconocimiento-historial-reaccion{
+  margin:8px 0 0;
+  display:inline-block;
+  font-size:13px;
+  font-weight:800;
+  color:#d6377f;
+  background:#ffe4f1;
+  border-radius:999px;
+  padding:3px 12px;
+}
+.tarjeta-reconocimiento-historial-reaccion.nueva{ background:#ef4b9b; color:white; }
+.indicador-reacciones{
+  display:inline-block;
+  margin-left:6px;
+  font-size:12px;
+  font-weight:800;
+  color:white;
+  background:#ef4b9b;
+  border-radius:999px;
+  padding:1px 9px;
+  vertical-align:1px;
+}
+.indicador-reacciones[hidden]{ display:none; }

@@ -1654,3 +1654,39 @@ font-weight:800;
 @media (prefers-reduced-motion: reduce){
 .traje-paso-actual .traje-punto{ animation:none; }
 }
+
+/* ---------- Reacciones a los reconocimientos (2026-10-14) ---------- */
+/* Las 5 en una sola fila, aun en celulares de 320 px. */
+.reacciones-reconocimiento{
+  display:flex;
+  gap:clamp(3px,1.2vw,6px);
+  margin-top:10px;
+}
+.reaccion-btn{
+  flex:0 1 auto;
+  min-width:0;
+  border:2px solid #ffd8ea;
+  background:white;
+  border-radius:999px;
+  font-size:clamp(17px,5vw,20px);
+  line-height:1;
+  padding:6px clamp(6px,2.2vw,10px);
+  cursor:pointer;
+  transition:transform .12s, background .12s, border-color .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.reaccion-btn:active{ transform:scale(.9); }
+.reaccion-btn.elegida{
+  background:#ffe4f1;
+  border-color:#ef4b9b;
+  box-shadow:0 4px 12px rgba(239,75,155,.3);
+  transform:scale(1.08);
+}
+.reaccion-btn.rebote{ animation:reboteReaccion .45s ease-out; }
+@keyframes reboteReaccion{
+  0%{ transform:scale(1); }
+  35%{ transform:scale(1.45) rotate(-8deg); }
+  65%{ transform:scale(.92) rotate(4deg); }
+  100%{ transform:scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce){ .reaccion-btn.rebote{ animation:none; } }
