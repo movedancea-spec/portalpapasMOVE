@@ -1,0 +1,728 @@
+{
+  "_nota": "Catálogo público de clases. Lo leen catalogo.html y el quiz de pasillos (Worker portalalumnas, /quiz-pasillos). \"estilo\" solo lo usa el quiz; Waltz y Coreografía especial no lo llevan porque no salen en el quiz.",
+  "quizPasillos": {
+    "_nota": "activoHasta: el quiz se apaga solo ese día a las 00:00 (Guatemala). promo: texto de la promo de pasillos; vacío = no se muestra.",
+    "activoHasta": "2026-10-19",
+    "promo": "",
+    "evento": "Blu Plaza – venta de pasillos, octubre 2026"
+  },
+  "rangosEdad": [
+    {
+      "id": "2-4",
+      "min": 2,
+      "max": 4
+    },
+    {
+      "id": "5",
+      "min": 5,
+      "max": 5
+    },
+    {
+      "id": "6",
+      "min": 6,
+      "max": 6
+    },
+    {
+      "id": "7-10",
+      "min": 7,
+      "max": 10
+    },
+    {
+      "id": "11-13",
+      "min": 11,
+      "max": 13
+    },
+    {
+      "id": "14-19",
+      "min": 14,
+      "max": 19
+    },
+    {
+      "id": "20-25",
+      "min": 20,
+      "max": 25
+    },
+    {
+      "id": "26-35",
+      "min": 26,
+      "max": 35
+    }
+  ],
+  "grupos": [
+    {
+      "id": "2-4",
+      "chip": "2 a 4 años",
+      "emoji": "🍼",
+      "titulo": "Little Movers",
+      "subtitulo": "Pre Danza",
+      "notaGeneral": "",
+      "clases": [
+        {
+          "nombre": "Pre Danza",
+          "horarios": [
+            "Lunes y miércoles, 2:50 – 3:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q485"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Pre Danza"
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "chip": "5 años",
+      "emoji": "🎀",
+      "titulo": "Minis",
+      "subtitulo": "5 años",
+      "notaGeneral": "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
+      "clases": [
+        {
+          "nombre": "Primary Ballet",
+          "horarios": [
+            "Martes 4:00 p.m.",
+            "Viernes 3:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        },
+        {
+          "nombre": "Jazz Mini",
+          "horarios": [
+            "Martes y jueves, 3:00 – 4:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Jazz"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "chip": "6 años",
+      "emoji": "⭐",
+      "titulo": "Minis",
+      "subtitulo": "6 años",
+      "notaGeneral": "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
+      "clases": [
+        {
+          "nombre": "Jazz Mini",
+          "horarios": [
+            "Martes y jueves, 3:00 – 4:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Jazz"
+        },
+        {
+          "nombre": "Primary Ballet",
+          "horarios": [
+            "Martes 4:00 p.m.",
+            "Viernes 3:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        },
+        {
+          "nombre": "Acro Mini",
+          "horarios": [
+            "Jueves, 5:00 – 6:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Acro"
+        }
+      ]
+    },
+    {
+      "id": "7-10",
+      "chip": "7 a 10 años",
+      "emoji": "🎧",
+      "titulo": "Juniors",
+      "subtitulo": "7 a 10 años",
+      "notaGeneral": "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
+      "clases": [
+        {
+          "nombre": "Jazz Movers Team",
+          "horarios": [
+            "Lunes y miércoles, 3:30 – 4:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Jazz"
+        },
+        {
+          "nombre": "Ballet Grado 2",
+          "horarios": [
+            "Martes 5:00 p.m.",
+            "Viernes 4:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        },
+        {
+          "nombre": "Hip Hop Mini",
+          "horarios": [
+            "Jueves, 4:00 – 5:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Urbanos"
+        },
+        {
+          "nombre": "Acro Mini",
+          "horarios": [
+            "Jueves, 5:00 – 6:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Acro"
+        }
+      ]
+    },
+    {
+      "id": "11-13",
+      "chip": "11 a 13 años",
+      "emoji": "🎤",
+      "titulo": "Teens",
+      "subtitulo": "11 a 13 años",
+      "notaGeneral": "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
+      "clases": [
+        {
+          "nombre": "Jazz Teen Movers",
+          "horarios": [
+            "Lunes y miércoles, 5:30 – 6:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Jazz"
+        },
+        {
+          "nombre": "Ballet Grado 4",
+          "horarios": [
+            "Martes 6:00 p.m.",
+            "Viernes 5:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        },
+        {
+          "nombre": "Acro 2",
+          "horarios": [
+            "Jueves, 6:00 – 7:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Acro"
+        },
+        {
+          "nombre": "Coreografía",
+          "horarios": [
+            "Jueves, 7:00 – 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Urbanos"
+        }
+      ]
+    },
+    {
+      "id": "14-19",
+      "chip": "14 a 19 años",
+      "emoji": "🔥",
+      "titulo": "Teen / Senior",
+      "subtitulo": "14 a 19 años",
+      "notaGeneral": "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
+      "clases": [
+        {
+          "nombre": "Contemporáneo",
+          "horarios": [
+            "Lunes, 7:30 – 8:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Contemporáneo"
+        },
+        {
+          "nombre": "Ballet Grado 4",
+          "horarios": [
+            "Martes 6:00 p.m.",
+            "Viernes 5:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        },
+        {
+          "nombre": "Jazz Teen Movers",
+          "horarios": [
+            "Lunes y miércoles, 5:30 – 6:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q575"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Jazz"
+        },
+        {
+          "nombre": "Ballroom",
+          "horarios": [
+            "Miércoles, 7:30 – 8:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballroom"
+        },
+        {
+          "nombre": "Acro 2",
+          "horarios": [
+            "Jueves, 6:00 – 7:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Acro"
+        },
+        {
+          "nombre": "Coreografía",
+          "horarios": [
+            "Jueves, 7:00 – 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Urbanos"
+        },
+        {
+          "nombre": "Ballet Puntas",
+          "horarios": [
+            "Viernes, 7:30 – 8:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        }
+      ]
+    },
+    {
+      "id": "20-25",
+      "chip": "20 a 25 años",
+      "emoji": "💃",
+      "titulo": "Adultos",
+      "subtitulo": "20 a 25 años",
+      "notaGeneral": "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
+      "clases": [
+        {
+          "nombre": "Contemporáneo",
+          "horarios": [
+            "Lunes, 7:30 – 8:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Contemporáneo"
+        },
+        {
+          "nombre": "Ballroom",
+          "horarios": [
+            "Miércoles, 7:30 – 8:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballroom"
+        },
+        {
+          "nombre": "Coreografía",
+          "horarios": [
+            "Jueves, 7:00 – 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Urbanos"
+        },
+        {
+          "nombre": "Ballet",
+          "horarios": [
+            "Viernes, 6:30 – 7:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        },
+        {
+          "nombre": "Ballet Puntas",
+          "horarios": [
+            "Viernes, 7:30 – 8:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        }
+      ]
+    },
+    {
+      "id": "26-35",
+      "chip": "26 a 35 años",
+      "emoji": "🩰",
+      "titulo": "Adultos",
+      "subtitulo": "Ballet mujeres, 26 a 35 años",
+      "notaGeneral": "",
+      "clases": [
+        {
+          "nombre": "Ballet Mujeres",
+          "horarios": [
+            "Viernes, 6:30 – 7:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        },
+        {
+          "nombre": "Ballet Puntas",
+          "horarios": [
+            "Viernes, 7:30 – 8:30 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Ballet"
+        }
+      ]
+    },
+    {
+      "id": "latino-individual",
+      "chip": "Latino individual",
+      "emoji": "💃",
+      "titulo": "Latino Individual",
+      "subtitulo": "Adultos",
+      "notaGeneral": "",
+      "clases": [
+        {
+          "nombre": "Bachata",
+          "horarios": [
+            "Martes, 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q200"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Bachata"
+        },
+        {
+          "nombre": "Salsa",
+          "horarios": [
+            "Jueves, 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q200"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Salsa"
+        },
+        {
+          "nombre": "Salsa + Bachata",
+          "horarios": [
+            "Martes y jueves, 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Combo mensual",
+              "valor": "Q300"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Salsa y Bachata"
+        }
+      ]
+    },
+    {
+      "id": "latino-pareja",
+      "chip": "Latino en pareja",
+      "emoji": "💑",
+      "titulo": "Latino en Pareja",
+      "subtitulo": "Adultos",
+      "notaGeneral": "",
+      "clases": [
+        {
+          "nombre": "Bachata",
+          "horarios": [
+            "Martes, 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q350"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Bachata"
+        },
+        {
+          "nombre": "Salsa",
+          "horarios": [
+            "Jueves, 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Mensualidad",
+              "valor": "Q350"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Salsa"
+        },
+        {
+          "nombre": "Salsa + Bachata",
+          "horarios": [
+            "Martes y jueves, 8:00 p.m."
+          ],
+          "precios": [
+            {
+              "label": "Combo mensual",
+              "valor": "Q450"
+            }
+          ],
+          "inscripcion": "Q275",
+          "estilo": "Salsa y Bachata"
+        }
+      ]
+    },
+    {
+      "id": "waltz",
+      "chip": "Waltz boda / XV",
+      "emoji": "🤵",
+      "titulo": "Waltz de Boda y XV Años",
+      "subtitulo": "",
+      "notaGeneral": "No incluye creación de coreografías que no sean waltz. Otro estilo tiene costo adicional.",
+      "clases": [
+        {
+          "nombre": "Clase particular por pareja",
+          "horarios": [
+            "Horario según disponibilidad"
+          ],
+          "precios": [
+            {
+              "label": "Precio por hora",
+              "valor": "Q375"
+            }
+          ],
+          "inscripcion": ""
+        },
+        {
+          "nombre": "Clase particular por grupo",
+          "horarios": [
+            "Horario según disponibilidad",
+            "Máximo 6 parejas"
+          ],
+          "precios": [
+            {
+              "label": "Precio por hora",
+              "valor": "Q495"
+            }
+          ],
+          "inscripcion": ""
+        }
+      ]
+    },
+    {
+      "id": "coreografia-especial",
+      "chip": "Coreografía especial",
+      "emoji": "🎬",
+      "titulo": "Coreografía Especial",
+      "subtitulo": "Montaje grupal, 3 a 15 personas",
+      "notaGeneral": "Las canciones deben ser proporcionadas por los interesados.",
+      "clases": [
+        {
+          "nombre": "Montaje y ensayos (6 horas)",
+          "horarios": [
+            "Horario según disponibilidad"
+          ],
+          "precios": [
+            {
+              "label": "Precio por 6 horas",
+              "valor": "Q2,810"
+            }
+          ],
+          "inscripcion": ""
+        },
+        {
+          "nombre": "Hora extra",
+          "horarios": [
+            "Agendada según disponibilidad"
+          ],
+          "precios": [
+            {
+              "label": "Precio",
+              "valor": "Q330"
+            }
+          ],
+          "inscripcion": ""
+        },
+        {
+          "nombre": "Mix de música",
+          "horarios": [
+            "Máximo 4 canciones, incluye 3 cambios"
+          ],
+          "precios": [
+            {
+              "label": "Precio",
+              "valor": "Q450"
+            },
+            {
+              "label": "Canción extra",
+              "valor": "Q95"
+            },
+            {
+              "label": "Edición extra",
+              "valor": "Q75"
+            }
+          ],
+          "inscripcion": ""
+        }
+      ]
+    }
+  ]
+}

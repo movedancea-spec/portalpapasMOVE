@@ -130,6 +130,10 @@ body{position:fixed;inset:0;}
 .btn-whatsapp-slide:active{transform:scale(.95);}
 @keyframes fabPulse{0%,100%{box-shadow:0 10px 26px rgba(40,200,110,.4);}50%{box-shadow:0 10px 32px rgba(40,200,110,.65);}}
 
+.catalogo-no-disponible{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:white;border-radius:22px;padding:22px 18px;box-shadow:0 10px 26px rgba(239,75,155,.15);}
+.catalogo-no-disponible .aviso-titulo{margin:0;font-size:18px;font-weight:800;color:#ef4b9b;}
+.catalogo-no-disponible .aviso-texto{margin:0;font-size:14px;font-weight:600;color:#666;}
+.catalogo-no-disponible .aviso-telefono{margin:4px 0;font-size:24px;font-weight:800;color:#ef4b9b;}
 .btn-reservar{
   display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap;
   background:rgba(255,255,255,.85);color:#ef4b9b;font-weight:800;font-size:14.5px;
@@ -231,101 +235,12 @@ const NUMERO_WHATSAPP = "50237529984";
 // cualquier familia sin necesitar ninguna clave.
 const LINK_RESERVA = "prueba.html";
 
-const GRUPOS = [
-  { id: "2-4", chip: "2 a 4 años", emoji: "🍼", titulo: "Little Movers", subtitulo: "Pre Danza",
-    notaGeneral: "",
-    clases: [
-      { nombre: "Pre Danza", horarios: ["Lunes y miércoles, 2:50 – 3:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q485" }], inscripcion: "Q275" },
-    ] },
-  { id: "5", chip: "5 años", emoji: "🎀", titulo: "Minis", subtitulo: "5 años",
-    notaGeneral: "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
-    clases: [
-      { nombre: "Primary Ballet", horarios: ["Martes 4:00 p.m.", "Viernes 3:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Jazz Mini", horarios: ["Martes y jueves, 3:00 – 4:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-    ] },
-  { id: "6", chip: "6 años", emoji: "⭐", titulo: "Minis", subtitulo: "6 años",
-    notaGeneral: "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
-    clases: [
-      { nombre: "Jazz Mini", horarios: ["Martes y jueves, 3:00 – 4:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Primary Ballet", horarios: ["Martes 4:00 p.m.", "Viernes 3:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Acro Mini", horarios: ["Jueves, 5:00 – 6:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-    ] },
-  { id: "7-10", chip: "7 a 10 años", emoji: "🎧", titulo: "Juniors", subtitulo: "7 a 10 años",
-    notaGeneral: "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
-    clases: [
-      { nombre: "Jazz Movers Team", horarios: ["Lunes y miércoles, 3:30 – 4:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Ballet Grado 2", horarios: ["Martes 5:00 p.m.", "Viernes 4:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Hip Hop Mini", horarios: ["Jueves, 4:00 – 5:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Acro Mini", horarios: ["Jueves, 5:00 – 6:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-    ] },
-  { id: "11-13", chip: "11 a 13 años", emoji: "🎤", titulo: "Teens", subtitulo: "11 a 13 años",
-    notaGeneral: "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
-    clases: [
-      { nombre: "Jazz Teen Movers", horarios: ["Lunes y miércoles, 5:30 – 6:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Ballet Grado 4", horarios: ["Martes 6:00 p.m.", "Viernes 5:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Acro 2", horarios: ["Jueves, 6:00 – 7:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Coreografía", horarios: ["Jueves, 7:00 – 8:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-    ] },
-  { id: "14-19", chip: "14 a 19 años", emoji: "🔥", titulo: "Teen / Senior", subtitulo: "14 a 19 años",
-    notaGeneral: "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
-    clases: [
-      { nombre: "Contemporáneo", horarios: ["Lunes, 7:30 – 8:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Ballet Grado 4", horarios: ["Martes 6:00 p.m.", "Viernes 5:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Jazz Teen Movers", horarios: ["Lunes y miércoles, 5:30 – 6:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q575" }], inscripcion: "Q275" },
-      { nombre: "Ballroom", horarios: ["Miércoles, 7:30 – 8:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Acro 2", horarios: ["Jueves, 6:00 – 7:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Coreografía", horarios: ["Jueves, 7:00 – 8:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Ballet Puntas", horarios: ["Viernes, 7:30 – 8:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-    ] },
-  { id: "20-25", chip: "20 a 25 años", emoji: "💃", titulo: "Adultos", subtitulo: "20 a 25 años",
-    notaGeneral: "Si deseas combinar estilos, la mensualidad se trabaja por paquete.",
-    clases: [
-      { nombre: "Contemporáneo", horarios: ["Lunes, 7:30 – 8:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Ballroom", horarios: ["Miércoles, 7:30 – 8:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Coreografía", horarios: ["Jueves, 7:00 – 8:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Ballet", horarios: ["Viernes, 6:30 – 7:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Ballet Puntas", horarios: ["Viernes, 7:30 – 8:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-    ] },
-  { id: "26-35", chip: "26 a 35 años", emoji: "🩰", titulo: "Adultos", subtitulo: "Ballet mujeres, 26 a 35 años",
-    notaGeneral: "",
-    clases: [
-      { nombre: "Ballet Mujeres", horarios: ["Viernes, 6:30 – 7:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-      { nombre: "Ballet Puntas", horarios: ["Viernes, 7:30 – 8:30 p.m."], precios: [{ label: "Mensualidad", valor: "Q375" }], inscripcion: "Q275" },
-    ] },
-  { id: "latino-individual", chip: "Latino individual", emoji: "💃", titulo: "Latino Individual", subtitulo: "Adultos",
-    notaGeneral: "",
-    clases: [
-      { nombre: "Bachata", horarios: ["Martes, 8:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q200" }], inscripcion: "Q275" },
-      { nombre: "Salsa", horarios: ["Jueves, 8:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q200" }], inscripcion: "Q275" },
-      { nombre: "Salsa + Bachata", horarios: ["Martes y jueves, 8:00 p.m."], precios: [{ label: "Combo mensual", valor: "Q300" }], inscripcion: "Q275" },
-    ] },
-  { id: "latino-pareja", chip: "Latino en pareja", emoji: "💑", titulo: "Latino en Pareja", subtitulo: "Adultos",
-    notaGeneral: "",
-    clases: [
-      { nombre: "Bachata", horarios: ["Martes, 8:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q350" }], inscripcion: "Q275" },
-      { nombre: "Salsa", horarios: ["Jueves, 8:00 p.m."], precios: [{ label: "Mensualidad", valor: "Q350" }], inscripcion: "Q275" },
-      { nombre: "Salsa + Bachata", horarios: ["Martes y jueves, 8:00 p.m."], precios: [{ label: "Combo mensual", valor: "Q450" }], inscripcion: "Q275" },
-    ] },
-  { id: "waltz", chip: "Waltz boda / XV", emoji: "🤵", titulo: "Waltz de Boda y XV Años", subtitulo: "",
-    notaGeneral: "No incluye creación de coreografías que no sean waltz. Otro estilo tiene costo adicional.",
-    clases: [
-      { nombre: "Clase particular por pareja", horarios: ["Horario según disponibilidad"], precios: [{ label: "Precio por hora", valor: "Q375" }], inscripcion: "" },
-      { nombre: "Clase particular por grupo", horarios: ["Horario según disponibilidad", "Máximo 6 parejas"], precios: [{ label: "Precio por hora", valor: "Q495" }], inscripcion: "" },
-    ] },
-  { id: "coreografia-especial", chip: "Coreografía especial", emoji: "🎬", titulo: "Coreografía Especial", subtitulo: "Montaje grupal, 3 a 15 personas",
-    notaGeneral: "Las canciones deben ser proporcionadas por los interesados.",
-    clases: [
-      { nombre: "Montaje y ensayos (6 horas)", horarios: ["Horario según disponibilidad"], precios: [{ label: "Precio por 6 horas", valor: "Q2,810" }], inscripcion: "" },
-      { nombre: "Hora extra", horarios: ["Agendada según disponibilidad"], precios: [{ label: "Precio", valor: "Q330" }], inscripcion: "" },
-      { nombre: "Mix de música", horarios: ["Máximo 4 canciones, incluye 3 cambios"], precios: [{ label: "Precio", valor: "Q450" }, { label: "Canción extra", valor: "Q95" }, { label: "Edición extra", valor: "Q75" }], inscripcion: "" },
-    ] },
-];
-
-const RANGOS_EDAD = [
-  { id: "2-4", min: 2, max: 4 }, { id: "5", min: 5, max: 5 }, { id: "6", min: 6, max: 6 },
-  { id: "7-10", min: 7, max: 10 }, { id: "11-13", min: 11, max: 13 }, { id: "14-19", min: 14, max: 19 },
-  { id: "20-25", min: 20, max: 25 }, { id: "26-35", min: 26, max: 35 },
-];
+// El catálogo (secciones, clases, horarios, precios y rangos de edad)
+// vive en catalogo.json desde el 2026-10-14: lo leen esta página y el
+// quiz de pasillos del Worker (/quiz-pasillos), así un precio se cambia
+// en un solo lugar. Ver "arranque" al final.
+let GRUPOS = [];
+let RANGOS_EDAD = [];
 
 function el(id) { return document.getElementById(id); }
 
@@ -684,13 +599,68 @@ function renderSlideActual() {
 }
 
 /* ---------- arranque ---------- */
-renderGrid();
-
-const params = new URLSearchParams(window.location.search);
-const idDirecto = (params.get("edad") || params.get("grupo") || "").trim();
-if (idDirecto && GRUPOS.find((g) => g.id === idDirecto)) {
-  iniciarHistoria(idDirecto, true);
+// "no-cache": GitHub Pages guarda los archivos 10 min; así el navegador
+// pregunta si hay versión nueva y un cambio de precio se ve de una vez.
+// Revisa que catalogo.json traiga todo lo que la página usa. Si algo
+// falta (archivo mal editado), se muestra el aviso de abajo en vez de
+// una página rota. La misma revisión hace el Worker para el quiz y el
+// GitHub Action "Revisar catálogo" al subir el archivo.
+function catalogoValido(datos) {
+  const texto = (v) => typeof v === "string";
+  const lista = (v) => Array.isArray(v);
+  if (!datos || !lista(datos.grupos) || !datos.grupos.length || !lista(datos.rangosEdad)) return false;
+  const gruposOk = datos.grupos.every((g) =>
+    texto(g.id) && texto(g.chip) && texto(g.titulo) && lista(g.clases) && g.clases.length &&
+    g.clases.every((c) => texto(c.nombre) && lista(c.horarios) && c.horarios.every(texto) &&
+      lista(c.precios) && c.precios.every((p) => p && texto(p.label) && texto(p.valor)))
+  );
+  const rangosOk = datos.rangosEdad.every((r) => r && texto(r.id) && Number.isFinite(r.min) && Number.isFinite(r.max));
+  return gruposOk && rangosOk;
 }
+
+// Sin internet o con el archivo mal: nunca una página en blanco.
+function mostrarCatalogoNoDisponible() {
+  const cont = el("gridCat");
+  cont.innerHTML = "";
+  const aviso = document.createElement("div");
+  aviso.className = "catalogo-no-disponible";
+  aviso.innerHTML =
+    '<p class="aviso-titulo">¡Ups! No pudimos cargar nuestras clases en este momento 💗</p>' +
+    '<p class="aviso-texto">Escríbenos o llámanos y con gusto te contamos horarios y precios:</p>' +
+    '<p class="aviso-telefono">📞 3752-9984</p>';
+  const btn = document.createElement("a");
+  btn.className = "btn-whatsapp-slide";
+  btn.target = "_blank";
+  btn.rel = "noopener";
+  btn.href = mensajeWhatsapp("Hola! Quiero información de las clases de MOVE Dance Academy 😊");
+  btn.innerHTML = ICONO_WHATSAPP + "<span>Escríbenos por WhatsApp</span>";
+  aviso.appendChild(btn);
+  cont.appendChild(aviso);
+}
+
+async function cargarCatalogo() {
+  try {
+    const resp = await fetch("catalogo.json", { cache: "no-cache" });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const datos = await resp.json();
+    if (!catalogoValido(datos)) throw new Error("catalogo.json incompleto o mal escrito");
+    GRUPOS = datos.grupos;
+    RANGOS_EDAD = datos.rangosEdad;
+    renderGrid();
+  } catch (e) {
+    console.error("Catálogo no disponible:", e.message);
+    mostrarCatalogoNoDisponible();
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const idDirecto = (params.get("edad") || params.get("grupo") || "").trim();
+  if (idDirecto && GRUPOS.find((g) => g.id === idDirecto)) {
+    iniciarHistoria(idDirecto, true);
+  }
+}
+
+cargarCatalogo();
 </script>
 </body>
 </html>

@@ -1,0 +1,20 @@
+# Revisa catalogo.json cada vez que se sube un cambio. Si quedó mal
+# escrito, este Action sale en rojo (con el error y la línea) y GitHub
+# manda un correo. catalogo.html muestra un aviso con el teléfono y el
+# quiz de pasillos sigue con la última copia buena mientras se arregla.
+name: Revisar catálogo
+on:
+  push:
+    paths:
+      - "catalogo.json"
+      - "revisar-catalogo.mjs"
+  workflow_dispatch:
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node revisar-catalogo.mjs
