@@ -3866,6 +3866,69 @@ function medidasDeAlumnaTraje(alumnaId) {
   return fechas[0] || "";
 }
 
+// Nota de medidas (por alumna; la misma en todos sus trajes). Sirve para
+// cuando no se le pudieron tomar medidas y la modista se basa en otra
+// niña. La ven Recepción y la modista, nunca el portal (puede mencionar
+// a otras niñas). No marca 📏 Medidas.
+let notaEditandoAlumnaId = "";
+
+function notaMedidasDeAlumnaTraje(alumnaId) {
+  const fila = showDatos.bailes.flatMap((b) => b.alumnas).find((a) => a.alumnaId === alumnaId && a.notaMedidas);
+  return fila ? fila.notaMedidas : "";
+}
+
+function editorNotaMedidas(alumna, nota) {
+  const caja = crearEl("div", "traje-nota-editor");
+  const texto = document.createElement("textarea");
+  texto.className = "input-texto traje-nota-texto";
+  texto.maxLength = 500;
+  texto.rows = 3;
+  texto.placeholder = "Ej. No se pudo medir, usar medidas de Fulanita, es un poco más alta";
+  texto.value = nota;
+  const acciones = crearEl("div", "show-acciones");
+  const guardar = crearEl("button", "btn-secundario btn-chico", "💾 Guardar nota");
+  guardar.type = "button";
+  guardar.addEventListener("click", () => guardarNotaMedidas(alumna, texto.value, guardar));
+  acciones.appendChild(guardar);
+  if (nota) {
+    const borrar = crearEl("button", "btn-secundario btn-chico show-btn-peligro", "🗑 Borrar nota");
+    borrar.type = "button";
+    borrar.addEventListener("click", () => {
+      if (window.confirm(`¿Borrar la nota de medidas de ${alumna.nombre}?`)) guardarNotaMedidas(alumna, "", borrar);
+    });
+    acciones.appendChild(borrar);
+  }
+  const cancelar = crearEl("button", "btn-enlace", "Cancelar");
+  cancelar.type = "button";
+  cancelar.addEventListener("click", () => {
+    notaEditandoAlumnaId = "";
+    renderTrajesShow();
+  });
+  acciones.appendChild(cancelar);
+  caja.append(texto, crearEl("p", "pista-campo", "La ve la modista en su link. Las familias no la ven."), acciones);
+  setTimeout(() => texto.focus(), 0);
+  return caja;
+}
+
+async function guardarNotaMedidas(alumna, nota, boton) {
+  boton.disabled = true;
+  boton.textContent = "Guardando...";
+  try {
+    const r = await llamarWorker({ accion: "showGuardarNotaMedidas", clave: claveRecepcion, alumnaId: alumna.alumnaId, nota });
+    const ids = new Set(r.asignacionIds || []);
+    showDatos.bailes.forEach((b) =>
+      b.alumnas.forEach((a) => {
+        if (ids.has(a.asignacionId)) a.notaMedidas = r.nota || "";
+      })
+    );
+    notaEditandoAlumnaId = "";
+    mensajeShow("mensajeShow", r.nota ? `✅ Nota de medidas guardada para ${alumna.nombre}.` : `✅ Nota de medidas borrada.`, "ok");
+  } catch (e) {
+    mensajeShow("mensajeShow", e.message, "error");
+  }
+  renderTrajesShow();
+}
+
 function botonEtapaTraje(nombre, fecha, alGuardar, interna = false) {
   const boton = crearEl("button", "traje-etapa" + (fecha ? " marcada" : "") + (interna ? " interna" : ""));
   boton.type = "button";
@@ -3905,6 +3968,9 @@ function renderTrajesShow() {
     if (estado) titulo.appendChild(estado);
     tarjeta.appendChild(titulo);
 
+    const nota = notaMedidasDeAlumnaTraje(a.alumnaId);
+    if (nota) tarjeta.appendChild(crearEl("p", "traje-nota", `📝 ${nota}`));
+
     const medidas = medidasDeAlumnaTraje(a.alumnaId);
     const filaMedidas = crearEl("div", "traje-etapas traje-etapas-medidas");
     filaMedidas.appendChild(
@@ -3912,7 +3978,16 @@ function renderTrajesShow() {
         marcarEtapaTraje({ etapa: "medidas", alumnaId: a.alumnaId }, !medidas, `“Medidas” de ${a.nombre}`, boton)
       )
     );
+    const botonNota = crearEl("button", "traje-etapa traje-nota-boton" + (nota ? " con-nota" : ""));
+    botonNota.type = "button";
+    botonNota.append(crearEl("span", "traje-etapa-nombre", "📝 Nota"), crearEl("span", "traje-etapa-fecha", nota ? "Editar" : "Agregar"));
+    botonNota.addEventListener("click", () => {
+      notaEditandoAlumnaId = notaEditandoAlumnaId === a.alumnaId ? "" : a.alumnaId;
+      renderTrajesShow();
+    });
+    filaMedidas.appendChild(botonNota);
     tarjeta.appendChild(filaMedidas);
+    if (notaEditandoAlumnaId === a.alumnaId) tarjeta.appendChild(editorNotaMedidas(a, nota));
 
     a.trajes
       .sort((x, y) => x.baile.nombre.localeCompare(y.baile.nombre, "es", { sensitivity: "base" }))

@@ -39,6 +39,8 @@ const FILTROS_AVANCE = {
   tallaje: (a) => !a.tallaje,
   recibido: (a) => !a.recibido,
   entregados: (a) => Boolean(a.recibido),
+  // Nota de medidas de Recepción (p. ej. "usar medidas de Fulanita").
+  conNota: (a) => Boolean(a.nota),
 };
 
 function el(id) {
@@ -312,6 +314,8 @@ function listaConAvance(baile, tarjeta) {
       indicadorAvance("🧵", "Entregado por ti", a.recibido, "Entregado por ti: ")
     );
     fila.append(crearEl("span", "avance-nombre", a.nombre), chips);
+    // La nota de medidas que dejó Recepción, destacada (solo lectura).
+    if (a.nota) fila.appendChild(crearEl("span", "avance-nota", `📝 ${a.nota}`));
     lista.appendChild(fila);
   });
   tarjeta.appendChild(lista);

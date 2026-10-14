@@ -199,6 +199,21 @@ color:#9a9a9a;
 }
 .avance-chip.hecho{ background:#ffe4f1; color:#d6377f; }
 
+/* Nota de medidas (Recepción): destacada en amarillo. */
+.avance-nota{
+display:block;
+margin-top:4px;
+padding:5px 9px;
+border-radius:10px;
+background:#fff3cc;
+border:1px solid #f0c94a;
+font-size:12.5px;
+font-weight:700;
+color:#7a5200;
+white-space:pre-line;
+overflow-wrap:anywhere;
+}
+
 /* ---------- Cuentas de "Mis pagos" ---------- */
 .cuentas-caja{
 margin:18px 0 10px;

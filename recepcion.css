@@ -1089,7 +1089,25 @@ grid-template-columns:repeat(auto-fit,minmax(104px,1fr));
 gap:6px;
 }
 
-.traje-etapas-medidas{ grid-template-columns:minmax(0,1fr); }
+/* 📏 Medidas y 📝 Nota, uno junto al otro. */
+.traje-etapas-medidas{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+
+.traje-nota{
+margin:4px 0 8px;
+padding:6px 10px;
+border-radius:10px;
+background:#fff6e0;
+border:1px solid #f3d38a;
+font-size:12.5px;
+font-weight:700;
+color:#8a5a00;
+white-space:pre-line;
+overflow-wrap:anywhere;
+}
+.traje-nota-boton{ border-style:dashed; }
+.traje-nota-boton.con-nota{ border-color:#e0a930; background:#fff6e0; color:#8a5a00; }
+.traje-nota-editor{ margin:8px 0 4px; }
+.traje-nota-texto{ width:100%; resize:vertical; font-family:inherit; }
 
 .traje-etapa{
 display:flex;
