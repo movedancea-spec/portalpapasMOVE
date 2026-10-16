@@ -3,8 +3,8 @@
 // (ni el portal ni el quiz). Guarda la página y el logo para que la
 // ruleta abra aunque se caiga el internet y diga "Conectando…": sin
 // internet NO se gira (los premios los decide el Worker).
-const CACHE = "ruleta-premios-v2";
-const ARCHIVOS = ["/ruleta/", "/logo.png"];
+const CACHE = "ruleta-premios-v3";
+const ARCHIVOS = ["/ruleta/", "/ruleta/ruleta-giro.webp", "/logo.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ARCHIVOS)).catch(() => {}));
