@@ -6,6 +6,20 @@
     "promo": "",
     "evento": "Blu Plaza – venta de pasillos, octubre 2026"
   },
+  "ruleta": {
+    "_nota": "Ruleta de premios (academiamovedance.com/ruleta/). activoHasta: se apaga ese día a las 00:00 (Guatemala). probabilidades: % de cada premio (no salen en pantalla); giraDeNuevo = % de giros que caen en GIRA DE NUEVO y el resto se reparte entre los premios. Los cupos y el nombre del evento se manejan en Recepción → Ruleta de premios; eventoInicial solo se usa la primera vez.",
+    "activoHasta": "2026-10-19",
+    "condiciones": "Válido para inscripciones hasta el 31 de octubre de 2026. No acumulable. Un premio por familia.",
+    "eventoInicial": "Blu Plaza oct 2026",
+    "probabilidades": {
+      "semana": 30,
+      "mensualidad": 25,
+      "claseExtra": 20,
+      "camp": 15,
+      "inscripcion": 10,
+      "giraDeNuevo": 10
+    }
+  },
   "rangosEdad": [
     {
       "id": "2-4",

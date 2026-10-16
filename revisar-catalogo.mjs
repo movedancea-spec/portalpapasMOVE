@@ -66,6 +66,20 @@ if (q.activoHasta !== undefined) {
   if (!m || fecha.getUTCMonth() !== +m[2] - 1 || fecha.getUTCDate() !== +m[3]) error(`quizPasillos.activoHasta "${q.activoHasta}" debe ser una fecha real escrita AAAA-MM-DD (ej. 2026-10-19).`);
 }
 if (q.promo !== undefined && !esTexto(q.promo)) error("quizPasillos.promo debe ser un texto (vacío \"\" para no mostrar promo).");
+// Ruleta de premios: si este bloque queda mal, el Worker apaga la ruleta
+// o usa sus valores de respaldo (el quiz y catalogo.html no lo leen).
+const ru = datos.ruleta;
+if (ru !== undefined) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ru.activoHasta || ""));
+  const fecha = m && new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  if (!m || fecha.getUTCMonth() !== +m[2] - 1 || fecha.getUTCDate() !== +m[3]) error(`ruleta.activoHasta "${ru.activoHasta}" debe ser una fecha real escrita AAAA-MM-DD (ej. 2026-10-19).`);
+  if (ru.condiciones !== undefined && !esTexto(ru.condiciones)) error("ruleta.condiciones debe ser un texto.");
+  const pr = ru.probabilidades || {};
+  for (const k of ["semana", "mensualidad", "claseExtra", "camp", "inscripcion", "giraDeNuevo"]) {
+    if (!Number.isFinite(pr[k]) || pr[k] < 0) error(`ruleta.probabilidades.${k} debe ser un número (0 o más).`);
+  }
+  if (Number.isFinite(pr.giraDeNuevo) && pr.giraDeNuevo > 90) error("ruleta.probabilidades.giraDeNuevo no puede pasar de 90.");
+}
 
 if (errores.length) {
   console.error(`❌ catalogo.json tiene ${errores.length} problema(s):`);
@@ -73,4 +87,4 @@ if (errores.length) {
   process.exit(1);
 }
 const clases = datos.grupos.reduce((n, g) => n + g.clases.length, 0);
-console.log(`✅ catalogo.json está bien: ${datos.grupos.length} secciones, ${clases} clases. Quiz hasta ${q.activoHasta || "(sin fecha)"}, promo: ${q.promo ? `"${q.promo}"` : "(vacía)"}.`);
+console.log(`✅ catalogo.json está bien: ${datos.grupos.length} secciones, ${clases} clases. Quiz hasta ${q.activoHasta || "(sin fecha)"}, promo: ${q.promo ? `"${q.promo}"` : "(vacía)"}.${ru ? ` Ruleta hasta ${ru.activoHasta}.` : ""}`);

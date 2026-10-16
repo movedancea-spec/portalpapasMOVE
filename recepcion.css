@@ -1694,3 +1694,20 @@ font-size:11px;
 white-space:pre-wrap;
 overflow-wrap:anywhere;
 }
+
+/* ---------- Ruleta de premios ---------- */
+.ruleta-buscar{ display:flex; gap:8px; align-items:center; }
+.ruleta-buscar .input-texto{ flex:1; text-transform:uppercase; letter-spacing:1px; font-weight:700; }
+.ruleta-tarjeta{ border:2px solid #ffd3e8; border-radius:14px; padding:12px 14px; background:#fff; margin-top:8px; }
+.ruleta-tarjeta.canjeado{ border-color:#bfe5c8; background:#f3fbf5; }
+.ruleta-tarjeta-premio{ font-size:20px; font-weight:800; color:#ef4b9b; }
+.ruleta-tarjeta-linea{ font-size:15px; margin-top:2px; }
+.ruleta-tarjeta-estado{ font-weight:800; margin-top:8px; }
+.ruleta-tabla{ width:100%; border-collapse:collapse; font-size:15px; }
+.ruleta-tabla th, .ruleta-tabla td{ padding:8px 6px; border-bottom:1px solid #f3d9e6; text-align:center; }
+.ruleta-tabla th:first-child, .ruleta-tabla td:first-child{ text-align:left; }
+.ruleta-tabla input{ width:72px; padding:6px; font-size:16px; text-align:center; border:2px solid #ffc6e1; border-radius:8px; font-family:inherit; }
+.ruleta-agotado{ color:#7c4dbd; font-weight:800; }
+.ruleta-confirmar{ border:2px solid #f5b5b5; background:#fff5f5; border-radius:12px; padding:10px 12px; margin-top:10px; }
+.ruleta-confirmar p{ margin:0 0 8px; }
+.ruleta-confirmar-botones{ display:flex; gap:8px; flex-wrap:wrap; }

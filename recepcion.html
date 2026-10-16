@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=nota-medidas-v1" />
+<link rel="stylesheet" href="recepcion.css?v=ruleta-v1" />
 </head>
 <body>
 
@@ -122,6 +122,10 @@
       <button class="btn-menu" id="btnMenuFichas" type="button">
         <span class="btn-menu-icono">📝</span>
         <span class="btn-menu-texto">Fichas de inscripción</span>
+      </button>
+      <button class="btn-menu" id="btnMenuRuleta" type="button">
+        <span class="btn-menu-icono">🎡</span>
+        <span class="btn-menu-texto">Ruleta de premios</span>
       </button>
     </div>
 
@@ -572,6 +576,53 @@
     <div id="listaFeriados" class="lista-resultados" style="margin-top:16px;"></div>
   </section>
 
+  <!-- ============ PANTALLA: RULETA DE PREMIOS (academiamovedance.com/ruleta/) ============ -->
+  <!-- Canjear códigos, cupos de cada premio y reiniciar la ruleta. Los
+       cupos viven en el Worker (no en Airtable); los giros, en la tabla
+       PREMIOS RULETA. -->
+  <section id="pantallaRuleta" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverRuleta" type="button">← Menú</button>
+      <span class="barra-titulo">🎡 Ruleta de premios</span>
+    </div>
+
+    <p class="subtitulo">Canjear un código</p>
+    <p class="pista-campo">Escribe el código que trae la familia (ej. MOVE-4K7P) para ver su premio y marcarlo como canjeado.</p>
+    <div class="ruleta-buscar">
+      <input type="text" id="inputRuletaCodigo" class="input-texto" placeholder="MOVE-4K7P" autocomplete="off" autocapitalize="characters" maxlength="12" />
+      <button class="btn-secundario" id="btnRuletaBuscar" type="button">🔍 Buscar</button>
+    </div>
+    <p class="mensaje-form" id="mensajeRuletaCodigo"></p>
+    <div id="resultadoRuletaCodigo"></div>
+
+    <div class="separador-lista"></div>
+    <p class="subtitulo">Premios</p>
+    <p class="pista-campo">
+      “Cantidad” es cuántas veces puede salir cada premio en este evento. Cuando se acaban, en la ruleta se ven como “YA SALIÓ ✔”. “GIRA DE NUEVO” nunca se acaba.
+    </p>
+    <p class="pista-campo" id="ruletaEventoActual"></p>
+    <div id="tablaRuletaCupos"><p class="lista-vacia">Cargando...</p></div>
+    <button class="btn-grande btn-siguiente" id="btnRuletaGuardarCupos" type="button">💾 Guardar cantidades</button>
+    <p class="mensaje-form" id="mensajeRuletaCupos"></p>
+
+    <div class="separador-lista"></div>
+    <p class="subtitulo">🔄 Reiniciar ruleta</p>
+    <p class="pista-campo">
+      Todos los premios vuelven a su cantidad y los mismos WhatsApp pueden volver a girar. No se borra nada: los códigos ya entregados siguen sirviendo para canjear. Los giros nuevos llevan el nombre del evento nuevo.
+    </p>
+    <p class="etiqueta-campo">Nombre del evento</p>
+    <input type="text" id="inputRuletaEvento" class="input-texto" placeholder="Ej. Venta navideña 2026" autocomplete="off" maxlength="120" />
+    <button class="btn-secundario btn-ancho" id="btnRuletaReiniciar" type="button">🔄 Reiniciar ruleta</button>
+    <div class="ruleta-confirmar" id="confirmarRuletaReiniciar" hidden>
+      <p><b>¿Seguro? Todos los premios vuelven a estar disponibles.</b></p>
+      <div class="ruleta-confirmar-botones">
+        <button class="btn-secundario btn-chico show-btn-peligro" id="btnRuletaReiniciarSi" type="button">Sí, reiniciar</button>
+        <button class="btn-secundario btn-chico" id="btnRuletaReiniciarNo" type="button">Cancelar</button>
+      </div>
+    </div>
+    <p class="mensaje-form" id="mensajeRuletaReiniciar"></p>
+  </section>
+
   <!-- ============ PANTALLA: ALUMNAS SHOW ============ -->
   <!-- Catálogo de bailes/trajes, qué alumna sale en cuál, resumen por
        baile y el link de solo lectura para la modista. -->
@@ -994,7 +1045,7 @@
 
 </div>
 
-<script src="recepcion.js?v=nota-medidas-v1"></script>
+<script src="recepcion.js?v=ruleta-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

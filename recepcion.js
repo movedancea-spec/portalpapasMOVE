@@ -63,6 +63,7 @@ const PANTALLAS = [
   "pantallaShow",
   "pantallaCampamento",
   "pantallaFichas",
+  "pantallaRuleta",
 ];
 
 function mostrarPantalla(id) {
@@ -439,6 +440,11 @@ el("btnMenuShow").addEventListener("click", () => {
 el("btnMenuCampamento").addEventListener("click", () => {
   mostrarPantalla("pantallaCampamento");
   abrirCampamento();
+});
+
+el("btnMenuRuleta").addEventListener("click", () => {
+  mostrarPantalla("pantallaRuleta");
+  abrirRuleta();
 });
 
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -5581,3 +5587,221 @@ el("btnMandarPruebaWhatsapp").addEventListener("click", async () => {
 setInterval(() => {
   if (claveRecepcion && !el("pantallaMenu").hidden) cargarPagosPorLink();
 }, 2 * 60 * 1000);
+
+// ---------- Ruleta de premios (academiamovedance.com/ruleta/) ----------
+// Canjear códigos (tabla PREMIOS RULETA) y manejar los cupos. Los cupos
+// y el nombre del evento viven en el Worker, que es el único que decide
+// premios; aquí solo se ven y se cambian con la clave de Recepción.
+
+let ruletaEstado = null; // { evento, premios: [{ id, nombre, inicial, entregados, disponibles }] }
+
+function fechaHoraRuleta(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("es-GT", {
+    timeZone: "America/Guatemala", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+function abrirRuleta() {
+  el("inputRuletaCodigo").value = "";
+  el("resultadoRuletaCodigo").innerHTML = "";
+  ["mensajeRuletaCodigo", "mensajeRuletaCupos", "mensajeRuletaReiniciar"].forEach((id) => {
+    el(id).textContent = "";
+    el(id).className = "mensaje-form";
+  });
+  el("confirmarRuletaReiniciar").hidden = true;
+  cargarRuleta();
+}
+
+async function cargarRuleta() {
+  el("tablaRuletaCupos").innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    ruletaEstado = await llamarWorker({ accion: "recepcionRuletaEstado", clave: claveRecepcion });
+    renderRuletaCupos();
+  } catch (e) {
+    el("tablaRuletaCupos").innerHTML = "";
+    el("tablaRuletaCupos").appendChild(Object.assign(document.createElement("p"), { className: "lista-vacia", textContent: e.message }));
+  }
+}
+
+function renderRuletaCupos() {
+  el("ruletaEventoActual").textContent = `Evento actual: ${ruletaEstado.evento}`;
+  const tabla = document.createElement("table");
+  tabla.className = "ruleta-tabla";
+  const cab = tabla.createTHead().insertRow();
+  ["Premio", "Cantidad", "Entregados", "Disponibles"].forEach((t) => {
+    const th = document.createElement("th");
+    th.textContent = t;
+    cab.appendChild(th);
+  });
+  const cuerpo = tabla.createTBody();
+  ruletaEstado.premios.forEach((p) => {
+    const fila = cuerpo.insertRow();
+    fila.insertCell().textContent = p.nombre;
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.max = "9999";
+    input.inputMode = "numeric";
+    input.value = p.inicial;
+    input.dataset.premio = p.id;
+    fila.insertCell().appendChild(input);
+    fila.insertCell().textContent = p.entregados;
+    const disp = fila.insertCell();
+    if (p.disponibles > 0) disp.textContent = p.disponibles;
+    else {
+      disp.textContent = "0 · YA SALIÓ ✔";
+      disp.className = "ruleta-agotado";
+    }
+  });
+  el("tablaRuletaCupos").innerHTML = "";
+  el("tablaRuletaCupos").appendChild(tabla);
+  if (ruletaEstado.filasPorGuardar) {
+    const aviso = document.createElement("p");
+    aviso.className = "pista-campo";
+    aviso.textContent = `⏳ ${ruletaEstado.filasPorGuardar} giro(s) todavía guardándose en Airtable (se reintenta solo).`;
+    el("tablaRuletaCupos").appendChild(aviso);
+  }
+}
+
+el("btnRuletaGuardarCupos").addEventListener("click", async () => {
+  const mensaje = el("mensajeRuletaCupos");
+  const cupos = {};
+  for (const input of el("tablaRuletaCupos").querySelectorAll("input[data-premio]")) {
+    const n = Number(input.value);
+    if (input.value === "" || !Number.isInteger(n) || n < 0) {
+      mensaje.textContent = "Las cantidades deben ser números enteros (0 o más).";
+      mensaje.className = "mensaje-form mensaje-form-error";
+      return;
+    }
+    cupos[input.dataset.premio] = n;
+  }
+  mensaje.textContent = "Guardando...";
+  mensaje.className = "mensaje-form";
+  try {
+    ruletaEstado = await llamarWorker({ accion: "recepcionRuletaGuardarCupos", clave: claveRecepcion, cupos });
+    renderRuletaCupos();
+    mensaje.textContent = "✅ Cantidades guardadas. La ruleta las toma en menos de un minuto.";
+    mensaje.className = "mensaje-form mensaje-form-ok";
+  } catch (e) {
+    mensaje.textContent = e.message;
+    mensaje.className = "mensaje-form mensaje-form-error";
+  }
+});
+
+el("btnRuletaReiniciar").addEventListener("click", () => {
+  const mensaje = el("mensajeRuletaReiniciar");
+  if (!el("inputRuletaEvento").value.trim()) {
+    mensaje.textContent = "Escribe el nombre del evento nuevo (puede ser el mismo).";
+    mensaje.className = "mensaje-form mensaje-form-error";
+    return;
+  }
+  mensaje.textContent = "";
+  el("confirmarRuletaReiniciar").hidden = false;
+});
+el("btnRuletaReiniciarNo").addEventListener("click", () => (el("confirmarRuletaReiniciar").hidden = true));
+el("btnRuletaReiniciarSi").addEventListener("click", async () => {
+  el("confirmarRuletaReiniciar").hidden = true;
+  const mensaje = el("mensajeRuletaReiniciar");
+  mensaje.textContent = "Reiniciando...";
+  mensaje.className = "mensaje-form";
+  try {
+    ruletaEstado = await llamarWorker({ accion: "recepcionRuletaReiniciar", clave: claveRecepcion, evento: el("inputRuletaEvento").value });
+    renderRuletaCupos();
+    el("inputRuletaEvento").value = "";
+    mensaje.textContent = `✅ Ruleta reiniciada. Evento: ${ruletaEstado.evento}. Todos los premios están disponibles otra vez.`;
+    mensaje.className = "mensaje-form mensaje-form-ok";
+  } catch (e) {
+    mensaje.textContent = e.message;
+    mensaje.className = "mensaje-form mensaje-form-error";
+  }
+});
+
+function renderPremioRuleta(r) {
+  const cont = el("resultadoRuletaCodigo");
+  cont.innerHTML = "";
+  const caja = document.createElement("div");
+  caja.className = "ruleta-tarjeta" + (r.canjeado ? " canjeado" : "");
+  const linea = (texto, clase = "ruleta-tarjeta-linea") => {
+    const d = document.createElement("div");
+    d.className = clase;
+    d.textContent = texto;
+    caja.appendChild(d);
+  };
+  linea(`${r.codigo} · ${r.premio}`, "ruleta-tarjeta-premio");
+  linea(`👧 ${r.nombreNina}${r.edad ? ` (${r.edad})` : ""}`);
+  if (r.adulto) linea(`👤 ${r.adulto}`);
+  linea(`📱 ${r.whatsapp}`);
+  linea(`🎡 ${r.evento} · ${fechaHoraRuleta(r.fecha)}`);
+  if (r.canjeado) {
+    linea(`✅ Ya canjeado${r.canjeadoFecha ? ` el ${fechaHoraRuleta(r.canjeadoFecha)}` : ""}`, "ruleta-tarjeta-estado");
+  } else {
+    linea("Sin canjear", "ruleta-tarjeta-estado");
+    const confirmar = document.createElement("div");
+    confirmar.className = "ruleta-confirmar";
+    confirmar.hidden = true;
+    const pregunta = document.createElement("p");
+    pregunta.textContent = `¿Marcar ${r.codigo} como canjeado? Ya no se podrá volver a usar.`;
+    const botones = document.createElement("div");
+    botones.className = "ruleta-confirmar-botones";
+    const si = Object.assign(document.createElement("button"), { type: "button", className: "btn-secundario btn-chico", textContent: "Sí, canjear" });
+    const no = Object.assign(document.createElement("button"), { type: "button", className: "btn-secundario btn-chico", textContent: "Cancelar" });
+    botones.append(si, no);
+    confirmar.append(pregunta, botones);
+    const boton = Object.assign(document.createElement("button"), { type: "button", className: "btn-grande btn-siguiente", textContent: "✅ Marcar como canjeado" });
+    boton.addEventListener("click", () => {
+      boton.hidden = true;
+      confirmar.hidden = false;
+    });
+    no.addEventListener("click", () => {
+      boton.hidden = false;
+      confirmar.hidden = true;
+    });
+    si.addEventListener("click", () => canjearRuleta(r.codigo));
+    caja.append(boton, confirmar);
+  }
+  cont.appendChild(caja);
+}
+
+async function buscarCodigoRuleta() {
+  const mensaje = el("mensajeRuletaCodigo");
+  const codigo = el("inputRuletaCodigo").value.trim();
+  el("resultadoRuletaCodigo").innerHTML = "";
+  if (!codigo) return;
+  mensaje.textContent = "Buscando...";
+  mensaje.className = "mensaje-form";
+  try {
+    const r = await llamarWorker({ accion: "recepcionRuletaBuscarCodigo", clave: claveRecepcion, codigo });
+    if (!r.encontrado) {
+      mensaje.textContent = `No existe el código ${r.codigo}. Revisa que esté bien escrito.`;
+      mensaje.className = "mensaje-form mensaje-form-error";
+      return;
+    }
+    mensaje.textContent = "";
+    renderPremioRuleta(r);
+  } catch (e) {
+    mensaje.textContent = e.message;
+    mensaje.className = "mensaje-form mensaje-form-error";
+  }
+}
+
+async function canjearRuleta(codigo) {
+  const mensaje = el("mensajeRuletaCodigo");
+  mensaje.textContent = "Guardando...";
+  mensaje.className = "mensaje-form";
+  try {
+    const r = await llamarWorker({ accion: "recepcionRuletaCanjear", clave: claveRecepcion, codigo });
+    renderPremioRuleta(r);
+    mensaje.textContent = "✅ Código canjeado.";
+    mensaje.className = "mensaje-form mensaje-form-ok";
+  } catch (e) {
+    mensaje.textContent = e.message;
+    mensaje.className = "mensaje-form mensaje-form-error";
+  }
+}
+
+el("btnRuletaBuscar").addEventListener("click", buscarCodigoRuleta);
+el("inputRuletaCodigo").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") buscarCodigoRuleta();
+});
+el("btnVolverRuleta").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
