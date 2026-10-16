@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="temas-fecha.css?v=emojis-rapidos-v2" />
-<link rel="stylesheet" href="portal.css?v=mora-v1" />
+<link rel="stylesheet" href="portal.css?v=mora-v2" />
 <link rel="stylesheet" href="juego-baile.css?v=1" />
 </head>
 <body>
@@ -185,8 +185,6 @@
         <span id="pagoEstadoBadge"></span>
       </div>
       <p class="pago-monto" id="pagoMonto" hidden></p>
-      <!-- Solo informa la regla; el monto (con o sin mora) lo decide el Worker. -->
-      <p class="pago-nota-mora" id="pagoNotaMora" hidden>La mora de Q25 aplica a partir del día 16 a las 6:00 a.m.</p>
 
       <button class="btn-grande btn-siguiente" id="btnGenerarLink" hidden>Generar link de pago →</button>
       <a class="btn-grande btn-siguiente btn-link-pago" id="linkPagar" href="#" target="_blank" rel="noopener" hidden>💳 Pagar ahora</a>
@@ -362,7 +360,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="temas-fecha.js?v=emojis-rapidos-v2"></script>
-<script src="portal.js?v=mora-v1"></script>
+<script src="portal.js?v=mora-v2"></script>
 <script src="juego-baile.js?v=1"></script>
 <script>
   if ("serviceWorker" in navigator) {
