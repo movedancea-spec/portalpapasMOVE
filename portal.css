@@ -1690,3 +1690,6 @@ font-weight:800;
   100%{ transform:scale(1.08); }
 }
 @media (prefers-reduced-motion: reduce){ .reaccion-btn.rebote{ animation:none; } }
+
+/* Regla de la mora debajo del monto de la mensualidad (solo informa). */
+.pago-nota-mora{ margin:-4px 0 10px; font-size:13px; font-weight:600; color:#8a7a86; }

@@ -2469,6 +2469,7 @@ function renderPago(pago) {
   const btnGenerar = el("btnGenerarLink");
   const linkPagar = el("linkPagar");
   const yaPagado = (pagoActual.estado || "").toUpperCase() === "PAGADO";
+  el("pagoNotaMora").hidden = yaPagado;
 
   if (yaPagado) {
     btnGenerar.hidden = true;
