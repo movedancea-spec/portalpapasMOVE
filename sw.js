@@ -12,7 +12,7 @@
 // página — sin tener que borrar caché a mano ni subir un número de versión
 // nuevo cada vez.
 
-const CACHE_NAME = "move-portal-v74";
+const CACHE_NAME = "move-portal-v75";
 
 const ARCHIVOS_APP = [
   "./",
@@ -35,6 +35,9 @@ const ARCHIVOS_APP = [
   "./reconocimientos.html",
   "./reconocimientos.css",
   "./reconocimientos.js",
+  "./amonestaciones.html",
+  "./amonestaciones.css",
+  "./amonestaciones.js",
   "./control.html",
   "./control.css",
   "./control.js",

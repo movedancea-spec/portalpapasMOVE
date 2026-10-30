@@ -1,0 +1,36 @@
+/* ===================================================
+   MOVE — AMONESTACIONES (Portal de Maestras)
+   Base: aviso.css
+=================================================== */
+.amon-item{
+  display:block;
+  width:100%;
+  text-align:left;
+  border:2px solid #ffe08a;
+  background:#fffdf3;
+  border-radius:16px;
+  padding:12px 14px;
+  margin-top:10px;
+  cursor:pointer;
+  font-size:15px;
+  color:#333;
+}
+.amon-item.amon-escrita{ border-color:#f5b5b5; background:#fff7f7; }
+.amon-item.amon-nueva{ box-shadow:0 0 0 3px rgba(239,75,155,.25); }
+.amon-item-cabecera{ display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; align-items:baseline; }
+.amon-item-tipo{ font-weight:800; color:#8a6d00; }
+.amon-escrita .amon-item-tipo{ color:#c0263d; }
+.amon-item-nueva{
+  font-size:12px;
+  font-weight:800;
+  color:white;
+  background:#ef4b9b;
+  border-radius:999px;
+  padding:1px 9px;
+}
+.amon-item-motivo{ font-weight:700; margin-top:4px; overflow-wrap:anywhere; }
+.amon-item-fecha{ font-size:12.5px; color:#777; margin-top:2px; }
+.amon-item-detalle{ margin-top:10px; padding-top:10px; border-top:1px dashed #e8cfa0; }
+.amon-item-descripcion{ white-space:pre-wrap; overflow-wrap:anywhere; font-size:14.5px; line-height:1.5; }
+.amon-item-lectura{ font-size:12.5px; color:#1f9d63; font-weight:700; margin-top:8px; }
+.amon-vacio{ text-align:center; color:#777; margin-top:16px; }

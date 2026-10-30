@@ -64,6 +64,7 @@ const PANTALLAS = [
   "pantallaCampamento",
   "pantallaFichas",
   "pantallaRuleta",
+  "pantallaAmonestaciones",
 ];
 
 function mostrarPantalla(id) {
@@ -446,6 +447,12 @@ el("btnMenuRuleta").addEventListener("click", () => {
   mostrarPantalla("pantallaRuleta");
   abrirRuleta();
 });
+
+el("btnMenuAmonestaciones").addEventListener("click", () => {
+  mostrarPantalla("pantallaAmonestaciones");
+  abrirAmonestaciones();
+});
+el("btnVolverAmonestaciones").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnVolverSolicitudes").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverEvalMaestras").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
@@ -5805,3 +5812,343 @@ el("inputRuletaCodigo").addEventListener("keydown", (e) => {
   if (e.key === "Enter") buscarCodigoRuleta();
 });
 el("btnVolverRuleta").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+
+// ---------- Amonestaciones maestras ----------
+// Llamadas de atención y amonestaciones escritas a maestras (tabla
+// AMONESTACIONES). Solo Recepción crea, edita y elimina; la lista es la
+// del año en curso (el Worker filtra por el campo AÑO, en hora de
+// Guatemala). Cada maestra ve solo las suyas en amonestaciones.html.
+// En enero sale "Respaldo del año anterior" (CSV + PDF armados aquí con
+// los datos del Worker): es el respaldo permanente, porque el 1 de
+// febrero el Worker las borra de Airtable. Todo el texto va con
+// textContent / .value, nunca innerHTML.
+
+let amonDatos = null; // { anio, respaldoDisponible, maestras, amonestaciones }
+let amonEditandoId = "";
+
+function fechaHoraAmon(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("es-GT", {
+    timeZone: "America/Guatemala", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+function mensajeAmon(id, texto, tipo) {
+  el(id).textContent = texto;
+  el(id).className = "mensaje-form" + (tipo ? ` mensaje-form-${tipo}` : "");
+}
+
+function opcionAmon(valor, texto) {
+  const o = document.createElement("option");
+  o.value = valor;
+  o.textContent = texto;
+  return o;
+}
+
+function abrirAmonestaciones() {
+  limpiarFormAmonestacion();
+  mensajeAmon("mensajeAmonestacion", "");
+  mensajeAmon("mensajeRespaldoAmonestaciones", "");
+  el("selectAmonFiltro").value = "";
+  cargarAmonestaciones();
+}
+
+function limpiarFormAmonestacion() {
+  amonEditandoId = "";
+  el("selectAmonMaestra").value = "";
+  el("selectAmonTipo").value = "";
+  el("inputAmonMotivo").value = "";
+  el("inputAmonDescripcion").value = "";
+  el("tituloFormAmonestacion").textContent = "Nueva amonestación";
+  el("pistaEdicionAmonestacion").hidden = true;
+  el("btnCancelarEdicionAmonestacion").hidden = true;
+}
+
+async function cargarAmonestaciones() {
+  const lista = el("listaAmonestaciones");
+  lista.innerHTML = '<p class="lista-vacia">Cargando...</p>';
+  try {
+    amonDatos = await llamarWorker({
+      accion: "recepcionAmonestacionesListar",
+      clave: claveRecepcion,
+      maestraId: el("selectAmonFiltro").value,
+    });
+    renderSelectsAmon();
+    renderListaAmon();
+    el("cajaRespaldoAmonestaciones").hidden = !amonDatos.respaldoDisponible;
+    el("tituloListaAmonestaciones").textContent = `Amonestaciones ${amonDatos.anio}`;
+  } catch (e) {
+    lista.innerHTML = "";
+    lista.appendChild(Object.assign(document.createElement("p"), { className: "lista-vacia", textContent: e.message }));
+  }
+}
+
+function renderSelectsAmon() {
+  const formValor = el("selectAmonMaestra").value;
+  const filtroValor = el("selectAmonFiltro").value;
+  const form = el("selectAmonMaestra");
+  const filtro = el("selectAmonFiltro");
+  form.innerHTML = "";
+  filtro.innerHTML = "";
+  form.appendChild(opcionAmon("", "Elige la maestra..."));
+  filtro.appendChild(opcionAmon("", "Todas las maestras"));
+  amonDatos.maestras.forEach((m) => {
+    if (m.activa) form.appendChild(opcionAmon(m.id, m.nombre));
+    filtro.appendChild(opcionAmon(m.id, m.activa ? m.nombre : `${m.nombre} (inactiva)`));
+  });
+  form.value = formValor;
+  filtro.value = filtroValor;
+}
+
+function renderListaAmon() {
+  const lista = el("listaAmonestaciones");
+  lista.innerHTML = "";
+  if (!amonDatos.amonestaciones.length) {
+    lista.appendChild(Object.assign(document.createElement("p"), { className: "lista-vacia", textContent: "No hay amonestaciones este año." }));
+    return;
+  }
+  amonDatos.amonestaciones.forEach((a) => {
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "amon-tarjeta" + (a.tipo === "Amonestación escrita" ? " amon-escrita" : "");
+
+    const cab = document.createElement("div");
+    cab.className = "amon-cabecera";
+    cab.appendChild(Object.assign(document.createElement("span"), { className: "amon-maestra", textContent: a.maestra }));
+    cab.appendChild(Object.assign(document.createElement("span"), { className: "amon-tipo", textContent: a.tipo }));
+    tarjeta.appendChild(cab);
+
+    tarjeta.appendChild(Object.assign(document.createElement("p"), { className: "amon-motivo", textContent: a.motivo }));
+    tarjeta.appendChild(Object.assign(document.createElement("p"), { className: "amon-descripcion", textContent: a.descripcion }));
+    tarjeta.appendChild(Object.assign(document.createElement("p"), {
+      className: "amon-meta",
+      textContent: `${fechaHoraAmon(a.fecha)}${a.registradaPor ? ` · Registró: ${a.registradaPor}` : ""}`,
+    }));
+    tarjeta.appendChild(Object.assign(document.createElement("p"), {
+      className: "amon-lectura" + (a.leida ? " amon-leida" : ""),
+      textContent: a.leida ? `✅ Leída el ${fechaHoraAmon(a.fechaLectura)}` : "⏳ Sin leer",
+    }));
+
+    const botones = document.createElement("div");
+    botones.className = "ruleta-confirmar-botones";
+    const editar = Object.assign(document.createElement("button"), { type: "button", className: "btn-secundario btn-chico", textContent: "✏️ Editar" });
+    editar.addEventListener("click", () => editarAmonestacion(a));
+    const eliminar = Object.assign(document.createElement("button"), { type: "button", className: "btn-secundario btn-chico show-btn-peligro", textContent: "🗑️ Eliminar" });
+    botones.append(editar, eliminar);
+    tarjeta.appendChild(botones);
+
+    // Confirmación dentro de la página (sin confirm(), como la ruleta).
+    const confirmar = document.createElement("div");
+    confirmar.className = "ruleta-confirmar";
+    confirmar.hidden = true;
+    confirmar.appendChild(Object.assign(document.createElement("p"), { innerHTML: "<b>¿Eliminar esta amonestación? No se puede deshacer.</b>" }));
+    const filaSiNo = document.createElement("div");
+    filaSiNo.className = "ruleta-confirmar-botones";
+    const si = Object.assign(document.createElement("button"), { type: "button", className: "btn-secundario btn-chico show-btn-peligro", textContent: "Sí, eliminar" });
+    const no = Object.assign(document.createElement("button"), { type: "button", className: "btn-secundario btn-chico", textContent: "Cancelar" });
+    filaSiNo.append(si, no);
+    confirmar.appendChild(filaSiNo);
+    const msg = Object.assign(document.createElement("p"), { className: "mensaje-form" });
+    confirmar.appendChild(msg);
+    tarjeta.appendChild(confirmar);
+
+    eliminar.addEventListener("click", () => { confirmar.hidden = false; });
+    no.addEventListener("click", () => { confirmar.hidden = true; });
+    si.addEventListener("click", async () => {
+      si.disabled = true;
+      msg.textContent = "Eliminando...";
+      msg.className = "mensaje-form";
+      try {
+        await llamarWorker({ accion: "recepcionAmonestacionEliminar", clave: claveRecepcion, id: a.id });
+        if (amonEditandoId === a.id) limpiarFormAmonestacion();
+        await cargarAmonestaciones();
+      } catch (e) {
+        si.disabled = false;
+        msg.textContent = e.message;
+        msg.className = "mensaje-form mensaje-form-error";
+      }
+    });
+
+    lista.appendChild(tarjeta);
+  });
+}
+
+function editarAmonestacion(a) {
+  amonEditandoId = a.id;
+  // Una maestra inactiva no está en el formulario: se agrega solo para editar la suya.
+  if (![...el("selectAmonMaestra").options].some((o) => o.value === a.maestraId)) {
+    el("selectAmonMaestra").appendChild(opcionAmon(a.maestraId, `${a.maestra} (inactiva)`));
+  }
+  el("selectAmonMaestra").value = a.maestraId;
+  el("selectAmonTipo").value = a.tipo;
+  el("inputAmonMotivo").value = a.motivo;
+  el("inputAmonDescripcion").value = a.descripcion;
+  el("inputAmonRegistradaPor").value = a.registradaPor;
+  el("tituloFormAmonestacion").textContent = "Editar amonestación";
+  el("pistaEdicionAmonestacion").hidden = !a.leida;
+  el("btnCancelarEdicionAmonestacion").hidden = false;
+  mensajeAmon("mensajeAmonestacion", "");
+  el("tituloFormAmonestacion").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+el("btnCancelarEdicionAmonestacion").addEventListener("click", () => {
+  limpiarFormAmonestacion();
+  mensajeAmon("mensajeAmonestacion", "");
+});
+
+el("btnGuardarAmonestacion").addEventListener("click", async () => {
+  const datos = {
+    maestraId: el("selectAmonMaestra").value,
+    tipo: el("selectAmonTipo").value,
+    motivo: el("inputAmonMotivo").value.trim(),
+    descripcion: el("inputAmonDescripcion").value.trim(),
+    registradaPor: el("inputAmonRegistradaPor").value.trim(),
+  };
+  if (!datos.maestraId) return mensajeAmon("mensajeAmonestacion", "Elige la maestra.", "error");
+  if (!datos.tipo) return mensajeAmon("mensajeAmonestacion", "Elige el tipo.", "error");
+  if (!datos.motivo) return mensajeAmon("mensajeAmonestacion", "Escribe el motivo.", "error");
+  if (!datos.descripcion) return mensajeAmon("mensajeAmonestacion", "Escribe la descripción.", "error");
+  if (!datos.registradaPor) return mensajeAmon("mensajeAmonestacion", "Escribe tu nombre en “Registrada por”.", "error");
+
+  const boton = el("btnGuardarAmonestacion");
+  boton.disabled = true;
+  mensajeAmon("mensajeAmonestacion", "Guardando...");
+  try {
+    const r = await llamarWorker({ accion: "recepcionAmonestacionGuardar", clave: claveRecepcion, id: amonEditandoId || undefined, ...datos });
+    const texto = r.creada
+      ? "✅ Guardada. A la maestra le llega una notificación."
+      : r.vuelveASinLeer
+        ? "✅ Cambios guardados. Vuelve a “sin leer” y a la maestra le llega otra notificación."
+        : "✅ Cambios guardados.";
+    limpiarFormAmonestacion();
+    mensajeAmon("mensajeAmonestacion", texto, "ok");
+    await cargarAmonestaciones();
+  } catch (e) {
+    mensajeAmon("mensajeAmonestacion", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+el("selectAmonFiltro").addEventListener("change", cargarAmonestaciones);
+
+// --- Respaldo del año anterior (solo en enero) ---
+
+async function pedirRespaldoAmon() {
+  mensajeAmon("mensajeRespaldoAmonestaciones", "Preparando el archivo...");
+  const r = await llamarWorker({ accion: "recepcionAmonestacionesRespaldo", clave: claveRecepcion });
+  if (!r.amonestaciones.length) throw new Error(`No hay amonestaciones de ${r.anio}.`);
+  return r;
+}
+
+function descargarArchivoAmon(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), { href: url, download: nombre });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// Excel ejecuta como fórmula una celda que empieza con = + - @ (o
+// tabulador / retorno): se le antepone un apóstrofo.
+function celdaCsvAmon(valor) {
+  let t = String(valor ?? "");
+  if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+  return `"${t.replace(/"/g, '""')}"`;
+}
+
+const COLUMNAS_RESPALDO_AMON = ["Maestra", "Fecha y hora", "Tipo", "Motivo", "Descripción", "Registrada por", "Leída", "Fecha de lectura"];
+
+function filaRespaldoAmon(a) {
+  return [a.maestra, fechaHoraAmon(a.fecha), a.tipo, a.motivo, a.descripcion, a.registradaPor, a.leida ? "Sí" : "No", fechaHoraAmon(a.fechaLectura)];
+}
+
+// El BOM al inicio es para que Excel lea bien las tildes.
+function armarCsvAmon(r) {
+  const lineas = [COLUMNAS_RESPALDO_AMON, ...r.amonestaciones.map(filaRespaldoAmon)].map((f) => f.map(celdaCsvAmon).join(","));
+  return "\uFEFF" + lineas.join("\r\n");
+}
+
+el("btnRespaldoAmonExcel").addEventListener("click", async () => {
+  try {
+    const r = await pedirRespaldoAmon();
+    descargarArchivoAmon(new Blob([armarCsvAmon(r)], { type: "text/csv;charset=utf-8" }), `amonestaciones-${r.anio}.csv`);
+    mensajeAmon("mensajeRespaldoAmonestaciones", `✅ Descargado: ${r.amonestaciones.length} amonestaciones de ${r.anio}.`, "ok");
+  } catch (e) {
+    mensajeAmon("mensajeRespaldoAmonestaciones", e.message, "error");
+  }
+});
+
+// jsPDF se carga solo cuando se pide el PDF (una vez al año).
+function cargarScriptAmon(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error("No se pudo cargar el generador de PDF. Revisa el internet."));
+    document.head.appendChild(s);
+  });
+}
+
+async function asegurarJsPdf() {
+  if (!window.jspdf) await cargarScriptAmon("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF.API.autoTable) await cargarScriptAmon("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+  return jsPDF;
+}
+
+// La letra estándar del PDF no tiene emojis ni letras fuera del alfabeto
+// latino: se quitan para que no salgan símbolos raros.
+function textoPdfAmon(t) {
+  return String(t ?? "").replace(/[^\n\u0020-\u00FF]/g, "");
+}
+
+function armarPdfAmon(jsPDF, r) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
+  doc.setFontSize(16);
+  doc.text(textoPdfAmon(`MOVE Dance Academy - Amonestaciones a maestras ${r.anio}`), 40, 40);
+  doc.setFontSize(9);
+  doc.text(textoPdfAmon(`Respaldo descargado el ${fechaHoraAmon(new Date().toISOString())} (hora de Guatemala). Total: ${r.amonestaciones.length}.`), 40, 56);
+
+  const porMaestra = new Map();
+  r.amonestaciones.forEach((a) => {
+    if (!porMaestra.has(a.maestra)) porMaestra.set(a.maestra, []);
+    porMaestra.get(a.maestra).push(a);
+  });
+  let y = 76;
+  for (const [maestra, lista] of porMaestra) {
+    if (y > 520) {
+      doc.addPage();
+      y = 40;
+    }
+    doc.setFontSize(12);
+    doc.text(textoPdfAmon(`${maestra} (${lista.length})`), 40, y);
+    doc.autoTable({
+      startY: y + 6,
+      head: [COLUMNAS_RESPALDO_AMON.slice(1).map(textoPdfAmon)],
+      body: lista.map((a) => filaRespaldoAmon(a).slice(1).map(textoPdfAmon)),
+      styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
+      headStyles: { fillColor: [239, 75, 155] },
+      // Anchos fijos (suman los 712 pt útiles de carta horizontal) para
+      // que las tablas de todas las maestras queden alineadas.
+      columnStyles: {
+        0: { cellWidth: 100 }, 1: { cellWidth: 92 }, 2: { cellWidth: 95 }, 3: { cellWidth: 220 },
+        4: { cellWidth: 70 }, 5: { cellWidth: 35 }, 6: { cellWidth: 100 },
+      },
+      margin: { left: 40, right: 40 },
+    });
+    y = doc.lastAutoTable.finalY + 24;
+  }
+  return doc;
+}
+
+el("btnRespaldoAmonPdf").addEventListener("click", async () => {
+  try {
+    const r = await pedirRespaldoAmon();
+    const doc = armarPdfAmon(await asegurarJsPdf(), r);
+    doc.save(`amonestaciones-${r.anio}.pdf`);
+    mensajeAmon("mensajeRespaldoAmonestaciones", `✅ PDF descargado: ${r.amonestaciones.length} amonestaciones de ${r.anio}.`, "ok");
+  } catch (e) {
+    mensajeAmon("mensajeRespaldoAmonestaciones", e.message, "error");
+  }
+});

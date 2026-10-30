@@ -127,6 +127,10 @@
         <span class="btn-menu-icono">🎡</span>
         <span class="btn-menu-texto">Ruleta de premios</span>
       </button>
+      <button class="btn-menu" id="btnMenuAmonestaciones" type="button">
+        <span class="btn-menu-icono">⚠️</span>
+        <span class="btn-menu-texto">Amonestaciones maestras</span>
+      </button>
     </div>
 
     <button class="btn-enlace" id="btnSalirMenu" type="button">Salir</button>
@@ -623,6 +627,57 @@
     <p class="mensaje-form" id="mensajeRuletaReiniciar"></p>
   </section>
 
+  <!-- ============ PANTALLA: AMONESTACIONES MAESTRAS ============ -->
+  <!-- Llamadas de atención / amonestaciones escritas. Cada maestra ve solo
+       las suyas en academiamovedance.com/amonestaciones.html (ver
+       recepcion.js, sección "Amonestaciones maestras"). -->
+  <section id="pantallaAmonestaciones" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverAmonestaciones" type="button">← Menú</button>
+      <span class="barra-titulo">⚠️ Amonestaciones maestras</span>
+    </div>
+
+    <div class="amon-respaldo" id="cajaRespaldoAmonestaciones" hidden>
+      <p><b>📦 Respaldo del año anterior</b></p>
+      <p class="pista-campo">
+        Solo se puede descargar en enero. El 1 de febrero las amonestaciones del año anterior se borran de Airtable: este archivo es el respaldo que queda.
+      </p>
+      <div class="amon-respaldo-botones">
+        <button class="btn-secundario btn-chico" id="btnRespaldoAmonExcel" type="button">⬇️ Excel (CSV)</button>
+        <button class="btn-secundario btn-chico" id="btnRespaldoAmonPdf" type="button">⬇️ PDF</button>
+      </div>
+      <p class="mensaje-form" id="mensajeRespaldoAmonestaciones"></p>
+    </div>
+
+    <p class="subtitulo" id="tituloFormAmonestacion">Nueva amonestación</p>
+    <p class="etiqueta-campo">Maestra</p>
+    <select id="selectAmonMaestra" class="input-select"></select>
+    <p class="etiqueta-campo">Tipo</p>
+    <select id="selectAmonTipo" class="input-select">
+      <option value="">Elige el tipo...</option>
+      <option value="Llamada de atención">Llamada de atención</option>
+      <option value="Amonestación escrita">Amonestación escrita</option>
+    </select>
+    <p class="etiqueta-campo">Motivo</p>
+    <input type="text" id="inputAmonMotivo" class="input-texto" maxlength="150" autocomplete="off" placeholder="Ej. Llegadas tarde" />
+    <p class="etiqueta-campo">Descripción</p>
+    <textarea id="inputAmonDescripcion" class="input-textarea" rows="5" maxlength="3000" placeholder="Describe lo que pasó..."></textarea>
+    <p class="etiqueta-campo">Registrada por</p>
+    <input type="text" id="inputAmonRegistradaPor" class="input-texto" maxlength="60" autocomplete="off" placeholder="Tu nombre" />
+    <p class="pista-campo" id="pistaEdicionAmonestacion" hidden>
+      Si cambias la maestra, el tipo, el motivo o la descripción, vuelve a “sin leer” y a la maestra le llega otra notificación.
+    </p>
+    <button class="btn-grande btn-siguiente" id="btnGuardarAmonestacion" type="button">💾 Guardar</button>
+    <button class="btn-enlace" id="btnCancelarEdicionAmonestacion" type="button" hidden>Cancelar edición</button>
+    <p class="mensaje-form" id="mensajeAmonestacion"></p>
+
+    <div class="separador-lista"></div>
+    <p class="subtitulo" id="tituloListaAmonestaciones">Este año</p>
+    <p class="etiqueta-campo">Filtrar por maestra</p>
+    <select id="selectAmonFiltro" class="input-select"></select>
+    <div id="listaAmonestaciones"><p class="lista-vacia">Cargando...</p></div>
+  </section>
+
   <!-- ============ PANTALLA: ALUMNAS SHOW ============ -->
   <!-- Catálogo de bailes/trajes, qué alumna sale en cuál, resumen por
        baile y el link de solo lectura para la modista. -->
@@ -1045,7 +1100,7 @@
 
 </div>
 
-<script src="recepcion.js?v=ruleta-v1"></script>
+<script src="recepcion.js?v=amonestaciones-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

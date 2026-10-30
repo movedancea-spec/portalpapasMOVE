@@ -417,6 +417,15 @@ button.tarjeta-enlace{
         <div class="tarjeta-flecha">→</div>
       </a>
 
+      <a class="tarjeta-enlace" href="amonestaciones.html">
+        <div class="tarjeta-emoji">📋</div>
+        <div class="tarjeta-texto">
+          <p class="tarjeta-titulo">Amonestaciones <span class="indicador-reacciones" id="indicadorAmonestacionesPortal" hidden></span></p>
+          <p class="tarjeta-descripcion">Llamadas de atención y amonestaciones de Dirección de este año</p>
+        </div>
+        <div class="tarjeta-flecha">→</div>
+      </a>
+
       <a class="tarjeta-enlace" href="show-coreografias.html">
         <div class="tarjeta-emoji">🎭</div>
         <div class="tarjeta-texto">
@@ -508,6 +517,20 @@ button.tarjeta-enlace{
     cargarAnunciosPortalMaestra();
     cargarCumpleanosMaestra();
     cargarIndicadorReacciones();
+    cargarIndicadorAmonestaciones();
+  }
+
+  // Cuántas amonestaciones no ha abierto (se quitan al abrir cada una en
+  // amonestaciones.html). Si falla, no se muestra.
+  async function cargarIndicadorAmonestaciones() {
+    const ind = el("indicadorAmonestacionesPortal");
+    try {
+      const datos = await llamarWorkerComoMaestra({ accion: "maestraAmonestacionesSinLeer" });
+      ind.textContent = `${datos.sinLeer} sin leer`;
+      ind.hidden = !datos.sinLeer;
+    } catch (e) {
+      ind.hidden = true;
+    }
   }
 
   // Cuántas reacciones nuevas tiene en sus reconocimientos (se quitan al
