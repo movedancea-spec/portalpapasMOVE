@@ -4562,7 +4562,7 @@ function vcPintarCodigos() {
   el("btnVcCodigosActivo").classList.toggle("elegido", c.activo);
   el("btnVcCodigosInactivo").classList.toggle("elegido", !c.activo);
   el("textoVcCodigosEstado").textContent = c.activo
-    ? "Activos: las participantes marcan entrada y salida con su código los días de curso."
+    ? "Activos: las participantes marcan entrada y salida con su código cualquier día y hora."
     : "Inactivos: el biométrico rechaza los códigos del campamento y no registra asistencia.";
   el("textoVcCodigosCuenta").textContent =
     `${c.conCodigo} de ${c.total} participante${c.total === 1 ? "" : "s"} tienen código asignado (temporada ${vcDatos.config.temporada}).`;
@@ -5017,7 +5017,7 @@ async function vcArchivar(archivar) {
   const cfg = vcDatos.config;
   const pregunta = archivar
     ? `¿Archivar el curso ${cfg.temporada}?\n\n• La ficha mostrará que las inscripciones no están abiertas.\n• Los códigos del kiosko de sus participantes dejarán de funcionar.\n• Se ocultará del selector (lo encuentras en "📦 Ver cursos archivados").\n\nNo se borra ningún dato.`
-    : `¿Desarchivar el curso ${cfg.temporada}?\n\nQueda con inscripciones Cerradas: revísalo antes de abrirlo. Los códigos del kiosko vuelven a funcionar en los días de curso.`;
+    : `¿Desarchivar el curso ${cfg.temporada}?\n\nQueda con inscripciones Cerradas: revísalo antes de abrirlo. Los códigos del kiosko vuelven a funcionar (si el interruptor de códigos está activo).`;
   if (!window.confirm(pregunta)) return;
   try {
     await llamarWorker({ accion: "vcRecepcionArchivar", clave: claveRecepcion, configId: cfg.id, archivar });
