@@ -1727,3 +1727,19 @@ overflow-wrap:anywhere;
 .amon-meta{ margin:0; font-size:12.5px; color:#777; }
 .amon-lectura{ margin:4px 0 8px; font-size:13.5px; font-weight:700; color:#b26a00; }
 .amon-lectura.amon-leida{ color:#1f9d63; }
+
+/* ---------- Curso de vacaciones: códigos en el biométrico ---------- */
+.vc-codigos.activo{ border-color:#9fdcb6; background:#f1fbf5; }
+.vc-codigos.inactivo{ border-color:#d6d6d6; background:#f5f5f5; }
+.vc-codigos-botones{ display:flex; gap:8px; margin:6px 0 8px; }
+.vc-codigos-btn{
+  flex:1; padding:10px 12px; border-radius:12px; border:2px solid #d6d6d6; background:white;
+  font-family:inherit; font-size:15px; font-weight:700; color:#555; cursor:pointer;
+}
+.vc-codigos.activo #btnVcCodigosActivo.elegido{ background:#1f9d63; border-color:#1f9d63; color:white; }
+.vc-codigos.inactivo #btnVcCodigosInactivo.elegido{ background:#8a8a8a; border-color:#8a8a8a; color:white; }
+.vc-codigos-estado{ font-weight:700; margin:0 0 4px; }
+.vc-codigos.activo .vc-codigos-estado{ color:#1f7a4d; }
+.vc-codigos.inactivo .vc-codigos-estado{ color:#666; }
+.vc-codigos-cuenta{ margin:0; font-size:14px; }
+.vc-codigos-sin{ margin:4px 0 0 18px; font-size:13.5px; color:#555; }

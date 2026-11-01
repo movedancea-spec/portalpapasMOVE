@@ -4545,6 +4545,58 @@ function vcHoraGuatemala(isoInstante) {
   });
 }
 
+// ---------- Códigos del campamento en el biométrico ----------
+// Interruptor global (lo guarda el Worker en CONFIGURACION GENERAL).
+// Inactivo: el biométrico rechaza los códigos del campamento con
+// "Código del campamento no activo, consulta en recepción" y no registra
+// nada. Alumnas y maestras no se ven afectadas. El cambio vale desde la
+// siguiente marcación.
+
+function vcPintarCodigos() {
+  const c = vcDatos.codigosBiometrico;
+  const caja = el("cajaVcCodigos");
+  caja.hidden = !c;
+  if (!c) return;
+  caja.classList.toggle("activo", c.activo);
+  caja.classList.toggle("inactivo", !c.activo);
+  el("btnVcCodigosActivo").classList.toggle("elegido", c.activo);
+  el("btnVcCodigosInactivo").classList.toggle("elegido", !c.activo);
+  el("textoVcCodigosEstado").textContent = c.activo
+    ? "Activos: las participantes marcan entrada y salida con su código los días de curso."
+    : "Inactivos: el biométrico rechaza los códigos del campamento y no registra asistencia.";
+  el("textoVcCodigosCuenta").textContent =
+    `${c.conCodigo} de ${c.total} participante${c.total === 1 ? "" : "s"} tienen código asignado (temporada ${vcDatos.config.temporada}).`;
+  const lista = el("listaVcCodigosSin");
+  lista.innerHTML = "";
+  c.sinCodigo.forEach((p) => {
+    const li = vcCrear("li", "");
+    li.appendChild(vcCrear("b", "", p.alumna));
+    li.appendChild(document.createTextNode(` — ${p.motivo}`));
+    lista.appendChild(li);
+  });
+  lista.hidden = !c.sinCodigo.length;
+}
+
+async function vcGuardarCodigos(activo) {
+  if (!vcDatos || !vcDatos.codigosBiometrico || vcDatos.codigosBiometrico.activo === activo) return;
+  vcMensaje("mensajeVcCodigos", "Guardando...");
+  try {
+    const r = await llamarWorker({ accion: "vcRecepcionGuardarCodigosBiometrico", clave: claveRecepcion, activo });
+    vcDatos.codigosBiometrico.activo = r.activo;
+    vcPintarCodigos();
+    vcMensaje(
+      "mensajeVcCodigos",
+      r.activo ? "✅ Códigos activos desde ya." : "✅ Códigos desactivados desde ya. El biométrico los va a rechazar.",
+      "ok"
+    );
+  } catch (e) {
+    vcMensaje("mensajeVcCodigos", e.message, "error");
+  }
+}
+
+el("btnVcCodigosActivo").addEventListener("click", () => vcGuardarCodigos(true));
+el("btnVcCodigosInactivo").addEventListener("click", () => vcGuardarCodigos(false));
+
 async function abrirCampamento() {
   vcMensaje("mensajeVc", "");
   await vcCargar();
@@ -4609,6 +4661,7 @@ function vcPintarTodo() {
   el("contadorVc").textContent = `${activas} de ${cfg.cupo ?? "—"}`;
 
   vcPintarLink();
+  vcPintarCodigos();
   vcPintarEstado();
   vcPintarInscritas();
   vcPintarAsistencia();

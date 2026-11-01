@@ -879,6 +879,21 @@
       <button class="btn-secundario btn-chico" id="btnVcDesarchivar" type="button">♻️ Desarchivar curso</button>
     </div>
 
+    <!-- Interruptor global (CONFIGURACION GENERAL."CODIGOS CAMPAMENTO
+         BIOMETRICO"): si los códigos del campamento funcionan en el
+         biométrico. No afecta a alumnas ni maestras. -->
+    <div class="bloque-info vc-codigos" id="cajaVcCodigos">
+      <p class="bloque-info-titulo">🔢 Códigos del campamento en el biométrico</p>
+      <div class="vc-codigos-botones">
+        <button class="vc-codigos-btn" id="btnVcCodigosActivo" type="button">🟢 Activo</button>
+        <button class="vc-codigos-btn" id="btnVcCodigosInactivo" type="button">⚪ Inactivo</button>
+      </div>
+      <p class="vc-codigos-estado" id="textoVcCodigosEstado"></p>
+      <p class="vc-codigos-cuenta" id="textoVcCodigosCuenta"></p>
+      <ul class="vc-codigos-sin" id="listaVcCodigosSin"></ul>
+      <p class="mensaje-form" id="mensajeVcCodigos"></p>
+    </div>
+
     <!-- Link de la ficha de ESTA temporada (inscripcion.html?curso=nombre).
          Cada temporada tiene el suyo; el Worker revisa que no se repita. -->
     <div class="bloque-info vc-link-ficha">
@@ -1100,7 +1115,7 @@
 
 </div>
 
-<script src="recepcion.js?v=amonestaciones-v1"></script>
+<script src="recepcion.js?v=codigos-campamento-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
