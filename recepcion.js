@@ -1603,6 +1603,9 @@ const OPCIONES_CANAL_ANUNCIOS = [
 const OPCIONES_DESTINATARIO_ANUNCIO = ["Familias", "Maestras", "Ambas"];
 
 let canalAnunciosActual = "";
+// El Worker dice si WhatsApp para anuncios se puede usar (2026-11-01:
+// bloqueado mientras se arregla el envío; antes no salía nada).
+let whatsappAnunciosDisponible = false;
 
 async function cargarCanalAnuncios() {
   const cont = el("opcionesCanalAnuncios");
@@ -1613,7 +1616,8 @@ async function cargarCanalAnuncios() {
 
   try {
     const datos = await llamarWorker({ accion: "recepcionObtenerCanalAnuncios", clave: claveRecepcion });
-    canalAnunciosActual = datos.canal || "WhatsApp";
+    canalAnunciosActual = datos.canal || "Portal";
+    whatsappAnunciosDisponible = datos.whatsappDisponible === true;
     renderCanalAnuncios();
   } catch (e) {
     cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
@@ -1626,15 +1630,16 @@ function renderCanalAnuncios() {
 
   OPCIONES_CANAL_ANUNCIOS.forEach((op) => {
     const activo = canalAnunciosActual === op.valor;
+    const bloqueada = op.valor === "WhatsApp" && !whatsappAnunciosDisponible;
 
     const tarjeta = document.createElement("button");
     tarjeta.type = "button";
     tarjeta.className = "tarjeta-resultado tarjeta-canal-asistencia" + (activo ? " activo" : "");
     tarjeta.innerHTML = `
       <span class="tarjeta-resultado-nombre">${op.titulo}${activo ? " — ✅ Activo ahora para todas" : ""}</span>
-      <span class="tarjeta-resultado-detalle">${op.descripcion}</span>
+      <span class="tarjeta-resultado-detalle">${bloqueada ? "⛔ Desactivado por ahora: el envío de anuncios por WhatsApp se está arreglando. Usa Portal." : op.descripcion}</span>
     `;
-    tarjeta.disabled = activo;
+    tarjeta.disabled = activo || bloqueada;
     tarjeta.addEventListener("click", () => elegirCanalAnuncios(op.valor, op.titulo));
     cont.appendChild(tarjeta);
   });
