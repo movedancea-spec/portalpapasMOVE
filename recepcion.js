@@ -1616,7 +1616,7 @@ async function cargarCanalAnuncios() {
   cont.innerHTML = '<p class="lista-vacia">Cargando...</p>';
 
   try {
-    const datos = await llamarWorker({ accion: "recepcionObtenerCanalAnuncios", clave: claveRecepcion });
+    const datos = await llamarWorker({ accion: "recepcionObtenerCanalAnuncios", clave: claveRecepcion, admiteWhatsapp: true });
     canalAnunciosActual = datos.canal || "Portal";
     whatsappAnunciosDisponible = datos.whatsappDisponible === true;
     renderCanalAnuncios();
@@ -1658,7 +1658,7 @@ async function elegirCanalAnuncios(canal, titulo) {
   mensajeEl.className = "mensaje-form";
 
   try {
-    await llamarWorker({ accion: "recepcionGuardarCanalAnuncios", clave: claveRecepcion, canal });
+    await llamarWorker({ accion: "recepcionGuardarCanalAnuncios", clave: claveRecepcion, canal, admiteWhatsapp: true });
     canalAnunciosActual = canal;
     renderCanalAnuncios();
     cargarEstadoWaAnuncios();
@@ -1734,8 +1734,8 @@ el("btnMandarAnuncio").addEventListener("click", async () => {
     }
     mensajeEl.textContent = "";
     pintarEstadoWaAnuncios(previa.estado);
-    if (previa.estado && previa.estado.envio && previa.estado.envio.estado === "enviando") {
-      mensajeEl.textContent = `Hay un envío por WhatsApp en curso («${previa.estado.envio.nombre}»). Espera a que termine o detenlo.`;
+    if (previa.ocupado) {
+      mensajeEl.textContent = "Ya hay un anuncio por WhatsApp sin terminar. Espera a que termine o detenlo.";
       mensajeEl.className = "mensaje-form mensaje-form-error";
       return;
     }
@@ -1745,12 +1745,17 @@ el("btnMandarAnuncio").addEventListener("click", async () => {
       return;
     }
     const p = previa.plan;
-    const cuando = p.diasExtra
-      ? `Hoy salen ${p.hoy} y el resto sigue a partir de mañana a las 9:00 a.m.: tarda unos ${p.dias} día${p.dias === 1 ? "" : "s"}.`
-      : "Sale todo hoy, uno por uno (unos minutos).";
+    const horario = textoEmpiezaWa(previa.empiezaEn);
+    const cuando =
+      (previa.trasCampamento ? "Hay un envío del campamento en curso: el anuncio empieza cuando termine.\n" : "") +
+      (horario ? `${horario}\n` : "") +
+      (p.diasExtra
+        ? `El primer día salen ${p.hoy} y el resto sigue los días siguientes desde las 9:00 a.m.: tarda unos ${p.dias} día${p.dias === 1 ? "" : "s"}.`
+        : `Sale todo ${horario ? "ese día" : "hoy"}, uno por uno (unos minutos).`) +
+      "\nSolo se manda de 8:00 a.m. a 8:00 p.m.";
     const ok = window.confirm(
       `¿Mandar este anuncio por WhatsApp a ${previa.numeros} número${previa.numeros === 1 ? "" : "s"} (${aQuien})?\n\n` +
-        `${cuando}\nTope compartido: quedan ${previa.estado.quedanHoy} de ${previa.estado.maximo} mensajes hoy.` +
+        `${cuando}\nTope compartido (campamento + anuncios): quedan ${previa.estado.quedanAlEmpezar} de ${previa.estado.maximo} para el día en que empieza.` +
         (previa.sinTelefono ? `\n${previa.sinTelefono} sin número válido no lo reciben.` : "") +
         `\n\nCada mensaje empieza con «${previa.ejemploSaludo} 💕».\n\n"${titulo}"\n\n${mensaje}\n\nPara avisos urgentes usá Portal.`
     );
@@ -1805,6 +1810,8 @@ let temporizadorWaAnuncios = null;
 function textoEstadoEnvioWa(v) {
   const hechos = v.enviados + v.errores;
   if (v.estado === "enviando" && v.continuaManana) return `⏳ «${v.nombre}»: enviados ${v.enviados} de ${v.total}, continúa mañana a las 9:00 a.m.`;
+  if (v.estado === "enviando" && v.esperaHorario) return `🌙 «${v.nombre}»: enviados ${v.enviados} de ${v.total}, sigue a las 8:00 a.m. (horario de envíos).`;
+  if (v.estado === "pausado") return `⏸️ «${v.nombre}»: enviados ${v.enviados} de ${v.total}, en espera (sale primero lo del campamento).`;
   if (v.estado === "enviando") return `⏳ Enviando «${v.nombre}»: ${hechos} de ${v.total}${v.errores ? ` (${v.errores} con error)` : ""}`;
   if (v.estado === "terminado") return `✅ «${v.nombre}» terminado: ${v.enviados} de ${v.total} enviados${v.errores ? `, ${v.errores} con error` : ""}.`;
   return `⏹️ «${v.nombre}» detenido: ${v.enviados} de ${v.total} enviados. ${v.motivo}`;
@@ -1818,7 +1825,9 @@ function pintarEstadoWaAnuncios(estado) {
   caja.hidden = !estado || (!v && canalAnunciosActual !== "WhatsApp");
   if (!estado) return;
   el("textoAnuncioWaHoy").textContent = `Hoy: ${estado.enviadosHoy} de ${estado.maximo} mensajes masivos (quedan ${estado.quedanHoy}).`;
-  el("textoAnuncioWaEnvio").textContent = v ? textoEstadoEnvioWa(v) : "No hay ningún envío en curso.";
+  el("textoAnuncioWaEnvio").textContent =
+    (v ? textoEstadoEnvioWa(v) : "No hay ningún envío en curso.") +
+    (estado.enEspera ? `\n${textoEstadoEnvioWa({ ...estado.enEspera, estado: "pausado" })}` : "");
   el("textoAnuncioWaSiguiente").textContent =
     v && v.estado === "enviando" && v.siguienteEn ? `Siguiente mensaje: ${new Date(v.siguienteEn).toLocaleString("es-GT", { timeZone: "America/Guatemala", weekday: "long", hour: "numeric", minute: "2-digit", hour12: true })}.` : "";
   el("btnAnuncioWaDetener").hidden = !(v && v.estado === "enviando");
@@ -5602,6 +5611,14 @@ el("btnVcCrearTemporada").addEventListener("click", async () => {
 
 // Botones de datos: las plantillas sirven para cualquier temporada, así
 // que lo del curso sale siempre de aquí (de la temporada elegida).
+// "hoy a las 8:00 a.m." / "mañana a las 8:00 a.m." si un envío que se
+// manda ahora tiene que esperar el horario (8:00 a.m. a 8:00 p.m.).
+function textoEmpiezaWa(empiezaEn) {
+  if (!empiezaEn || empiezaEn <= Date.now() + 60000) return "";
+  const dia = (ms) => new Date(ms - 6 * 3600000).toISOString().slice(0, 10);
+  return `Fuera del horario de envíos (8:00 a.m. a 8:00 p.m.): empieza ${dia(empiezaEn) === dia(Date.now()) ? "hoy" : "mañana"} a las 8:00 a.m.`;
+}
+
 const VC_WA_VARIABLES = [
   "nombre_responsable", "nombre_participante", "codigo", "saldo", "total", "reserva",
   "nombre_curso", "fechas_curso", "fecha_inicio", "fecha_fin", "horario", "hora_recepcion",
@@ -5813,7 +5830,8 @@ function vcWaPintarPrevia() {
 
   const avisos = el("listaVcWaAvisos");
   avisos.innerHTML = "";
-  const quedan = r.estado ? r.estado.quedanHoy : n;
+  const quedan = r.estado ? r.estado.quedanAlEmpezar : n;
+  const activo = r.estado && r.estado.envio && r.estado.envio.estado === "enviando" ? r.estado.envio : null;
   const problemas = [];
   if (r.desconocidas.length) problemas.push(`El mensaje tiene datos que no existen aquí: ${r.desconocidas.map((v) => `{${v}}`).join(", ")}. Corrígelos antes de enviar.`);
   (r.vacias || []).forEach((v) =>
@@ -5824,10 +5842,15 @@ function vcWaPintarPrevia() {
     )
   );
   if (r.porEscribir) problemas.push("El mensaje todavía dice «[ESCRIBÍ AQUÍ…»: escribe el aviso antes de enviar.");
-  if (n > quedan) problemas.push(`Hoy solo quedan ${quedan} mensajes de 50. Elige menos responsables o envía mañana.`);
-  if (r.estado && r.estado.envio && r.estado.envio.estado === "enviando") problemas.push("Hay un envío en curso: espera a que termine para mandar otro.");
+  if (n > quedan) problemas.push(`Solo quedan ${quedan} mensajes de 50 para el día en que sale. Elige menos responsables o envía otro día.`);
+  if ((activo && !activo.multiDia) || (r.estado && r.estado.enEspera)) problemas.push("Hay un envío del campamento en curso: espera a que termine para mandar otro.");
   problemas.forEach((t) => avisos.appendChild(vcCrear("li", "vc-wa-error", t)));
   if (r.sinTelefono.length) avisos.appendChild(vcCrear("li", "", `Sin teléfono válido (no reciben): ${r.sinTelefono.join(", ")}`));
+  const horario = textoEmpiezaWa(r.estado && r.estado.empiezaEn);
+  if (horario) avisos.appendChild(vcCrear("li", "", horario));
+  if (activo && activo.multiDia && !(r.estado && r.estado.enEspera)) {
+    avisos.appendChild(vcCrear("li", "", `El anuncio «${activo.nombre}» se pausa: sale primero esto y después el anuncio sigue solo.`));
+  }
   avisos.hidden = !avisos.children.length;
 
   const select = el("selectVcWaPrevia");
@@ -5859,7 +5882,8 @@ el("btnVcWaEnviar").addEventListener("click", async () => {
   const n = vcWaPrevia.mensajes.length;
   const nombre = vcWaPrevia.payload.nombre || "Mensaje sin plantilla";
   const minutos = Math.max(1, Math.round(((n - 1) * 40) / 60));
-  if (!confirm(`¿Enviar «${nombre}» a ${n} responsable${n === 1 ? "" : "s"}?\n\nSe mandan uno por uno, con pausas de 20 a 60 segundos (unos ${minutos} min). Puedes cerrar esta pantalla: el envío sigue solo.`)) return;
+  const horario = textoEmpiezaWa(vcWaPrevia.estado && vcWaPrevia.estado.empiezaEn);
+  if (!confirm(`¿Enviar «${nombre}» a ${n} responsable${n === 1 ? "" : "s"}?\n\nSe mandan uno por uno, con pausas de 20 a 60 segundos (unos ${minutos} min), solo de 8:00 a.m. a 8:00 p.m.${horario ? `\n${horario}` : ""}\nPuedes cerrar esta pantalla: el envío sigue solo.`)) return;
   const boton = el("btnVcWaEnviar");
   boton.disabled = true;
   vcMensaje("mensajeVcWa", "Iniciando el envío...");
@@ -5914,6 +5938,7 @@ function vcWaPintarEstado(estado) {
   const titulo = el("textoVcWaEnvio");
   titulo.className = "vc-wa-envio-titulo" + (v.estado === "detenido" ? " vc-wa-detenido" : "");
   if (v.estado === "enviando" && v.continuaManana) titulo.textContent = `⏳ ${nombre}: enviados ${v.enviados} de ${v.total}, continúa mañana a las 9:00 a.m.`;
+  else if (v.estado === "enviando" && v.esperaHorario) titulo.textContent = `🌙 ${nombre}: enviados ${v.enviados} de ${v.total}, sigue a las 8:00 a.m. (horario de envíos).`;
   else if (v.estado === "enviando") titulo.textContent = `⏳ Enviando ${nombre}: ${hechos} de ${v.total}${v.errores ? ` (${v.errores} con error)` : ""}`;
   else if (v.estado === "terminado") titulo.textContent = `✅ ${nombre} terminado: ${v.enviados} de ${v.total} enviados${v.errores ? `, ${v.errores} con error` : ""}.`;
   else titulo.textContent = `⏹️ ${nombre} detenido: ${v.enviados} de ${v.total} enviados. ${v.motivo}`;
@@ -5922,6 +5947,11 @@ function vcWaPintarEstado(estado) {
       ? `Siguiente mensaje ${v.continuaManana ? "mañana a las 9:00 a.m." : `a las ${vcWaHora(v.siguienteEn)}`}.`
       : `Empezó a las ${vcWaHora(v.creado)}.`;
   el("btnVcWaDetener").hidden = v.estado !== "enviando";
+  // Lo que espera (un anuncio pausado o en cola) y el último terminado.
+  const extra = [];
+  if (estado.enEspera) extra.push(`⏸️ En espera: «${estado.enEspera.nombre}», ${estado.enEspera.enviados} de ${estado.enEspera.total} enviados; sigue solo cuando termine este.`);
+  if (estado.ultimo) extra.push(`Último terminado: ${textoEstadoEnvioWa(estado.ultimo)}`);
+  el("textoVcWaSiguiente").textContent += extra.length ? ` ${extra.join(" ")}` : "";
 
   const lista = el("listaVcWaResultados");
   lista.innerHTML = "";
