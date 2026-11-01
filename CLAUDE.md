@@ -69,3 +69,6 @@ El SaaS de asistencia por biométrico (Worker `https://biometrico-saas.movedance
 
 ## Recepción → Curso de vacaciones → 📲 Mensajes WhatsApp (2026-11-01)
 Pestaña `vistaVcWhatsapp` (recepcion.js, sección "Mensajes WhatsApp a los responsables"). Plantillas (crear/editar/borrar), botones de variables, destinatarias (todas / con código / deben saldo o reserva / una por una), vista previa por responsable, "📲 Enviar a N responsables" con confirmación y "📱 Mandarme este mensaje" (prueba a un número). El Worker arma y manda todo (uno por teléfono, pausas de 20–60 s, máximo 50 al día); la página solo muestra con `textContent` y se actualiza cada 15 s mientras hay un envío. Cualquier cambio de texto, destinatarias o temporada obliga a ver la vista previa otra vez.
+
+## Recepción → Anuncios por WhatsApp (2026-11-01)
+Con el canal en WhatsApp, "📢 Mandar anuncio" primero pide `recepcionAnuncioWhatsappPrevia` (cuántos números y cuántos días tarda con el tope compartido de 50 al día) y manda `confirmados`. "📱 Mandarme este anuncio" prueba en un número (`recepcionAnuncioWhatsappPrueba`). La caja "📱 Envío por WhatsApp" muestra el envío del enviador compartido (también el del campamento), "Enviados 50 de 120, continúa mañana a las 9:00 a.m." y permite detenerlo. Si el Worker responde `whatsappDisponible: false`, la opción WhatsApp del interruptor sale bloqueada.

@@ -510,6 +510,33 @@
 
     <button class="btn-grande btn-siguiente" id="btnMandarAnuncio" type="button">📢 Mandar anuncio</button>
     <p class="mensaje-form" id="mensajeAnuncio"></p>
+
+    <div id="cajaAnuncioWaPrueba" hidden>
+      <p class="etiqueta-campo">Probar en mi número</p>
+      <div class="vc-dos-columnas">
+        <div>
+          <input type="tel" id="inputAnuncioWaTelefono" class="input-texto" maxlength="20" placeholder="8 dígitos" inputmode="numeric" autocomplete="off" />
+        </div>
+        <div>
+          <button class="btn-secundario btn-ancho" id="btnAnuncioWaProbar" type="button">📱 Mandarme este anuncio</button>
+        </div>
+      </div>
+      <p class="pista-campo">Manda el anuncio de arriba solo a ese número, como le llegaría a la primera familia o maestra (sin el archivo). No se guarda ni sale en el Portal, y cuenta en los 50 del día.</p>
+    </div>
+
+    <!-- Avance del enviador de WhatsApp compartido (campamento + anuncios,
+         un solo tope de 50 al día). -->
+    <div class="bloque-info vc-wa-estado" id="cajaAnuncioWaEstado" hidden>
+      <p class="bloque-info-titulo">📱 Envío por WhatsApp</p>
+      <p class="vc-wa-cuenta" id="textoAnuncioWaHoy"></p>
+      <p class="vc-wa-envio-titulo" id="textoAnuncioWaEnvio"></p>
+      <p class="pista-campo" id="textoAnuncioWaSiguiente"></p>
+      <div class="show-acciones">
+        <button class="btn-secundario btn-chico" id="btnAnuncioWaDetener" type="button" hidden>⏹️ Detener envío</button>
+        <button class="btn-secundario btn-chico" id="btnAnuncioWaActualizar" type="button">🔄 Actualizar</button>
+      </div>
+      <p class="mensaje-form" id="mensajeAnuncioWa" role="status"></p>
+    </div>
   </section>
 
   <!-- ============ PANTALLA: INFORMACIÓN IMPORTANTE ============ -->
@@ -1194,7 +1221,7 @@
 
 </div>
 
-<script src="recepcion.js?v=anuncios-bloqueo-v1"></script>
+<script src="recepcion.js?v=anuncios-whatsapp-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

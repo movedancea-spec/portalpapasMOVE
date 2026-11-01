@@ -1590,7 +1590,8 @@ const OPCIONES_CANAL_ANUNCIOS = [
   {
     valor: "WhatsApp",
     titulo: "📱 WhatsApp",
-    descripcion: "Los anuncios llegan por WhatsApp (GREEN-API), mandados uno por uno para no verse como mensajería masiva.",
+    descripcion:
+      "Los anuncios llegan por WhatsApp, uno por uno con pausas, solo a familias de alumnas activas y maestras activas (un mensaje por número). Máximo 50 al día entre todo lo masivo; el resto sigue al día siguiente desde las 9:00 a.m. ⚠️ Para avisos urgentes usá Portal; WhatsApp puede tardar varios días.",
   },
   {
     valor: "Portal",
@@ -1619,6 +1620,7 @@ async function cargarCanalAnuncios() {
     canalAnunciosActual = datos.canal || "Portal";
     whatsappAnunciosDisponible = datos.whatsappDisponible === true;
     renderCanalAnuncios();
+    cargarEstadoWaAnuncios();
   } catch (e) {
     cont.innerHTML = `<p class="lista-vacia">${e.message}</p>`;
   }
@@ -1659,6 +1661,7 @@ async function elegirCanalAnuncios(canal, titulo) {
     await llamarWorker({ accion: "recepcionGuardarCanalAnuncios", clave: claveRecepcion, canal });
     canalAnunciosActual = canal;
     renderCanalAnuncios();
+    cargarEstadoWaAnuncios();
     mensajeEl.textContent = `✅ Listo — los anuncios ahora llegan por ${titulo}.`;
     mensajeEl.classList.add("mensaje-form-ok");
   } catch (e) {
@@ -1714,8 +1717,49 @@ el("btnMandarAnuncio").addEventListener("click", async () => {
   }
 
   const aQuien = destinatario === "Ambas" ? "FAMILIAS y MAESTRAS" : destinatario === "Familias" ? "TODAS las familias" : "TODAS las maestras";
-  const confirmado = window.confirm(`¿Mandar este anuncio a ${aQuien}?\n\n"${titulo}"\n\n${mensaje}`);
-  if (!confirmado) return;
+
+  // Por WhatsApp: primero cuántos números son y cuántos días tarda con el
+  // tope de 50 al día; se confirma ESE número (si cambia, el Worker no manda).
+  let confirmados;
+  if (canalAnunciosActual === "WhatsApp") {
+    mensajeEl.textContent = "Contando números...";
+    mensajeEl.className = "mensaje-form";
+    let previa;
+    try {
+      previa = await llamarWorker({ accion: "recepcionAnuncioWhatsappPrevia", clave: claveRecepcion, destinatario });
+    } catch (e) {
+      mensajeEl.textContent = e.message;
+      mensajeEl.className = "mensaje-form mensaje-form-error";
+      return;
+    }
+    mensajeEl.textContent = "";
+    pintarEstadoWaAnuncios(previa.estado);
+    if (previa.estado && previa.estado.envio && previa.estado.envio.estado === "enviando") {
+      mensajeEl.textContent = `Hay un envío por WhatsApp en curso («${previa.estado.envio.nombre}»). Espera a que termine o detenlo.`;
+      mensajeEl.className = "mensaje-form mensaje-form-error";
+      return;
+    }
+    if (!previa.numeros) {
+      mensajeEl.textContent = "No hay ningún número de WhatsApp válido para ese grupo.";
+      mensajeEl.className = "mensaje-form mensaje-form-error";
+      return;
+    }
+    const p = previa.plan;
+    const cuando = p.diasExtra
+      ? `Hoy salen ${p.hoy} y el resto sigue a partir de mañana a las 9:00 a.m.: tarda unos ${p.dias} día${p.dias === 1 ? "" : "s"}.`
+      : "Sale todo hoy, uno por uno (unos minutos).";
+    const ok = window.confirm(
+      `¿Mandar este anuncio por WhatsApp a ${previa.numeros} número${previa.numeros === 1 ? "" : "s"} (${aQuien})?\n\n` +
+        `${cuando}\nTope compartido: quedan ${previa.estado.quedanHoy} de ${previa.estado.maximo} mensajes hoy.` +
+        (previa.sinTelefono ? `\n${previa.sinTelefono} sin número válido no lo reciben.` : "") +
+        `\n\nCada mensaje empieza con «${previa.ejemploSaludo} 💕».\n\n"${titulo}"\n\n${mensaje}\n\nPara avisos urgentes usá Portal.`
+    );
+    if (!ok) return;
+    confirmados = previa.numeros;
+  } else {
+    const confirmado = window.confirm(`¿Mandar este anuncio a ${aQuien}?\n\n"${titulo}"\n\n${mensaje}`);
+    if (!confirmado) return;
+  }
 
   const btn = el("btnMandarAnuncio");
   btn.disabled = true;
@@ -1724,7 +1768,7 @@ el("btnMandarAnuncio").addEventListener("click", async () => {
   mensajeEl.className = "mensaje-form";
 
   try {
-    const payload = { accion: "recepcionMandarAnuncio", clave: claveRecepcion, titulo, mensaje, destinatario };
+    const payload = { accion: "recepcionMandarAnuncio", clave: claveRecepcion, titulo, mensaje, destinatario, confirmados };
 
     if (archivoAnuncio) {
       btn.textContent = "Subiendo archivo...";
@@ -1743,12 +1787,93 @@ el("btnMandarAnuncio").addEventListener("click", async () => {
     el("inputAdjuntoAnuncio").value = "";
     el("nombreAdjuntoAnuncio").hidden = true;
     archivoAnuncio = null;
+    if (datos.canal === "WhatsApp") cargarEstadoWaAnuncios();
   } catch (e) {
     mensajeEl.textContent = e.message;
     mensajeEl.classList.add("mensaje-form-error");
   } finally {
     btn.disabled = false;
     btn.textContent = "📢 Mandar anuncio";
+  }
+});
+
+// ---------- Avance del envío por WhatsApp (compartido) ----------
+// El mismo enviador manda lo del campamento y los anuncios, con un solo
+// tope de 50 al día. Aquí se ve el envío actual, sea cual sea.
+let temporizadorWaAnuncios = null;
+
+function textoEstadoEnvioWa(v) {
+  const hechos = v.enviados + v.errores;
+  if (v.estado === "enviando" && v.continuaManana) return `⏳ «${v.nombre}»: enviados ${v.enviados} de ${v.total}, continúa mañana a las 9:00 a.m.`;
+  if (v.estado === "enviando") return `⏳ Enviando «${v.nombre}»: ${hechos} de ${v.total}${v.errores ? ` (${v.errores} con error)` : ""}`;
+  if (v.estado === "terminado") return `✅ «${v.nombre}» terminado: ${v.enviados} de ${v.total} enviados${v.errores ? `, ${v.errores} con error` : ""}.`;
+  return `⏹️ «${v.nombre}» detenido: ${v.enviados} de ${v.total} enviados. ${v.motivo}`;
+}
+
+function pintarEstadoWaAnuncios(estado) {
+  clearTimeout(temporizadorWaAnuncios);
+  const caja = el("cajaAnuncioWaEstado");
+  const v = estado && estado.envio;
+  el("cajaAnuncioWaPrueba").hidden = canalAnunciosActual !== "WhatsApp";
+  caja.hidden = !estado || (!v && canalAnunciosActual !== "WhatsApp");
+  if (!estado) return;
+  el("textoAnuncioWaHoy").textContent = `Hoy: ${estado.enviadosHoy} de ${estado.maximo} mensajes masivos (quedan ${estado.quedanHoy}).`;
+  el("textoAnuncioWaEnvio").textContent = v ? textoEstadoEnvioWa(v) : "No hay ningún envío en curso.";
+  el("textoAnuncioWaSiguiente").textContent =
+    v && v.estado === "enviando" && v.siguienteEn ? `Siguiente mensaje: ${new Date(v.siguienteEn).toLocaleString("es-GT", { timeZone: "America/Guatemala", weekday: "long", hour: "numeric", minute: "2-digit", hour12: true })}.` : "";
+  el("btnAnuncioWaDetener").hidden = !(v && v.estado === "enviando");
+  if (v && v.estado === "enviando") {
+    temporizadorWaAnuncios = setTimeout(() => {
+      if (!el("pantallaAnuncios").hidden) cargarEstadoWaAnuncios();
+    }, 15000);
+  }
+}
+
+async function cargarEstadoWaAnuncios() {
+  try {
+    const r = await llamarWorker({ accion: "vcWhatsappDatos", clave: claveRecepcion });
+    pintarEstadoWaAnuncios(r.estado);
+    el("mensajeAnuncioWa").textContent = "";
+  } catch (e) {
+    el("cajaAnuncioWaEstado").hidden = false;
+    el("mensajeAnuncioWa").textContent = e.message;
+  }
+}
+
+el("btnAnuncioWaActualizar").addEventListener("click", cargarEstadoWaAnuncios);
+
+el("btnAnuncioWaProbar").addEventListener("click", async () => {
+  const mensajeEl = el("mensajeAnuncio");
+  const boton = el("btnAnuncioWaProbar");
+  boton.disabled = true;
+  mensajeEl.textContent = "Mandando la prueba...";
+  mensajeEl.className = "mensaje-form";
+  try {
+    const r = await llamarWorker({
+      accion: "recepcionAnuncioWhatsappPrueba",
+      clave: claveRecepcion,
+      titulo: el("inputAnuncioTitulo").value.trim(),
+      mensaje: el("inputAnuncioMensaje").value.trim(),
+      destinatario: el("selectAnuncioDestinatario").value,
+      telefono: el("inputAnuncioWaTelefono").value,
+    });
+    pintarEstadoWaAnuncios(r.estado);
+    mensajeEl.textContent = "✅ Prueba en camino a tu número.";
+    mensajeEl.className = "mensaje-form mensaje-form-ok";
+  } catch (e) {
+    mensajeEl.textContent = e.message;
+    mensajeEl.className = "mensaje-form mensaje-form-error";
+  } finally {
+    boton.disabled = false;
+  }
+});
+el("btnAnuncioWaDetener").addEventListener("click", async () => {
+  if (!confirm("¿Detener el envío por WhatsApp? Los mensajes que faltan no se van a mandar (tampoco mañana).")) return;
+  try {
+    const r = await llamarWorker({ accion: "vcWhatsappDetener", clave: claveRecepcion });
+    pintarEstadoWaAnuncios(r.estado);
+  } catch (e) {
+    el("mensajeAnuncioWa").textContent = e.message;
   }
 });
 
@@ -5780,7 +5905,7 @@ function vcWaPintarEstado(estado) {
     el("cajaVcWaEnvio").hidden = true;
     return;
   }
-  el("textoVcWaHoy").textContent = `Hoy: ${estado.enviadosHoy} de ${estado.maximo} mensajes (quedan ${estado.quedanHoy}).`;
+  el("textoVcWaHoy").textContent = `Hoy: ${estado.enviadosHoy} de ${estado.maximo} mensajes masivos, contando anuncios (quedan ${estado.quedanHoy}).`;
   const v = estado.envio;
   el("cajaVcWaEnvio").hidden = !v;
   if (!v) return;
@@ -5788,10 +5913,14 @@ function vcWaPintarEstado(estado) {
   const hechos = v.enviados + v.errores;
   const titulo = el("textoVcWaEnvio");
   titulo.className = "vc-wa-envio-titulo" + (v.estado === "detenido" ? " vc-wa-detenido" : "");
-  if (v.estado === "enviando") titulo.textContent = `⏳ Enviando ${nombre}: ${hechos} de ${v.total}${v.errores ? ` (${v.errores} con error)` : ""}`;
+  if (v.estado === "enviando" && v.continuaManana) titulo.textContent = `⏳ ${nombre}: enviados ${v.enviados} de ${v.total}, continúa mañana a las 9:00 a.m.`;
+  else if (v.estado === "enviando") titulo.textContent = `⏳ Enviando ${nombre}: ${hechos} de ${v.total}${v.errores ? ` (${v.errores} con error)` : ""}`;
   else if (v.estado === "terminado") titulo.textContent = `✅ ${nombre} terminado: ${v.enviados} de ${v.total} enviados${v.errores ? `, ${v.errores} con error` : ""}.`;
   else titulo.textContent = `⏹️ ${nombre} detenido: ${v.enviados} de ${v.total} enviados. ${v.motivo}`;
-  el("textoVcWaSiguiente").textContent = v.estado === "enviando" && v.siguienteEn ? `Siguiente mensaje a las ${vcWaHora(v.siguienteEn)}.` : `Empezó a las ${vcWaHora(v.creado)}.`;
+  el("textoVcWaSiguiente").textContent =
+    v.estado === "enviando" && v.siguienteEn
+      ? `Siguiente mensaje ${v.continuaManana ? "mañana a las 9:00 a.m." : `a las ${vcWaHora(v.siguienteEn)}`}.`
+      : `Empezó a las ${vcWaHora(v.creado)}.`;
   el("btnVcWaDetener").hidden = v.estado !== "enviando";
 
   const lista = el("listaVcWaResultados");
