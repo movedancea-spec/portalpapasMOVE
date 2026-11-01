@@ -5108,7 +5108,7 @@ function vcTarjetaInscrita(i) {
   texto.append(nombre, vcCrear("span", "tarjeta-resultado-detalle", i.modalidad + (i.semanas.length ? " · " + i.semanas.join(", ") : "")));
   const etiquetas = vcCrear("span", "show-etiquetas");
   if (i.pagoRevertido) etiquetas.appendChild(vcCrear("span", "show-etiqueta vc-alerta", "⚠️ PAGO REVERTIDO"));
-  if (i.whatsappEnviado === "No") etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-no", "WhatsApp no enviado"));
+  if (i.whatsappEnviado === "No") etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-no", "Bienvenida pendiente"));
   if (cancelada) etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-estado", "CANCELADA"));
   if (i.codigo) etiquetas.appendChild(vcCrear("span", "vc-codigo", i.codigo));
   etiquetas.appendChild(
@@ -5130,7 +5130,7 @@ function vcTarjetaInscrita(i) {
     vcLinea("Otra información", i.otraInformacion),
     vcLinea("Total", `${vcQ(i.montoTotal)} (reserva ${vcQ(i.montoReserva)} + saldo ${vcQ(i.montoSaldo)})`),
     vcLinea("Pago", [i.formaPago, i.metodoPago].filter(Boolean).join(" · ")),
-    vcLinea("WhatsApp de bienvenida", i.whatsappEnviado === "No" ? "NO se envió — escríbele a mano" : i.whatsappEnviado || "—", i.whatsappEnviado === "No" ? "vc-medico" : ""),
+    vcLinea("WhatsApp de bienvenida", i.whatsappEnviado === "No" ? "Bienvenida pendiente — mándala desde «📲 Mensajes WhatsApp» (filtro «Bienvenida pendiente»)" : i.whatsappEnviado || "—", i.whatsappEnviado === "No" ? "vc-medico" : ""),
     vcLinea("Código del kiosko", i.codigo || (cancelada ? "—" : "se genera al marcar la reserva"))
   );
   [["Link reserva", i.linkReserva], ["Link total", i.linkTotal], ["Link saldo", i.linkSaldo]].forEach(([nombre, url]) => {
@@ -5470,7 +5470,13 @@ el("btnVcCrearTemporada").addEventListener("click", async () => {
 // 20 a 60 s, máximo 50 al día. Aquí solo se escoge, se revisa la vista
 // previa y se confirma. Los datos entran siempre con textContent.
 
-const VC_WA_VARIABLES = ["nombre_participante", "nombre_responsable", "codigo", "saldo", "fechas_curso", "horario", "curso"];
+// Botones de datos: las plantillas sirven para cualquier temporada, así
+// que lo del curso sale siempre de aquí (de la temporada elegida).
+const VC_WA_VARIABLES = [
+  "nombre_responsable", "nombre_participante", "codigo", "saldo", "total", "reserva",
+  "nombre_curso", "fechas_curso", "fecha_inicio", "fecha_fin", "horario", "hora_recepcion",
+  "dias_sin_curso", "edades", "precio_completo", "precio_parcial",
+];
 let vcWaPlantillas = [];
 let vcWaFiltro = "todas";
 const vcWaSeleccion = new Set();
@@ -5530,6 +5536,7 @@ function vcWaPintarPlantillas(elegida) {
   });
   select.value = vcWaPlantillas.some((p) => p.id === actual) ? actual : "";
   el("btnVcWaBorrarPlantilla").disabled = !select.value;
+  el("textoVcWaSinPlantillas").hidden = vcWaPlantillas.length > 0;
 }
 
 el("selectVcWaPlantilla").addEventListener("change", () => {
@@ -5679,6 +5686,14 @@ function vcWaPintarPrevia() {
   const quedan = r.estado ? r.estado.quedanHoy : n;
   const problemas = [];
   if (r.desconocidas.length) problemas.push(`El mensaje tiene datos que no existen aquí: ${r.desconocidas.map((v) => `{${v}}`).join(", ")}. Corrígelos antes de enviar.`);
+  (r.vacias || []).forEach((v) =>
+    problemas.push(
+      v.todas
+        ? `{${v.variable}} no tiene dato en la temporada ${vcDatos.config.temporada}: complétalo en ⚙️ Configuración o quítalo del mensaje.`
+        : `{${v.variable}} no tiene dato para: ${v.nombres.join(", ")}. Quítalas de la lista o quita el dato del mensaje.`
+    )
+  );
+  if (r.porEscribir) problemas.push("El mensaje todavía dice «[ESCRIBÍ AQUÍ…»: escribe el aviso antes de enviar.");
   if (n > quedan) problemas.push(`Hoy solo quedan ${quedan} mensajes de 50. Elige menos responsables o envía mañana.`);
   if (r.estado && r.estado.envio && r.estado.envio.estado === "enviando") problemas.push("Hay un envío en curso: espera a que termine para mandar otro.");
   problemas.forEach((t) => avisos.appendChild(vcCrear("li", "vc-wa-error", t)));
@@ -5698,7 +5713,7 @@ function vcWaPintarPrevia() {
   const enviar = el("btnVcWaEnviar");
   enviar.textContent = `📲 Enviar a ${n} responsable${n === 1 ? "" : "s"}`;
   enviar.disabled = !n || problemas.length > 0;
-  el("btnVcWaProbar").disabled = !n || r.desconocidas.length > 0;
+  el("btnVcWaProbar").disabled = !n || r.desconocidas.length > 0 || (r.vacias || []).length > 0 || r.porEscribir;
   el("cajaVcWaPrevia").hidden = false;
 }
 

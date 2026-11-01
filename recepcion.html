@@ -1136,6 +1136,8 @@
       <div class="caja-form-ingreso">
         <p class="etiqueta-campo">Plantilla</p>
         <select id="selectVcWaPlantilla" class="input-select"></select>
+        <p class="pista-campo" id="textoVcWaSinPlantillas" hidden>Todavía no tenés plantillas, creá una.</p>
+        <p class="pista-campo">Las plantillas sirven para cualquier temporada: el nombre del curso, fechas, horario y montos salen de la temporada elegida arriba.</p>
         <p class="etiqueta-campo">Nombre de la plantilla</p>
         <input type="text" id="inputVcWaNombre" class="input-texto" maxlength="60" placeholder="Ej. Recordatorio de horario" autocomplete="off" />
         <p class="etiqueta-campo">Mensaje</p>
@@ -1153,6 +1155,7 @@
           <button class="chip activo" type="button" data-vc-wa-filtro="todas">Todas las inscritas</button>
           <button class="chip" type="button" data-vc-wa-filtro="conCodigo">Solo con código</button>
           <button class="chip" type="button" data-vc-wa-filtro="pendiente">Deben saldo o reserva</button>
+          <button class="chip" type="button" data-vc-wa-filtro="bienvenidaPendiente">Bienvenida pendiente</button>
           <button class="chip" type="button" data-vc-wa-filtro="seleccion">Elegir una por una</button>
         </div>
         <div id="cajaVcWaSeleccion" hidden>
@@ -1162,7 +1165,7 @@
           </div>
           <div id="listaVcWaSeleccion" class="vc-wa-seleccion"></div>
         </div>
-        <p class="pista-campo">Las canceladas nunca reciben. Si una responsable tiene varias niñas, le llega un solo mensaje con todas.</p>
+        <p class="pista-campo">Las canceladas nunca reciben. Si una responsable tiene varias niñas, le llega un solo mensaje con todas. Con «Bienvenida pendiente», al enviarse queda marcada como enviada.</p>
 
         <button class="btn-grande btn-siguiente" id="btnVcWaVistaPrevia" type="button">👁️ Vista previa</button>
         <p class="mensaje-form" id="mensajeVcWa" role="status"></p>
@@ -1191,7 +1194,7 @@
 
 </div>
 
-<script src="recepcion.js?v=campamento-whatsapp-v1"></script>
+<script src="recepcion.js?v=campamento-whatsapp-v2"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
