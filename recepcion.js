@@ -4666,6 +4666,9 @@ function vcPintarTodo() {
   vcPintarInscritas();
   vcPintarAsistencia();
   vcLlenarFormulario();
+  // Otra temporada (u otra lista): la vista previa ya no vale.
+  vcWaInvalidarPrevia();
+  vcWaPintarSeleccion();
   el("pistaVcNueva").textContent =
     `Se copian los precios, horario, edades, cupo, actividades, políticas y mensaje de la temporada ${cfg.temporada}. ` +
     "Nace con inscripciones Cerradas, sin días sin curso y con su propio link de la ficha: revisa todo en Configuración antes de abrirla.";
@@ -5461,15 +5464,365 @@ el("btnVcCrearTemporada").addEventListener("click", async () => {
   }
 });
 
+// ---------- Mensajes WhatsApp a los responsables ----------
+// El Worker arma cada mensaje (uno por teléfono, con todas sus niñas),
+// revisa que no vaya a canceladas y los manda uno por uno con pausas de
+// 20 a 60 s, máximo 50 al día. Aquí solo se escoge, se revisa la vista
+// previa y se confirma. Los datos entran siempre con textContent.
+
+const VC_WA_VARIABLES = ["nombre_participante", "nombre_responsable", "codigo", "saldo", "fechas_curso", "horario", "curso"];
+let vcWaPlantillas = [];
+let vcWaFiltro = "todas";
+const vcWaSeleccion = new Set();
+let vcWaPrevia = null; // última vista previa: es la que se manda
+let vcWaTemporizador = null;
+
+function vcWaPayload() {
+  return {
+    clave: claveRecepcion,
+    configId: vcConfigId,
+    filtro: vcWaFiltro,
+    ids: [...vcWaSeleccion],
+    texto: el("inputVcWaTexto").value,
+    nombre: el("inputVcWaNombre").value.trim(),
+  };
+}
+
+// Cualquier cambio (texto, destinatarias, temporada) obliga a ver la
+// vista previa otra vez antes de enviar.
+function vcWaInvalidarPrevia() {
+  vcWaPrevia = null;
+  el("cajaVcWaPrevia").hidden = true;
+}
+
+const vcWaTelefono = (numero) => {
+  const d = String(numero || "").slice(-8);
+  return d.length === 8 ? `${d.slice(0, 4)} ${d.slice(4)}` : String(numero || "");
+};
+
+function vcWaHora(ms) {
+  return new Date(ms).toLocaleTimeString("es-GT", { timeZone: "America/Guatemala", hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
+}
+
+async function vcWaCargar() {
+  vcWaPintarSeleccion();
+  try {
+    const r = await llamarWorker({ accion: "vcWhatsappDatos", clave: claveRecepcion });
+    vcWaPlantillas = r.plantillas || [];
+    vcWaPintarPlantillas();
+    vcWaPintarEstado(r.estado);
+  } catch (e) {
+    vcMensaje("mensajeVcWaEstado", e.message, "error");
+  }
+}
+
+function vcWaPintarPlantillas(elegida) {
+  const select = el("selectVcWaPlantilla");
+  const actual = elegida !== undefined ? elegida : select.value;
+  select.innerHTML = "";
+  const nueva = vcCrear("option", "", "— Mensaje nuevo —");
+  nueva.value = "";
+  select.appendChild(nueva);
+  vcWaPlantillas.forEach((p) => {
+    const op = vcCrear("option", "", p.nombre);
+    op.value = p.id;
+    select.appendChild(op);
+  });
+  select.value = vcWaPlantillas.some((p) => p.id === actual) ? actual : "";
+  el("btnVcWaBorrarPlantilla").disabled = !select.value;
+}
+
+el("selectVcWaPlantilla").addEventListener("change", () => {
+  const p = vcWaPlantillas.find((x) => x.id === el("selectVcWaPlantilla").value);
+  el("inputVcWaNombre").value = p ? p.nombre : "";
+  el("inputVcWaTexto").value = p ? p.texto : "";
+  el("btnVcWaBorrarPlantilla").disabled = !p;
+  vcMensaje("mensajeVcWaPlantilla", "");
+  vcWaInvalidarPrevia();
+});
+
+el("btnVcWaGuardarPlantilla").addEventListener("click", async () => {
+  const id = el("selectVcWaPlantilla").value;
+  const boton = el("btnVcWaGuardarPlantilla");
+  boton.disabled = true;
+  vcMensaje("mensajeVcWaPlantilla", "Guardando...");
+  try {
+    const r = await llamarWorker({
+      accion: "vcWhatsappPlantillaGuardar",
+      clave: claveRecepcion,
+      id: id || undefined,
+      nombre: el("inputVcWaNombre").value,
+      texto: el("inputVcWaTexto").value,
+    });
+    vcWaPlantillas = r.plantillas;
+    vcWaPintarPlantillas(r.plantilla.id);
+    vcMensaje("mensajeVcWaPlantilla", id ? "✅ Plantilla actualizada." : "✅ Plantilla guardada.", "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcWaPlantilla", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+el("btnVcWaBorrarPlantilla").addEventListener("click", async () => {
+  const p = vcWaPlantillas.find((x) => x.id === el("selectVcWaPlantilla").value);
+  if (!p || !confirm(`¿Borrar la plantilla «${p.nombre}»? No se puede deshacer.`)) return;
+  vcMensaje("mensajeVcWaPlantilla", "Borrando...");
+  try {
+    const r = await llamarWorker({ accion: "vcWhatsappPlantillaEliminar", clave: claveRecepcion, id: p.id });
+    vcWaPlantillas = r.plantillas;
+    vcWaPintarPlantillas("");
+    el("inputVcWaNombre").value = "";
+    el("inputVcWaTexto").value = "";
+    vcWaInvalidarPrevia();
+    vcMensaje("mensajeVcWaPlantilla", "✅ Plantilla borrada.", "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcWaPlantilla", e.message, "error");
+  }
+});
+
+// Botones que meten {dato} donde está el cursor.
+VC_WA_VARIABLES.forEach((v) => {
+  const b = vcCrear("button", "vc-wa-variable", `{${v}}`);
+  b.type = "button";
+  b.addEventListener("click", () => {
+    const area = el("inputVcWaTexto");
+    const ini = area.selectionStart ?? area.value.length;
+    const fin = area.selectionEnd ?? area.value.length;
+    area.setRangeText(`{${v}}`, ini, fin, "end");
+    area.focus();
+    vcWaInvalidarPrevia();
+  });
+  el("listaVcWaVariables").appendChild(b);
+});
+
+el("inputVcWaTexto").addEventListener("input", vcWaInvalidarPrevia);
+
+// ---- Destinatarias ----
+document.querySelectorAll("[data-vc-wa-filtro]").forEach((chip) => {
+  chip.addEventListener("click", () => {
+    vcWaFiltro = chip.dataset.vcWaFiltro;
+    document.querySelectorAll("[data-vc-wa-filtro]").forEach((c) => c.classList.toggle("activo", c === chip));
+    el("cajaVcWaSeleccion").hidden = vcWaFiltro !== "seleccion";
+    vcWaInvalidarPrevia();
+  });
+});
+
+function vcWaPintarSeleccion() {
+  const cont = el("listaVcWaSeleccion");
+  cont.innerHTML = "";
+  const activas = vcDatos && vcDatos.inscritas ? vcDatos.inscritas.filter((i) => i.estado !== "Cancelada") : [];
+  const ids = new Set(activas.map((i) => i.id));
+  [...vcWaSeleccion].forEach((id) => ids.has(id) || vcWaSeleccion.delete(id));
+  if (!activas.length) {
+    cont.appendChild(vcCrear("p", "lista-vacia", "No hay inscritas activas en esta temporada."));
+    return;
+  }
+  activas.forEach((i) => {
+    const fila = vcCrear("label", "");
+    const caja = document.createElement("input");
+    caja.type = "checkbox";
+    caja.checked = vcWaSeleccion.has(i.id);
+    caja.addEventListener("change", () => {
+      if (caja.checked) vcWaSeleccion.add(i.id);
+      else vcWaSeleccion.delete(i.id);
+      vcWaInvalidarPrevia();
+    });
+    const texto = vcCrear("span", "", i.alumna);
+    const pagos = !i.reservaPagada ? "reserva pendiente" : !i.saldoPagado ? "saldo pendiente" : "pagado";
+    texto.appendChild(vcCrear("small", "", `${i.responsable || "Sin responsable"} · ${vcWaTelefono(i.telefonoResponsable)} · ${i.codigo ? "código " + i.codigo : "sin código"} · ${pagos}`));
+    fila.append(caja, texto);
+    cont.appendChild(fila);
+  });
+}
+
+function vcWaMarcarTodas(marcar) {
+  vcWaSeleccion.clear();
+  if (marcar && vcDatos) vcDatos.inscritas.filter((i) => i.estado !== "Cancelada").forEach((i) => vcWaSeleccion.add(i.id));
+  vcWaPintarSeleccion();
+  vcWaInvalidarPrevia();
+}
+el("btnVcWaMarcarTodas").addEventListener("click", () => vcWaMarcarTodas(true));
+el("btnVcWaDesmarcar").addEventListener("click", () => vcWaMarcarTodas(false));
+
+// ---- Vista previa y envío ----
+el("btnVcWaVistaPrevia").addEventListener("click", async () => {
+  const boton = el("btnVcWaVistaPrevia");
+  boton.disabled = true;
+  vcWaInvalidarPrevia();
+  vcMensaje("mensajeVcWa", "Armando los mensajes...");
+  try {
+    const payload = vcWaPayload();
+    const r = await llamarWorker({ accion: "vcWhatsappVistaPrevia", ...payload });
+    vcWaPrevia = { ...r, payload };
+    vcWaPintarPrevia();
+    if (r.estado) vcWaPintarEstado(r.estado);
+    vcMensaje("mensajeVcWa", "");
+  } catch (e) {
+    vcMensaje("mensajeVcWa", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+function vcWaPintarPrevia() {
+  const r = vcWaPrevia;
+  const n = r.mensajes.length;
+  const participantes = r.mensajes.reduce((t, m) => t + m.nombres.length, 0);
+  const minutos = Math.max(1, Math.round(((n - 1) * 40) / 60));
+  el("textoVcWaCuantos").textContent = n
+    ? `${n} responsable${n === 1 ? "" : "s"} (${participantes} participante${participantes === 1 ? "" : "s"}). Tarda unos ${minutos} min.`
+    : "Nadie recibiría este mensaje.";
+
+  const avisos = el("listaVcWaAvisos");
+  avisos.innerHTML = "";
+  const quedan = r.estado ? r.estado.quedanHoy : n;
+  const problemas = [];
+  if (r.desconocidas.length) problemas.push(`El mensaje tiene datos que no existen aquí: ${r.desconocidas.map((v) => `{${v}}`).join(", ")}. Corrígelos antes de enviar.`);
+  if (n > quedan) problemas.push(`Hoy solo quedan ${quedan} mensajes de 50. Elige menos responsables o envía mañana.`);
+  if (r.estado && r.estado.envio && r.estado.envio.estado === "enviando") problemas.push("Hay un envío en curso: espera a que termine para mandar otro.");
+  problemas.forEach((t) => avisos.appendChild(vcCrear("li", "vc-wa-error", t)));
+  if (r.sinTelefono.length) avisos.appendChild(vcCrear("li", "", `Sin teléfono válido (no reciben): ${r.sinTelefono.join(", ")}`));
+  avisos.hidden = !avisos.children.length;
+
+  const select = el("selectVcWaPrevia");
+  select.innerHTML = "";
+  r.mensajes.forEach((m, i) => {
+    const op = vcCrear("option", "", `${m.nombres.join(" y ")} — ${m.responsable || "Sin responsable"} (${vcWaTelefono(m.numero)})`);
+    op.value = String(i);
+    select.appendChild(op);
+  });
+  select.hidden = !n;
+  vcWaPintarBurbuja();
+
+  const enviar = el("btnVcWaEnviar");
+  enviar.textContent = `📲 Enviar a ${n} responsable${n === 1 ? "" : "s"}`;
+  enviar.disabled = !n || problemas.length > 0;
+  el("btnVcWaProbar").disabled = !n || r.desconocidas.length > 0;
+  el("cajaVcWaPrevia").hidden = false;
+}
+
+function vcWaPintarBurbuja() {
+  const m = vcWaPrevia && vcWaPrevia.mensajes[Number(el("selectVcWaPrevia").value) || 0];
+  el("textoVcWaPrevia").textContent = m ? m.texto : "";
+  el("textoVcWaPrevia").hidden = !m;
+}
+el("selectVcWaPrevia").addEventListener("change", vcWaPintarBurbuja);
+
+el("btnVcWaEnviar").addEventListener("click", async () => {
+  if (!vcWaPrevia) return;
+  const n = vcWaPrevia.mensajes.length;
+  const nombre = vcWaPrevia.payload.nombre || "Mensaje sin plantilla";
+  const minutos = Math.max(1, Math.round(((n - 1) * 40) / 60));
+  if (!confirm(`¿Enviar «${nombre}» a ${n} responsable${n === 1 ? "" : "s"}?\n\nSe mandan uno por uno, con pausas de 20 a 60 segundos (unos ${minutos} min). Puedes cerrar esta pantalla: el envío sigue solo.`)) return;
+  const boton = el("btnVcWaEnviar");
+  boton.disabled = true;
+  vcMensaje("mensajeVcWa", "Iniciando el envío...");
+  try {
+    const r = await llamarWorker({ accion: "vcWhatsappEnviar", ...vcWaPrevia.payload, confirmados: n });
+    vcWaInvalidarPrevia();
+    vcWaPintarEstado(r.estado);
+    vcMensaje("mensajeVcWa", "✅ Envío iniciado. Arriba ves el avance.", "ok");
+    el("cajaVcWaEstado").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    vcMensaje("mensajeVcWa", e.message, "error");
+    boton.disabled = false;
+  }
+});
+
+el("btnVcWaProbar").addEventListener("click", async () => {
+  if (!vcWaPrevia) return;
+  const telefono = el("inputVcWaTelefono").value;
+  const boton = el("btnVcWaProbar");
+  boton.disabled = true;
+  vcMensaje("mensajeVcWa", "Mandando la prueba...");
+  try {
+    const r = await llamarWorker({
+      accion: "vcWhatsappPrueba",
+      ...vcWaPrevia.payload,
+      indice: Number(el("selectVcWaPrevia").value) || 0,
+      telefono,
+    });
+    vcWaPintarEstado(r.estado);
+    vcMensaje("mensajeVcWa", `✅ Prueba en camino a ${vcWaTelefono(telefono.replace(/\D/g, ""))}.`, "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcWa", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+// ---- Estado del envío ----
+function vcWaPintarEstado(estado) {
+  clearTimeout(vcWaTemporizador);
+  if (!estado) {
+    el("textoVcWaHoy").textContent = "No se pudo leer el estado de los envíos.";
+    el("cajaVcWaEnvio").hidden = true;
+    return;
+  }
+  el("textoVcWaHoy").textContent = `Hoy: ${estado.enviadosHoy} de ${estado.maximo} mensajes (quedan ${estado.quedanHoy}).`;
+  const v = estado.envio;
+  el("cajaVcWaEnvio").hidden = !v;
+  if (!v) return;
+  const nombre = `«${v.nombre}»${v.temporada ? ` (${v.temporada})` : ""}`;
+  const hechos = v.enviados + v.errores;
+  const titulo = el("textoVcWaEnvio");
+  titulo.className = "vc-wa-envio-titulo" + (v.estado === "detenido" ? " vc-wa-detenido" : "");
+  if (v.estado === "enviando") titulo.textContent = `⏳ Enviando ${nombre}: ${hechos} de ${v.total}${v.errores ? ` (${v.errores} con error)` : ""}`;
+  else if (v.estado === "terminado") titulo.textContent = `✅ ${nombre} terminado: ${v.enviados} de ${v.total} enviados${v.errores ? `, ${v.errores} con error` : ""}.`;
+  else titulo.textContent = `⏹️ ${nombre} detenido: ${v.enviados} de ${v.total} enviados. ${v.motivo}`;
+  el("textoVcWaSiguiente").textContent = v.estado === "enviando" && v.siguienteEn ? `Siguiente mensaje a las ${vcWaHora(v.siguienteEn)}.` : `Empezó a las ${vcWaHora(v.creado)}.`;
+  el("btnVcWaDetener").hidden = v.estado !== "enviando";
+
+  const lista = el("listaVcWaResultados");
+  lista.innerHTML = "";
+  v.resultados.forEach((x) => {
+    const icono = x.estado === "enviado" ? "✅" : x.estado === "error" ? "❌" : "⏸️";
+    const li = vcCrear("li", x.estado === "enviado" ? "vc-wa-ok" : "vc-wa-error", `${icono} ${x.nombres.join(" y ")} — ${vcWaTelefono(x.numero)} · ${vcWaHora(x.hora)}${x.error ? ` · ${x.error}` : ""}`);
+    lista.appendChild(li);
+  });
+  v.porEnviar.forEach((x) => lista.appendChild(vcCrear("li", "", `⏳ ${x.nombres.join(" y ")} — ${vcWaTelefono(x.numero)}`)));
+
+  // Mientras se envía, se actualiza solo (solo con esta pestaña abierta).
+  if (v.estado === "enviando") {
+    vcWaTemporizador = setTimeout(() => {
+      if (vcPestana === "Whatsapp" && !el("pantallaCampamento").hidden) vcWaActualizarEstado();
+    }, 15000);
+  }
+}
+
+async function vcWaActualizarEstado() {
+  try {
+    const r = await llamarWorker({ accion: "vcWhatsappDatos", clave: claveRecepcion });
+    vcWaPintarEstado(r.estado);
+    vcMensaje("mensajeVcWaEstado", "");
+  } catch (e) {
+    vcMensaje("mensajeVcWaEstado", e.message, "error");
+  }
+}
+el("btnVcWaActualizar").addEventListener("click", vcWaActualizarEstado);
+
+el("btnVcWaDetener").addEventListener("click", async () => {
+  if (!confirm("¿Detener el envío? Los mensajes que faltan no se van a mandar.")) return;
+  try {
+    const r = await llamarWorker({ accion: "vcWhatsappDetener", clave: claveRecepcion });
+    vcWaPintarEstado(r.estado);
+    vcMensaje("mensajeVcWaEstado", "Envío detenido.", "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcWaEstado", e.message, "error");
+  }
+});
+
 // ---------- Pestañas y selector ----------
 function vcCambiarPestana(nombre) {
   vcPestana = nombre;
   document.querySelectorAll("[data-vc-pestana]").forEach((chip) => {
     chip.classList.toggle("activo", chip.dataset.vcPestana === nombre);
   });
-  ["Inscritas", "Asistencia", "Config", "Nueva"].forEach((n) => {
+  ["Inscritas", "Asistencia", "Config", "Nueva", "Whatsapp"].forEach((n) => {
     el("vistaVc" + n).hidden = n !== nombre;
   });
+  if (nombre === "Whatsapp") vcWaCargar();
 }
 
 document.querySelectorAll("[data-vc-pestana]").forEach((chip) => {

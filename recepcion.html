@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=ruleta-v1" />
+<link rel="stylesheet" href="recepcion.css?v=campamento-whatsapp-v1" />
 </head>
 <body>
 
@@ -933,6 +933,7 @@
       <button class="chip" type="button" data-vc-pestana="Asistencia">🕘 Asistencia de hoy</button>
       <button class="chip" type="button" data-vc-pestana="Config">⚙️ Configuración</button>
       <button class="chip" type="button" data-vc-pestana="Nueva">➕ Temporada nueva</button>
+      <button class="chip" type="button" data-vc-pestana="Whatsapp">📲 Mensajes WhatsApp</button>
     </div>
     <p class="mensaje-form" id="mensajeVc" role="status"></p>
 
@@ -1111,11 +1112,86 @@
         <p class="mensaje-form" id="mensajeVcNueva" role="status"></p>
       </div>
     </div>
+
+    <!-- e) Mensajes WhatsApp a los responsables de esta temporada. Lo
+         manda el Worker uno por uno, con pausas de 20 a 60 s, un solo
+         mensaje por teléfono y máximo 50 al día (antispam). -->
+    <div id="vistaVcWhatsapp" hidden>
+      <div class="bloque-info vc-wa-estado" id="cajaVcWaEstado">
+        <p class="bloque-info-titulo">📲 Envíos de hoy</p>
+        <p class="vc-wa-cuenta" id="textoVcWaHoy">—</p>
+        <div id="cajaVcWaEnvio" hidden>
+          <p class="vc-wa-envio-titulo" id="textoVcWaEnvio"></p>
+          <p class="pista-campo" id="textoVcWaSiguiente"></p>
+          <button class="btn-secundario btn-chico" id="btnVcWaDetener" type="button">⏹️ Detener envío</button>
+          <details class="vc-wa-resultados">
+            <summary>Ver detalle por responsable</summary>
+            <ul id="listaVcWaResultados"></ul>
+          </details>
+        </div>
+        <button class="btn-secundario btn-chico" id="btnVcWaActualizar" type="button">🔄 Actualizar</button>
+        <p class="mensaje-form" id="mensajeVcWaEstado" role="status"></p>
+      </div>
+
+      <div class="caja-form-ingreso">
+        <p class="etiqueta-campo">Plantilla</p>
+        <select id="selectVcWaPlantilla" class="input-select"></select>
+        <p class="etiqueta-campo">Nombre de la plantilla</p>
+        <input type="text" id="inputVcWaNombre" class="input-texto" maxlength="60" placeholder="Ej. Recordatorio de horario" autocomplete="off" />
+        <p class="etiqueta-campo">Mensaje</p>
+        <textarea id="inputVcWaTexto" class="input-textarea" rows="8" maxlength="3000" placeholder="Hola {nombre_responsable}, ..."></textarea>
+        <p class="pista-campo">Toca un dato para agregarlo al mensaje:</p>
+        <div class="vc-wa-variables" id="listaVcWaVariables"></div>
+        <div class="show-acciones">
+          <button class="btn-secundario btn-chico" id="btnVcWaGuardarPlantilla" type="button">💾 Guardar plantilla</button>
+          <button class="btn-secundario btn-chico" id="btnVcWaBorrarPlantilla" type="button">🗑️ Borrar plantilla</button>
+        </div>
+        <p class="mensaje-form" id="mensajeVcWaPlantilla" role="status"></p>
+
+        <p class="etiqueta-campo">¿A quién se le manda?</p>
+        <div class="chips-contenedor" id="opcionesVcWaFiltro">
+          <button class="chip activo" type="button" data-vc-wa-filtro="todas">Todas las inscritas</button>
+          <button class="chip" type="button" data-vc-wa-filtro="conCodigo">Solo con código</button>
+          <button class="chip" type="button" data-vc-wa-filtro="pendiente">Deben saldo o reserva</button>
+          <button class="chip" type="button" data-vc-wa-filtro="seleccion">Elegir una por una</button>
+        </div>
+        <div id="cajaVcWaSeleccion" hidden>
+          <div class="show-acciones">
+            <button class="btn-secundario btn-chico" id="btnVcWaMarcarTodas" type="button">Marcar todas</button>
+            <button class="btn-secundario btn-chico" id="btnVcWaDesmarcar" type="button">Quitar todas</button>
+          </div>
+          <div id="listaVcWaSeleccion" class="vc-wa-seleccion"></div>
+        </div>
+        <p class="pista-campo">Las canceladas nunca reciben. Si una responsable tiene varias niñas, le llega un solo mensaje con todas.</p>
+
+        <button class="btn-grande btn-siguiente" id="btnVcWaVistaPrevia" type="button">👁️ Vista previa</button>
+        <p class="mensaje-form" id="mensajeVcWa" role="status"></p>
+
+        <div id="cajaVcWaPrevia" hidden>
+          <p class="vc-wa-cuenta" id="textoVcWaCuantos"></p>
+          <ul class="vc-codigos-sin" id="listaVcWaAvisos"></ul>
+          <p class="etiqueta-campo">Ver el mensaje de</p>
+          <select id="selectVcWaPrevia" class="input-select"></select>
+          <div class="vc-wa-burbuja" id="textoVcWaPrevia"></div>
+          <button class="btn-grande btn-siguiente" id="btnVcWaEnviar" type="button">📲 Enviar</button>
+          <p class="etiqueta-campo">Probar en mi número</p>
+          <div class="vc-dos-columnas">
+            <div>
+              <input type="tel" id="inputVcWaTelefono" class="input-texto" maxlength="20" placeholder="8 dígitos" inputmode="numeric" autocomplete="off" />
+            </div>
+            <div>
+              <button class="btn-secundario btn-ancho" id="btnVcWaProbar" type="button">📱 Mandarme este mensaje</button>
+            </div>
+          </div>
+          <p class="pista-campo">La prueba manda el mensaje que estás viendo arriba solo a ese número y cuenta en los 50 del día.</p>
+        </div>
+      </div>
+    </div>
   </section>
 
 </div>
 
-<script src="recepcion.js?v=codigos-campamento-v2"></script>
+<script src="recepcion.js?v=campamento-whatsapp-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

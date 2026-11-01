@@ -1743,3 +1743,27 @@ overflow-wrap:anywhere;
 .vc-codigos.inactivo .vc-codigos-estado{ color:#666; }
 .vc-codigos-cuenta{ margin:0; font-size:14px; }
 .vc-codigos-sin{ margin:4px 0 0 18px; font-size:13.5px; color:#555; }
+
+/* ---------- Curso de vacaciones: mensajes WhatsApp ---------- */
+.vc-wa-cuenta{ font-weight:700; margin:0 0 6px; }
+.vc-wa-envio-titulo{ margin:6px 0 2px; font-weight:700; color:#1f7a4d; }
+.vc-wa-envio-titulo.vc-wa-detenido{ color:#b26a00; }
+.vc-wa-resultados{ margin:6px 0; font-size:13.5px; }
+.vc-wa-resultados summary{ cursor:pointer; font-weight:700; }
+.vc-wa-resultados ul{ margin:6px 0 0 18px; padding:0; }
+.vc-wa-resultados li{ margin:2px 0; overflow-wrap:anywhere; }
+.vc-wa-error{ color:#c0392b; }
+.vc-wa-ok{ color:#1f7a4d; }
+.vc-wa-variables{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 8px; }
+.vc-wa-variable{
+  padding:5px 9px; border-radius:999px; border:1px solid #d6d6d6; background:white;
+  font-family:inherit; font-size:13px; cursor:pointer;
+}
+.vc-wa-seleccion{ max-height:320px; overflow-y:auto; border:1px solid #e5e5e5; border-radius:12px; padding:6px 10px; margin:6px 0; }
+.vc-wa-seleccion label{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
+.vc-wa-seleccion label:last-child{ border-bottom:none; }
+.vc-wa-seleccion small{ display:block; color:#777; }
+.vc-wa-burbuja{
+  white-space:pre-wrap; overflow-wrap:anywhere; background:#e7fbd8; border-radius:12px;
+  padding:10px 12px; margin:8px 0 12px; font-size:14.5px; line-height:1.4;
+}
