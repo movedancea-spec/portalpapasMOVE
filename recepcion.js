@@ -6056,6 +6056,15 @@ function vcClasesPintarConfig() {
   el("textoVcClasesEstado").textContent = cfg.mostrar
     ? `Activo: la ficha de la temporada ${vcClasesDatos.temporada} muestra la sección «Clases».`
     : `Inactivo: la ficha de la temporada ${vcClasesDatos.temporada} queda igual que siempre, sin clases.`;
+  // La ficha de una temporada que no está "Abiertas" no la ven las
+  // familias, aunque el interruptor esté activo (incidente del 2026-11-02).
+  const aviso = el("avisoVcClasesTemporada");
+  const abiertas = (vcDatos && vcDatos.temporadas ? vcDatos.temporadas : []).filter((t) => t.estado === "Abiertas").map((t) => `«${t.temporada}»`);
+  aviso.hidden = vcClasesDatos.estadoTemporada === "Abiertas";
+  aviso.textContent = aviso.hidden
+    ? ""
+    : `⚠️ Estás viendo la temporada «${vcClasesDatos.temporada}», que está ${vcClasesDatos.estadoTemporada}: las familias no ven su ficha (ni sus clases) hasta que abras las inscripciones.` +
+      (abiertas.length ? ` La ficha abierta ahora es la de ${abiertas.join(" y ")}: para que salgan clases ahí, elígela arriba en «Temporada».` : "");
   el("inputVcClasesMinimo").value = cfg.minimo || 0;
   el("inputVcClasesMaximo").value = cfg.maximo ?? "";
 }
@@ -6100,6 +6109,8 @@ function vcClasesPintarLista() {
     const extra = [vcCupoTexto(c), vcEdadesTexto(c)].filter(Boolean).join(" · ");
     t.appendChild(vcCrear("p", "vc-clase-detalle", extra));
     if (c.cupo !== null && c.inscritas > c.cupo) t.appendChild(vcCrear("p", "vc-wa-error", `⚠️ Tiene más inscritas (${c.inscritas}) que cupo (${c.cupo}).`));
+    const hc = vcClasesDatos.horarioCurso;
+    if (hc && (c.horaInicio < hc.inicio || c.horaFin > hc.fin)) t.appendChild(vcCrear("p", "vc-wa-error", `⚠️ Fuera del horario del curso (${hc.texto}). ¿a.m. en vez de p.m.?`));
     if (c.descripcion) t.appendChild(vcCrear("p", "vc-clase-descripcion", c.descripcion));
     const acciones = vcCrear("div", "show-acciones");
     const editar = vcCrear("button", "btn-secundario btn-chico", "✏️ Editar");
