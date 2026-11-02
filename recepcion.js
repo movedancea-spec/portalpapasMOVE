@@ -5853,6 +5853,8 @@ function vcWaPintarPrevia() {
   if ((activo && !activo.multiDia) || (r.estado && r.estado.enEspera)) problemas.push("Hay un envío del campamento en curso: espera a que termine para mandar otro.");
   problemas.forEach((t) => avisos.appendChild(vcCrear("li", "vc-wa-error", t)));
   if (r.sinTelefono.length) avisos.appendChild(vcCrear("li", "", `Sin teléfono válido (no reciben): ${r.sinTelefono.join(", ")}`));
+  // Solo aviso: en su mensaje la línea de {clases} se quita sola.
+  if (r.sinClase && r.sinClase.length) avisos.appendChild(vcCrear("li", "", `Sin clase asignada (su mensaje sale sin la línea de clases): ${r.sinClase.join(", ")}`));
   const horario = textoEmpiezaWa(r.estado && r.estado.empiezaEn);
   if (horario) avisos.appendChild(vcCrear("li", "", horario));
   if (activo && activo.multiDia && !(r.estado && r.estado.enEspera)) {
