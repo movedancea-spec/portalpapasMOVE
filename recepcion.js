@@ -6063,7 +6063,7 @@ function vcClasesPintarConfig() {
   aviso.hidden = vcClasesDatos.estadoTemporada === "Abiertas";
   aviso.textContent = aviso.hidden
     ? ""
-    : `⚠️ Estás viendo la temporada «${vcClasesDatos.temporada}», que está ${vcClasesDatos.estadoTemporada}: las familias no ven su ficha (ni sus clases) hasta que abras las inscripciones.` +
+    : `⚠️ Estás viendo la temporada «${vcClasesDatos.temporada}», que está ${vcClasesDatos.estadoTemporada === "Archivada" ? "archivada" : "cerrada"}: las familias no ven su ficha (ni sus clases) hasta que abras las inscripciones.` +
       (abiertas.length ? ` La ficha abierta ahora es la de ${abiertas.join(" y ")}: para que salgan clases ahí, elígela arriba en «Temporada».` : "");
   el("inputVcClasesMinimo").value = cfg.minimo || 0;
   el("inputVcClasesMaximo").value = cfg.maximo ?? "";
