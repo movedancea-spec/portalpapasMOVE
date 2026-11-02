@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=campamento-whatsapp-v1" />
+<link rel="stylesheet" href="recepcion.css?v=campamento-clases-v1" />
 </head>
 <body>
 
@@ -960,6 +960,7 @@
       <button class="chip" type="button" data-vc-pestana="Asistencia">🕘 Asistencia de hoy</button>
       <button class="chip" type="button" data-vc-pestana="Config">⚙️ Configuración</button>
       <button class="chip" type="button" data-vc-pestana="Nueva">➕ Temporada nueva</button>
+      <button class="chip" type="button" data-vc-pestana="Clases">🗓️ Clases y horarios</button>
       <button class="chip" type="button" data-vc-pestana="Whatsapp">📲 Mensajes WhatsApp</button>
     </div>
     <p class="mensaje-form" id="mensajeVc" role="status"></p>
@@ -1140,6 +1141,97 @@
       </div>
     </div>
 
+    <!-- f) Clases y horarios de ESTA temporada (VACATION CAMP CLASES).
+         El cupo lo revisa el Worker con candado; las canceladas no
+         cuentan ni aparecen. -->
+    <div id="vistaVcClases" hidden>
+      <div class="chips-contenedor">
+        <button class="chip activo" type="button" data-vc-clases-vista="Config">⚙️ Clases</button>
+        <button class="chip" type="button" data-vc-clases-vista="PorClase">📋 Por clase</button>
+        <button class="chip" type="button" data-vc-clases-vista="PorAlumna">👧 Por alumna</button>
+      </div>
+      <p class="mensaje-form" id="mensajeVcClases" role="status"></p>
+
+      <div id="vistaVcClasesConfig">
+        <div class="bloque-info vc-codigos" id="cajaVcClasesFicha">
+          <p class="bloque-info-titulo">📝 Mostrar clases en la ficha de inscripción</p>
+          <div class="vc-codigos-botones">
+            <button class="vc-codigos-btn" id="btnVcClasesActivo" type="button">🟢 Activo</button>
+            <button class="vc-codigos-btn" id="btnVcClasesInactivo" type="button">⚪ Inactivo</button>
+          </div>
+          <p class="vc-codigos-estado" id="textoVcClasesEstado"></p>
+          <div class="vc-dos-columnas">
+            <div>
+              <p class="etiqueta-campo">Mínimo de clases por niña</p>
+              <input type="number" id="inputVcClasesMinimo" class="input-texto" min="0" max="20" step="1" inputmode="numeric" />
+            </div>
+            <div>
+              <p class="etiqueta-campo">Máximo (vacío = sin máximo)</p>
+              <input type="number" id="inputVcClasesMaximo" class="input-texto" min="1" max="20" step="1" inputmode="numeric" />
+            </div>
+          </div>
+          <button class="btn-secundario btn-chico" id="btnVcClasesGuardarLimites" type="button">💾 Guardar mínimo y máximo</button>
+          <p class="pista-campo">Solo para esta temporada. Mínimo 0 = elegir clase es opcional.</p>
+        </div>
+
+        <div id="listaVcClases" class="show-lista"></div>
+        <button class="btn-secundario btn-ancho" id="btnVcClaseNueva" type="button">+ Agregar clase</button>
+
+        <div class="caja-form-ingreso" id="formVcClase" hidden>
+          <p class="subtitulo" id="tituloFormVcClase">Clase nueva</p>
+          <p class="etiqueta-campo">Nombre de la clase</p>
+          <input type="text" id="inputVcClaseNombre" class="input-texto" maxlength="80" placeholder="Ej. Ballet" autocomplete="off" />
+          <p class="etiqueta-campo">Días</p>
+          <div class="vc-clase-dias" id="listaVcClaseDias"></div>
+          <div class="vc-dos-columnas">
+            <div>
+              <p class="etiqueta-campo">Hora de inicio</p>
+              <input type="time" id="inputVcClaseInicio" class="input-texto" />
+            </div>
+            <div>
+              <p class="etiqueta-campo">Hora de fin</p>
+              <input type="time" id="inputVcClaseFin" class="input-texto" />
+            </div>
+          </div>
+          <div class="vc-tres-columnas">
+            <div>
+              <p class="etiqueta-campo">Cupo (opcional)</p>
+              <input type="number" id="inputVcClaseCupo" class="input-texto" min="1" step="1" inputmode="numeric" />
+            </div>
+            <div>
+              <p class="etiqueta-campo">Edad mínima</p>
+              <input type="number" id="inputVcClaseEdadMin" class="input-texto" min="0" max="99" step="1" inputmode="numeric" />
+            </div>
+            <div>
+              <p class="etiqueta-campo">Edad máxima</p>
+              <input type="number" id="inputVcClaseEdadMax" class="input-texto" min="0" max="99" step="1" inputmode="numeric" />
+            </div>
+          </div>
+          <p class="etiqueta-campo">Descripción corta (opcional)</p>
+          <textarea id="inputVcClaseDescripcion" class="input-textarea" rows="2" maxlength="300"></textarea>
+          <p class="pista-campo">La hora es de Guatemala. La edad se cuenta el día que empieza el curso.</p>
+          <div class="show-acciones">
+            <button class="btn-secundario btn-chico" id="btnVcClaseGuardar" type="button">💾 Guardar clase</button>
+            <button class="btn-secundario btn-chico" id="btnVcClaseCancelar" type="button">Cancelar</button>
+          </div>
+          <p class="mensaje-form" id="mensajeVcClase" role="status"></p>
+        </div>
+      </div>
+
+      <div id="vistaVcClasesPorClase" hidden>
+        <div class="show-acciones">
+          <button class="btn-secundario btn-chico" id="btnVcClasesPdfTodas" type="button">📄 PDF de todas</button>
+          <button class="btn-secundario btn-chico" id="btnVcClasesCsvTodas" type="button">📊 Excel (CSV) de todas</button>
+        </div>
+        <div id="listaVcClasesPorClase" class="show-lista"></div>
+      </div>
+
+      <div id="vistaVcClasesPorAlumna" hidden>
+        <p class="vc-wa-cuenta" id="textoVcClasesSin"></p>
+        <div id="listaVcClasesPorAlumna" class="show-lista"></div>
+      </div>
+    </div>
+
     <!-- e) Mensajes WhatsApp a los responsables de esta temporada. Lo
          manda el Worker uno por uno, con pausas de 20 a 60 s, un solo
          mensaje por teléfono y máximo 50 al día (antispam). -->
@@ -1221,7 +1313,7 @@
 
 </div>
 
-<script src="recepcion.js?v=anuncios-whatsapp-v2"></script>
+<script src="recepcion.js?v=campamento-clases-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

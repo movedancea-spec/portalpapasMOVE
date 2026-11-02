@@ -212,3 +212,10 @@ line-height:1.5;
 white-space:pre-line;
 overflow-wrap:anywhere;
 }
+
+/* Clases del campamento (solo si la temporada las muestra). */
+.opcion-clase{ flex-wrap:wrap; }
+/* El nombre y horario al lado de la casilla; descripción y avisos abajo. */
+.opcion-clase > span:not(.nota-clase-descripcion):not(.nota-clase){ flex:1; min-width:0; }
+.nota-clase-descripcion{ flex-basis:100%; padding-left:30px; font-size:13.5px; color:#666; overflow-wrap:anywhere; }
+.nota-clase[hidden]{ display:none; }

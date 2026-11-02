@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="prueba.css" />
-<link rel="stylesheet" href="inscripcion.css?v=1" />
+<link rel="stylesheet" href="inscripcion.css?v=clases-v1" />
 </head>
 <body>
 
@@ -160,6 +160,17 @@
       </div>
     </fieldset>
 
+    <!-- Clases: solo si la temporada las muestra (Recepción → Clases y
+         horarios). Oculta, la ficha queda igual que antes. -->
+    <fieldset class="seccion" id="seccionClases" hidden>
+      <legend class="seccion-titulo">🗓️ Clases</legend>
+      <div class="campo-form">
+        <p class="etiqueta-campo" id="etiquetaClases"></p>
+        <div class="opciones-columna" id="listaClases" role="group" aria-labelledby="etiquetaClases"></div>
+        <p class="pista-campo" id="pistaClases"></p>
+      </div>
+    </fieldset>
+
     <!-- Pago -->
     <fieldset class="seccion">
       <legend class="seccion-titulo">💳 Pago</legend>
@@ -217,6 +228,6 @@
 
 </div>
 
-<script src="inscripcion.js?v=2"></script>
+<script src="inscripcion.js?v=clases-v1"></script>
 </body>
 </html>

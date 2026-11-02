@@ -48,7 +48,8 @@ async function llamarWorker(payload) {
   });
   const datos = await resp.json().catch(() => ({}));
   if (!resp.ok || !datos.success) {
-    throw new Error(datos.error || "Ocurrió un error. Intenta de nuevo.");
+    // La respuesta completa va en el error (ej. clasesCambiaron).
+    throw Object.assign(new Error(datos.error || "Ocurrió un error. Intenta de nuevo."), { datos });
   }
   return datos;
 }
@@ -313,6 +314,7 @@ function pintarFicha() {
   el("etiquetaSaldo").textContent = `Saldo (${100 - pct}%) — el primer día`;
 
   pintarSemanas();
+  pintarClases();
   pintarPoliticas(t.politicas);
   el("textoListo").textContent = t.mensajeConfirmacion;
   mostrarSolo("pantallaFormulario");
@@ -341,6 +343,138 @@ async function cargarTemporada() {
     mostrarCerrado(`¡Gracias por tu interés! Ya se llenó el cupo del ${temporada.nombre}. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
   } else {
     pintarFicha();
+  }
+}
+
+// ---------------------------------------------------------------
+// CLASES (solo si la temporada las muestra: Recepción → Clases y
+// horarios). Se muestran las de la edad que tendrá la niña al empezar el
+// curso; las llenas salen como "Lleno" y no se pueden marcar; dos clases
+// que se cruzan el mismo día no se pueden marcar juntas. El Worker vuelve
+// a revisar todo al enviar (y el cupo, con candado).
+// ---------------------------------------------------------------
+const clasesElegidas = new Set();
+
+const aMinutos = (h) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+function seCruzan(a, b) {
+  const dia = a.dias.find((d) => b.dias.includes(d));
+  return dia && aMinutos(a.horaInicio) < aMinutos(b.horaFin) && aMinutos(b.horaInicio) < aMinutos(a.horaFin) ? dia : "";
+}
+
+function clasesDeSuEdad() {
+  const fecha = el("inputNacimiento").value;
+  if (!fecha) return null;
+  const edad = edadAlInicio(fecha);
+  return temporada.clases.filter((c) => (c.edadMinima === null || edad >= c.edadMinima) && (c.edadMaxima === null || edad <= c.edadMaxima));
+}
+
+function pintarClases() {
+  const seccion = el("seccionClases");
+  if (!temporada || !Array.isArray(temporada.clases)) {
+    seccion.hidden = true;
+    return;
+  }
+  seccion.hidden = false;
+  const min = temporada.clasesMinimo || 0;
+  const max = temporada.clasesMaximo || null;
+  el("etiquetaClases").textContent =
+    "Elige las clases para tu niña" +
+    (min && max ? ` (mínimo ${min}, máximo ${max})` : min ? ` (mínimo ${min})` : max ? ` (máximo ${max})` : "") +
+    (min ? " *" : " (opcional)");
+  const lista = el("listaClases");
+  lista.innerHTML = "";
+  const deSuEdad = clasesDeSuEdad();
+  if (!deSuEdad) {
+    el("pistaClases").textContent = "Escribe primero la fecha de nacimiento para ver las clases de su edad.";
+    clasesElegidas.clear();
+    return;
+  }
+  // Lo marcado que ya no es de su edad (cambiaron la fecha) se quita.
+  [...clasesElegidas].forEach((id) => deSuEdad.some((c) => c.id === id) || clasesElegidas.delete(id));
+  if (!deSuEdad.length) {
+    el("pistaClases").textContent = `No hay clases para su edad en este curso. Cualquier duda: ${TELEFONO_ACADEMIA}.`;
+    return;
+  }
+  deSuEdad.forEach((c) => {
+    const label = document.createElement("label");
+    label.className = "opcion opcion-clase";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.name = "clase";
+    input.value = c.id;
+    input.checked = clasesElegidas.has(c.id);
+    // Llena: no se puede elegir (si ya estaba marcada, se desmarca).
+    if (c.lleno) {
+      input.checked = false;
+      input.disabled = true;
+      clasesElegidas.delete(c.id);
+    }
+    const texto = document.createElement("span");
+    const nombre = document.createElement("strong");
+    nombre.textContent = c.nombre;
+    texto.append(nombre, ` — ${c.diasTexto}, ${c.horario}`);
+    label.append(input, " ", texto);
+    const notas = [];
+    if (c.lleno) notas.push("Lleno");
+    else if (c.quedan) notas.push(`Quedan ${c.quedan} ${c.quedan === 1 ? "lugar" : "lugares"}`);
+    if (c.descripcion) {
+      const d = document.createElement("span");
+      d.className = "nota-clase-descripcion";
+      d.textContent = c.descripcion;
+      label.appendChild(d);
+    }
+    const nota = document.createElement("span");
+    nota.className = "nota-semana nota-clase";
+    nota.dataset.base = notas.join(" · ");
+    nota.textContent = nota.dataset.base;
+    nota.hidden = !nota.textContent;
+    label.appendChild(nota);
+    lista.appendChild(label);
+  });
+  actualizarClases();
+}
+
+// Choques y máximo: se apaga lo que ya no se puede marcar, con el motivo.
+function actualizarClases() {
+  if (!temporada || !Array.isArray(temporada.clases)) return;
+  const porId = new Map(temporada.clases.map((c) => [c.id, c]));
+  document.querySelectorAll('input[name="clase"]').forEach((i) => (i.checked ? clasesElegidas.add(i.value) : clasesElegidas.delete(i.value)));
+  const marcadas = [...clasesElegidas].map((id) => porId.get(id)).filter(Boolean);
+  const max = temporada.clasesMaximo || null;
+  document.querySelectorAll('input[name="clase"]').forEach((i) => {
+    const c = porId.get(i.value);
+    const nota = i.closest("label").querySelector(".nota-clase");
+    if (i.checked || c.lleno) {
+      if (!c.lleno) i.disabled = false;
+      nota.textContent = nota.dataset.base;
+      nota.hidden = !nota.textContent;
+      return;
+    }
+    const choque = marcadas.find((m) => seCruzan(m, c));
+    const motivo = choque ? `Se cruza con ${choque.nombre} el ${seCruzan(choque, c).toLowerCase()}` : max && marcadas.length >= max ? `Ya elegiste ${max}` : "";
+    i.disabled = !!motivo;
+    nota.textContent = [nota.dataset.base, motivo].filter(Boolean).join(" · ");
+    nota.hidden = !nota.textContent;
+  });
+  const min = temporada.clasesMinimo || 0;
+  el("pistaClases").textContent = marcadas.length
+    ? `Elegiste ${marcadas.length} ${marcadas.length === 1 ? "clase" : "clases"}.` + (min && marcadas.length < min ? ` Te falta${min - marcadas.length === 1 ? "" : "n"} ${min - marcadas.length}.` : " 🎉")
+    : min
+      ? `Elige al menos ${min}.`
+      : "Puedes no elegir ninguna.";
+}
+
+// Si una clase se llenó mientras llenaban la ficha, el Worker no guarda
+// nada: se vuelven a pedir las clases (con su cupo de ahora).
+async function recargarClases() {
+  try {
+    const datos = await llamarWorker({ accion: "vacationCampConfig", curso: CURSO_LINK, c: CODIGO_LINK });
+    if (datos.temporada && Array.isArray(datos.temporada.clases)) {
+      temporada.clases = datos.temporada.clases;
+      pintarClases();
+    }
+  } catch (e) {
+    // Si falla, queda la lista de antes; el Worker igual revisa al enviar.
   }
 }
 
@@ -377,6 +511,12 @@ function errorDelFormulario(d) {
   if (d.modalidad === "parcial" && d.semanas.length !== temporada.semanasParcial) {
     return `Elige exactamente ${temporada.semanasParcial} ${temporada.semanasParcial === 1 ? "semana" : "semanas"}.`;
   }
+  if (Array.isArray(temporada.clases)) {
+    const min = temporada.clasesMinimo || 0;
+    const max = temporada.clasesMaximo || null;
+    if (min && d.clases.length < min) return `Elige al menos ${min} ${min === 1 ? "clase" : "clases"}.`;
+    if (max && d.clases.length > max) return `Puedes elegir máximo ${max} ${max === 1 ? "clase" : "clases"}.`;
+  }
   if (!d.aceptoPoliticas) return "Para enviar, marca que leíste y aceptas las políticas del curso de vacaciones.";
   return "";
 }
@@ -408,6 +548,7 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
     otraInformacion: el("inputOtraInfo").value.trim(),
     modalidad,
     semanas: modalidad === "parcial" ? semanasMarcadas() : [],
+    clases: Array.isArray(temporada.clases) ? [...clasesElegidas] : [],
     formaPago: valorRadio("formaPago"),
     metodoPago: valorRadio("metodoPago"),
     aceptoPoliticas: el("chkAcepto").checked,
@@ -435,6 +576,7 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
   } catch (e) {
     mensajeEl.textContent = e.message;
     mensajeEl.classList.add("mensaje-form-error");
+    if (e.datos && e.datos.clasesCambiaron) await recargarClases();
   } finally {
     boton.disabled = false;
     boton.textContent = textoOriginal;
@@ -445,6 +587,8 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
 // INICIO
 // ---------------------------------------------------------------
 el("inputNacimiento").addEventListener("change", actualizarPistaEdad);
+el("inputNacimiento").addEventListener("change", pintarClases);
+el("listaClases").addEventListener("change", actualizarClases);
 document.querySelectorAll('input[name="alergia"]').forEach((i) =>
   i.addEventListener("change", () => {
     el("campoDescripcionAlergia").hidden = valorRadio("alergia") !== "SI";

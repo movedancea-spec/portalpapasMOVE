@@ -72,3 +72,7 @@ Pestaña `vistaVcWhatsapp` (recepcion.js, sección "Mensajes WhatsApp a los resp
 
 ## Recepción → Anuncios por WhatsApp (2026-11-01)
 Con el canal en WhatsApp, "📢 Mandar anuncio" primero pide `recepcionAnuncioWhatsappPrevia` (cuántos números y cuántos días tarda con el tope compartido de 50 al día) y manda `confirmados`. "📱 Mandarme este anuncio" prueba en un número (`recepcionAnuncioWhatsappPrueba`). La caja "📱 Envío por WhatsApp" muestra el envío del enviador compartido (también el del campamento), "Enviados 50 de 120, continúa mañana a las 9:00 a.m." y permite detenerlo. Si el Worker responde `whatsappDisponible: false`, la opción WhatsApp del interruptor sale bloqueada.
+
+## Clases y horarios del campamento (2026-11-01)
+- Recepción → 🏕️ Curso de vacaciones → «🗓️ Clases y horarios» (`vistaVcClases`): ⚙️ Clases (interruptor de la ficha por temporada, mínimo/máximo, crear/editar/borrar clases), 📋 Por clase (inscritas / cupo, lista de niñas, PDF con jsPDF y CSV para Excel, por clase o todas) y 👧 Por alumna (primero las que no tienen clase; asignar, cambiar o quitar con casillas; el Worker revisa cupo y choques).
+- Ficha (`inscripcion.html` / `inscripcion.js`, sección `seccionClases`): solo si la temporada trae `clases`. Muestra las de su edad (con la fecha de nacimiento), «Lleno» sin poder marcar, «Quedan N lugares» con 5 o menos, y apaga las que se cruzan con lo marcado o pasan del máximo. Si el Worker responde `clasesCambiaron` (se llenó una clase mientras llenaban), vuelve a pedir las clases.
