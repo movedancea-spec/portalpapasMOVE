@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=campamento-clases-v1" />
+<link rel="stylesheet" href="recepcion.css?v=por-clases-v1" />
 </head>
 <body>
 
@@ -981,6 +981,19 @@
 
     <!-- c) Configuración de la temporada -->
     <div id="vistaVcConfig" hidden>
+      <!-- Tipo de curso (TIPO DE CURSO): "Campamento" (horario, edades,
+           precios y cupo generales) o "Por clases" (el curso son sus
+           clases, cada una con precio). No se cambia con inscritas. -->
+      <div class="bloque-info vc-codigos" id="cajaVcTipoCurso">
+        <p class="bloque-info-titulo">🧭 Tipo de curso</p>
+        <div class="vc-codigos-botones">
+          <button class="vc-codigos-btn" id="btnVcTipoCampamento" type="button">🏕️ Campamento</button>
+          <button class="vc-codigos-btn" id="btnVcTipoPorClases" type="button">🗓️ Por clases</button>
+        </div>
+        <p class="pista-campo" id="textoVcTipoCurso"></p>
+        <p class="mensaje-form" id="mensajeVcTipoCurso" role="status"></p>
+      </div>
+
       <div class="caja-form-ingreso">
         <p class="etiqueta-campo">Nombre del curso</p>
         <input type="text" id="inputVcNombre" class="input-texto" maxlength="150" autocomplete="off" />
@@ -1008,7 +1021,7 @@
         </div>
         <button class="btn-secundario btn-ancho" id="btnVcAgregarDia" type="button">+ Agregar día sin curso</button>
 
-        <div class="vc-tres-columnas">
+        <div class="vc-tres-columnas" data-solo-campamento>
           <div>
             <p class="etiqueta-campo">Se recibe desde</p>
             <input type="time" id="inputVcHoraRecepcion" class="input-texto" />
@@ -1023,7 +1036,7 @@
           </div>
         </div>
 
-        <div class="vc-dos-columnas">
+        <div class="vc-dos-columnas" data-solo-campamento>
           <div>
             <p class="etiqueta-campo">Edad mínima</p>
             <input type="number" id="inputVcEdadMin" class="input-texto" min="0" max="99" step="1" inputmode="numeric" />
@@ -1034,10 +1047,12 @@
           </div>
         </div>
 
-        <p class="etiqueta-campo">Precio del curso completo (Q)</p>
-        <input type="number" id="inputVcPrecioCompleto" class="input-texto" min="0" step="0.01" inputmode="decimal" />
+        <div data-solo-campamento>
+          <p class="etiqueta-campo">Precio del curso completo (Q)</p>
+          <input type="number" id="inputVcPrecioCompleto" class="input-texto" min="0" step="0.01" inputmode="decimal" />
+        </div>
 
-        <div class="vc-dos-columnas">
+        <div class="vc-dos-columnas" data-solo-campamento>
           <div>
             <p class="etiqueta-campo">Paquete parcial: semanas</p>
             <input type="number" id="inputVcSemanasParcial" class="input-texto" min="1" step="1" inputmode="numeric" />
@@ -1053,7 +1068,7 @@
             <p class="etiqueta-campo">Reserva (%)</p>
             <input type="number" id="inputVcPorcentaje" class="input-texto" min="1" max="100" step="1" inputmode="numeric" />
           </div>
-          <div>
+          <div data-solo-campamento>
             <p class="etiqueta-campo">Cupo máximo</p>
             <input type="number" id="inputVcCupo" class="input-texto" min="1" step="1" inputmode="numeric" />
           </div>
@@ -1155,7 +1170,7 @@
       <div id="vistaVcClasesConfig">
         <div class="bloque-info vc-codigos" id="cajaVcClasesFicha">
           <p class="bloque-info-titulo">📝 Mostrar clases en la ficha de inscripción</p>
-          <div class="vc-codigos-botones">
+          <div class="vc-codigos-botones" id="botonesVcClasesFicha">
             <button class="vc-codigos-btn" id="btnVcClasesActivo" type="button">🟢 Activo</button>
             <button class="vc-codigos-btn" id="btnVcClasesInactivo" type="button">⚪ Inactivo</button>
           </div>
@@ -1207,6 +1222,10 @@
               <p class="etiqueta-campo">Edad máxima</p>
               <input type="number" id="inputVcClaseEdadMax" class="input-texto" min="0" max="99" step="1" inputmode="numeric" />
             </div>
+          </div>
+          <div id="campoVcClasePrecio" hidden>
+            <p class="etiqueta-campo">Precio por todo el curso (Q, mínimo Q2)</p>
+            <input type="number" id="inputVcClasePrecio" class="input-texto" min="2" step="0.01" inputmode="decimal" />
           </div>
           <p class="etiqueta-campo">Descripción corta (opcional)</p>
           <textarea id="inputVcClaseDescripcion" class="input-textarea" rows="2" maxlength="300"></textarea>
@@ -1314,7 +1333,7 @@
 
 </div>
 
-<script src="recepcion.js?v=clases-avisos-v1"></script>
+<script src="recepcion.js?v=por-clases-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

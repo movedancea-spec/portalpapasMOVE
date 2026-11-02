@@ -1778,3 +1778,7 @@ overflow-wrap:anywhere;
 .vc-clase-ninas{ margin:6px 0 6px 20px; padding:0; font-size:14px; }
 .vc-clase-ninas li{ margin:2px 0; overflow-wrap:anywhere; }
 .vc-sin-clase{ border-color:#f2b8b5; background:#fff6f5; }
+
+/* ---------- Curso de vacaciones: tipo de curso ---------- */
+#cajaVcTipoCurso .vc-codigos-btn.elegido{ background:#eb578d; border-color:#eb578d; color:white; }
+#cajaVcTipoCurso .vc-codigos-btn:disabled{ opacity:.5; cursor:not-allowed; }

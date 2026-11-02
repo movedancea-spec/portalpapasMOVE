@@ -230,7 +230,13 @@ function actualizarModalidad() {
   el("campoSemanas").hidden = modalidad !== "parcial";
   if (modalidad === "parcial") actualizarSemanas();
 
-  const total = totalDeModalidad(modalidad);
+  pintarResumenPago(totalDeModalidad(modalidad));
+}
+
+// Reserva, saldo y montos de la forma de pago para un total (el de la
+// modalidad, o en un curso "Por clases" la suma de las clases elegidas).
+// El Worker los vuelve a calcular al guardar.
+function pintarResumenPago(total) {
   el("resumenPago").hidden = !total;
   if (total) {
     const { reserva, saldo } = montos(total);
@@ -313,6 +319,13 @@ function pintarFicha() {
   el("etiquetaReserva").textContent = `Reserva (${pct}%)`;
   el("etiquetaSaldo").textContent = `Saldo (${100 - pct}%) — el primer día`;
 
+  // "Por clases": sin horario, edades, precio completo ni paquete parcial;
+  // el curso son las clases que se eligen abajo.
+  el("seccionModalidad").hidden = !!t.porClases;
+  if (t.porClases) {
+    el("subtituloFicha").textContent = `Del ${fechaLarga(t.inicio)} al ${fechaLarga(t.fin)}. Elige abajo las clases para tu niña. Los campos con * son obligatorios. 🌴`;
+    el("pistaFormaPago").textContent = "Elige primero las clases.";
+  }
   pintarSemanas();
   pintarClases();
   pintarPoliticas(t.politicas);
@@ -339,8 +352,14 @@ async function cargarTemporada() {
     // Sin el nombre del curso: el Worker ni siquiera lo manda si está
     // cerrada, para no adelantar un curso que todavía no se anuncia.
     mostrarCerrado(`Las inscripciones no están abiertas en este momento. Para más información escríbenos al ${TELEFONO_ACADEMIA}.`);
+  } else if (temporada.porClases && temporada.sinClases) {
+    mostrarCerrado(`Todavía no hay clases para inscribirse en ${temporada.nombre}. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
   } else if (temporada.lleno) {
-    mostrarCerrado(`¡Gracias por tu interés! Ya se llenó el cupo del ${temporada.nombre}. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`);
+    mostrarCerrado(
+      temporada.porClases
+        ? `¡Gracias por tu interés! Ya se llenaron todas las clases de ${temporada.nombre}. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`
+        : `¡Gracias por tu interés! Ya se llenó el cupo del ${temporada.nombre}. Cualquier duda: ${TELEFONO_ACADEMIA}. 💗`
+    );
   } else {
     pintarFicha();
   }
@@ -412,7 +431,7 @@ function pintarClases() {
     const texto = document.createElement("span");
     const nombre = document.createElement("strong");
     nombre.textContent = c.nombre;
-    texto.append(nombre, ` — ${c.diasTexto}, ${c.horario}`);
+    texto.append(nombre, ` — ${c.diasTexto}, ${c.horario}` + (temporada.porClases ? ` · ${formatoQ(c.precio)}` : ""));
     label.append(input, " ", texto);
     const notas = [];
     if (c.lleno) notas.push("Lleno");
@@ -457,11 +476,16 @@ function actualizarClases() {
     nota.hidden = !nota.textContent;
   });
   const min = temporada.clasesMinimo || 0;
+  // "Por clases": el total es la suma de las clases elegidas.
+  const total = temporada.porClases ? Math.round(marcadas.reduce((t, c) => t + Math.round((c.precio || 0) * 100), 0)) / 100 : 0;
   el("pistaClases").textContent = marcadas.length
-    ? `Elegiste ${marcadas.length} ${marcadas.length === 1 ? "clase" : "clases"}.` + (min && marcadas.length < min ? ` Te falta${min - marcadas.length === 1 ? "" : "n"} ${min - marcadas.length}.` : " 🎉")
+    ? `Elegiste ${marcadas.length} ${marcadas.length === 1 ? "clase" : "clases"}.` +
+      (temporada.porClases ? ` Total: ${formatoQ(total)}.` : "") +
+      (min && marcadas.length < min ? ` Te falta${min - marcadas.length === 1 ? "" : "n"} ${min - marcadas.length}.` : " 🎉")
     : min
       ? `Elige al menos ${min}.`
       : "Puedes no elegir ninguna.";
+  if (temporada.porClases) pintarResumenPago(total);
 }
 
 // Si una clase se llenó mientras llenaban la ficha, el Worker no guarda
@@ -495,7 +519,7 @@ function errorDelFormulario(d) {
   if (!d.telefonoEmergencia) faltan.push("teléfono de emergencia");
   if (!d.tieneAlergia) faltan.push("si tiene alguna alergia");
   if (d.tieneAlergia === "SI" && !d.descripcionAlergia) faltan.push("descripción de la alergia");
-  if (!d.modalidad) faltan.push("modalidad de inscripción");
+  if (!temporada.porClases && !d.modalidad) faltan.push("modalidad de inscripción");
   if (!d.formaPago) faltan.push("forma de pago");
   if (!d.metodoPago) faltan.push("método de pago");
   if (!d.nombreAcepta) faltan.push("nombre de quien acepta");
