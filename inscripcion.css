@@ -219,3 +219,14 @@ overflow-wrap:anywhere;
 .opcion-clase > span:not(.nota-clase-descripcion):not(.nota-clase){ flex:1; min-width:0; }
 .nota-clase-descripcion{ flex-basis:100%; padding-left:30px; font-size:13.5px; color:#666; overflow-wrap:anywhere; }
 .nota-clase[hidden]{ display:none; }
+
+/* Aviso informativo del paquete de días (no bloquea el envío). */
+.aviso-paquete {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff6e0;
+  color: #7a5200;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}

@@ -486,6 +486,7 @@ function actualizarClases() {
     : min
       ? `Elige al menos ${min}.`
       : "Puedes no elegir ninguna.";
+  if (temporada.porClases && Array.isArray(temporada.paquetes)) actualizarPaquete();
 }
 
 // ---------------------------------------------------------------
@@ -525,8 +526,38 @@ function pintarPaquetes() {
   actualizarPaquete();
 }
 
+// Días distintos del curso en que cae alguna de las clases elegidas: de
+// la fecha de inicio a la de fin, sin los días sin curso.
+function diasConClases(clases) {
+  if (!temporada.inicio || !temporada.fin || !clases.length) return 0;
+  const sinCurso = new Set((temporada.diasSinCurso || []).map((d) => d.fecha));
+  const dias = new Set(clases.flatMap((c) => c.dias.map((x) => x.toLowerCase())));
+  let cuenta = 0;
+  const [a, m, d] = temporada.inicio.split("-").map(Number);
+  for (let t = Date.UTC(a, m - 1, d); ; t += 86400000) {
+    const iso = new Date(t).toISOString().slice(0, 10);
+    if (iso > temporada.fin) break;
+    if (!sinCurso.has(iso) && dias.has(NOMBRES_DIA[diaSemana(iso)])) cuenta++;
+  }
+  return cuenta;
+}
+
+// Aviso (no bloquea): las clases caen en más días que los del paquete.
+// En un paquete de curso completo no aparece.
+function pintarAvisoPaquete(paquete) {
+  const aviso = el("avisoPaquete");
+  const porId = new Map((temporada.clases || []).map((c) => [c.id, c]));
+  const dias = paquete && paquete.dias ? diasConClases([...clasesElegidas].map((id) => porId.get(id)).filter(Boolean)) : 0;
+  aviso.hidden = !(paquete && paquete.dias && dias > paquete.dias);
+  const diasTexto = (n) => `${n} ${n === 1 ? "día" : "días"}`;
+  aviso.textContent = aviso.hidden
+    ? ""
+    : `Las clases que elegiste caen en ${diasTexto(dias)} del curso y tu paquete es de ${diasTexto(paquete.dias)}. Vas a poder venir ${diasTexto(paquete.dias)}; si querés más, elegí otro paquete.`;
+}
+
 function actualizarPaquete() {
   const p = (temporada.paquetes || []).find((x) => x.id === valorRadio("paquete"));
+  pintarAvisoPaquete(p);
   const total = p ? p.precio : 0;
   el("resumenPaquete").hidden = !total;
   if (total) {
