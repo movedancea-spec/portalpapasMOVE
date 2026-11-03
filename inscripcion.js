@@ -552,7 +552,7 @@ function pintarAvisoPaquete(paquete) {
   const diasTexto = (n) => `${n} ${n === 1 ? "día" : "días"}`;
   aviso.textContent = aviso.hidden
     ? ""
-    : `Las clases que elegiste caen en ${diasTexto(dias)} del curso y tu paquete es de ${diasTexto(paquete.dias)}. Vas a poder venir ${diasTexto(paquete.dias)}; si querés más, elegí otro paquete.`;
+    : `Las clases que elegiste caen en ${diasTexto(dias)} del curso y tu paquete es de ${diasTexto(paquete.dias)}. Vas a poder venir ${diasTexto(paquete.dias)}; si quieres más, elige otro paquete.`;
 }
 
 function actualizarPaquete() {
