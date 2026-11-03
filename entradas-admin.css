@@ -203,3 +203,23 @@ white-space:nowrap;
 .badge-turno.badge-vencido{ background:rgba(224,36,94,.12); color:#e0245e; }
 .badge-turno.badge-completado{ background:rgba(46,182,125,.15); color:#1f9d63; }
 .badge-turno.badge-cancelado{ background:rgba(120,120,120,.12); color:#999; }
+
+/*=====================================
+CAMBIAR LUGAR / ANULAR (compras por butaca)
+=====================================*/
+.acciones-compra{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.btn-compra{ font:inherit; font-size:12.5px; font-weight:700; padding:5px 10px; border-radius:999px; border:2px solid #ef4b9b; background:white; color:#ef4b9b; cursor:pointer; }
+.btn-compra-anular{ border-color:#c9c9c9; color:#777; }
+.historial-compra{ font-size:11.5px; color:#888; white-space:pre-wrap; margin-top:4px; overflow-wrap:anywhere; }
+.texto-compra-cambio{ font-size:13.5px; font-weight:600; color:#555; margin-bottom:8px; }
+.aviso-cambio{ font-size:13px; font-weight:700; color:#8a5a00; background:#fff6dc; border-radius:10px; padding:8px 10px; margin-bottom:8px; }
+.lista-butacas-actuales{ display:flex; flex-wrap:wrap; gap:6px 14px; }
+.lista-butacas-actuales label{ display:flex; align-items:center; gap:5px; font-size:14px; font-weight:600; }
+.resumen-cambio{ font-size:14px; font-weight:700; color:#555; margin-bottom:10px; white-space:pre-line; }
+.opcion-whatsapp-cambio{ display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:600; margin-bottom:6px; }
+.punto-actual{ background:#6c8cff; }
+/* En esta pantalla cada butaca lleva su número (hay que encontrar "la 9"). */
+#mapaCambiarLugar .asiento-btn{ width:22px; height:22px; font-size:9.5px; font-weight:700; color:#a15277; padding:0; line-height:1; }
+#mapaCambiarLugar .asiento-btn:disabled{ color:#aaa; }
+#mapaCambiarLugar .asiento-btn.actual{ background:#6c8cff; border-color:#6c8cff; color:white; }
+#mapaCambiarLugar .asiento-btn.seleccionado{ color:white; }

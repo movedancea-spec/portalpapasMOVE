@@ -9,7 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="recepcion.css" />
-<link rel="stylesheet" href="entradas-admin.css" />
+<link rel="stylesheet" href="entradas-mapa.css?v=cambiar-lugar-v1" />
+<link rel="stylesheet" href="entradas-admin.css?v=cambiar-lugar-v1" />
 </head>
 <body>
 
@@ -150,6 +151,8 @@
     <!-- ---- Lista de compras individuales (solo aparece si ya hay alguna) ---- -->
     <div class="tarjeta-panel" id="tarjetaComprasIndividuales" hidden>
       <p class="tarjeta-panel-titulo">Compras individuales</p>
+      <p class="mensaje-form" id="mensajeCompras" role="status"></p>
+      <input type="text" id="inputBuscarCompra" class="input-texto" placeholder="🔎 Busca por nombre, WhatsApp o fila..." autocomplete="off" />
       <div class="lista-turnos-admin" id="listaComprasIndividuales"></div>
     </div>
 
@@ -165,8 +168,49 @@
     <button class="btn-enlace" id="btnSalirAdmin" type="button">Salir</button>
   </section>
 
+  <!-- ============ PANTALLA: CAMBIAR LUGAR DE UNA COMPRA ============ -->
+  <section id="pantallaCambiarLugar" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverCambiarLugar" type="button">← Panel</button>
+      <span class="barra-titulo">🔄 Cambiar lugar</span>
+    </div>
+
+    <div class="tarjeta-panel">
+      <p class="tarjeta-panel-titulo" id="tituloCambiarLugar"></p>
+      <p class="texto-compra-cambio" id="textoCompraCambiar"></p>
+      <p class="aviso-cambio" id="avisoEntregadasCambiar" hidden>⚠️ Esta compra ya tiene las entradas impresas entregadas: al cambiar el lugar, cámbiale también la entrada impresa.</p>
+      <p class="etiqueta-campo">1. ¿Qué butacas se cambian?</p>
+      <div class="lista-butacas-actuales" id="listaButacasActuales"></div>
+    </div>
+
+    <p class="etiqueta-campo">2. Toca <span id="textoCuantasNuevas">la butaca nueva</span> en el mapa (solo las libres)</p>
+    <div class="leyenda-mapa">
+      <span class="leyenda-item"><i class="punto punto-disponible"></i>Libre</span>
+      <span class="leyenda-item"><i class="punto punto-seleccionada"></i>Nueva</span>
+      <span class="leyenda-item"><i class="punto punto-actual"></i>Su lugar de ahora</span>
+      <span class="leyenda-item"><i class="punto punto-vendida"></i>Ocupada</span>
+    </div>
+    <div class="mapa-scroll">
+      <div class="mapa-teatro">
+        <div class="escenario">ESCENARIO</div>
+        <div class="mapa-secciones" id="mapaCambiarLugar">
+          <p class="lista-vacia">Cargando mapa de butacas...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta-panel">
+      <p class="resumen-cambio" id="resumenCambio"></p>
+      <label class="opcion-whatsapp-cambio"><input type="checkbox" id="chkWhatsappCambio" checked /> <span id="textoWhatsappCambio">Mandar WhatsApp con el lugar nuevo</span></label>
+      <p class="etiqueta-campo">Tu nombre (queda en el historial)</p>
+      <input type="text" id="inputQuienCambio" class="input-texto" maxlength="60" autocomplete="off" placeholder="Ej. Ana" />
+      <button class="btn-grande btn-siguiente" id="btnConfirmarCambio" type="button" disabled>Confirmar cambio</button>
+      <p class="mensaje-error" id="mensajeCambio" role="status"></p>
+    </div>
+  </section>
+
 </div>
 
-<script src="entradas-admin.js?v=20260924"></script>
+<script src="entradas-admin.js?v=cambiar-lugar-v1"></script>
 </body>
 </html>
