@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=por-clases-v1" />
+<link rel="stylesheet" href="recepcion.css?v=clases-fechas-v1" />
 </head>
 <body>
 
@@ -1058,6 +1058,8 @@
           </div>
         </div>
         <button class="btn-secundario btn-ancho" id="btnVcAgregarDia" type="button">+ Agregar día sin curso</button>
+        <label class="vc-clase-dia vc-fines-semana"><input type="checkbox" id="chkVcFinesDeSemana" /> Hay curso sábados y domingos</label>
+        <p class="vc-clase-detalle">Solo para las clases con «Fechas específicas»: encendida, el calendario deja marcar sábados y domingos.</p>
 
         <div class="vc-tres-columnas" data-solo-campamento>
           <div>
@@ -1235,8 +1237,22 @@
           <p class="subtitulo" id="tituloFormVcClase">Clase nueva</p>
           <p class="etiqueta-campo">Nombre de la clase</p>
           <input type="text" id="inputVcClaseNombre" class="input-texto" maxlength="80" placeholder="Ej. Ballet" autocomplete="off" />
-          <p class="etiqueta-campo">Días</p>
-          <div class="vc-clase-dias" id="listaVcClaseDias"></div>
+          <p class="etiqueta-campo">Cuándo es</p>
+          <div class="vc-clase-dias">
+            <label class="vc-clase-dia"><input type="radio" name="vcClaseCuando" value="Días de la semana" checked /> Días de la semana</label>
+            <label class="vc-clase-dia"><input type="radio" name="vcClaseCuando" value="Fechas específicas" /> Fechas específicas</label>
+          </div>
+          <div id="bloqueVcClaseDias">
+            <p class="etiqueta-campo">Días</p>
+            <div class="vc-clase-dias" id="listaVcClaseDias"></div>
+          </div>
+          <div id="bloqueVcClaseFechas" hidden>
+            <p class="etiqueta-campo">Fechas (toca cada día para marcarlo o desmarcarlo)</p>
+            <p class="vc-wa-error" id="avisoVcClaseFechas" hidden></p>
+            <div id="calendarioVcClase" class="vc-calendario"></div>
+            <p class="vc-cal-leyenda"><span class="vc-cal-muestra marcada"></span> Marcada <span class="vc-cal-muestra sin-curso"></span> Sin curso <span class="vc-cal-muestra bloqueada"></span> No se puede</p>
+            <p class="vc-clase-detalle" id="resumenVcClaseFechas"></p>
+          </div>
           <div class="vc-dos-columnas">
             <div>
               <p class="etiqueta-campo">Hora de inicio</p>
@@ -1367,7 +1383,7 @@
 
 </div>
 
-<script src="recepcion.js?v=paquetes-v1"></script>
+<script src="recepcion.js?v=clases-fechas-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

@@ -5602,6 +5602,7 @@ function vcLlenarFormulario() {
   el("inputVcWhatsappPago").value = c.mensajeWhatsappPago || "";
   vcDiasSinCurso = c.diasSinCurso.map((d) => ({ ...d }));
   vcPintarDiasSinCurso();
+  el("chkVcFinesDeSemana").checked = !!c.finesDeSemana;
   vcMensaje("mensajeVcConfig", "");
 }
 
@@ -5657,6 +5658,7 @@ el("btnVcGuardarConfig").addEventListener("click", async () => {
         inicio: el("inputVcInicio").value,
         fin: el("inputVcFin").value,
         diasSinCurso: vcDiasSinCurso,
+        finesDeSemana: el("chkVcFinesDeSemana").checked,
         horaRecepcion: el("inputVcHoraRecepcion").value,
         horaInicio: el("inputVcHoraInicio").value,
         horaFin: el("inputVcHoraFin").value,
@@ -5742,6 +5744,9 @@ el("btnVcCrearTemporada").addEventListener("click", async () => {
       "mensajeVcConfig",
       `✅ Temporada ${temporada} creada (Cerrada) con su propio link (arriba). Revisa precios, días sin curso y políticas, guarda, y luego ábrela.` +
         (resp.clasesCopiadas ? ` Se copiaron ${resp.clasesCopiadas} clase${resp.clasesCopiadas === 1 ? "" : "s"} (con la sección apagada en la ficha).` : "") +
+        (resp.clasesSinFechas
+          ? ` ⚠️ ${resp.clasesSinFechas === 1 ? "1 clase de fechas específicas quedó" : `${resp.clasesSinFechas} clases de fechas específicas quedaron`} sin fechas (las de la otra temporada no sirven): márcalas en 🗓️ Clases y horarios; mientras tanto no salen en la ficha.`
+          : "") +
         (resp.avisoClases ? ` ⚠️ ${resp.avisoClases}` : ""),
       resp.avisoClases ? "error" : "ok"
     );
@@ -6258,6 +6263,7 @@ function vcClasesPintarLista() {
     const extra = [vcCupoTexto(c), vcEdadesTexto(c)].filter(Boolean).join(" · ");
     t.appendChild(vcCrear("p", "vc-clase-detalle", extra));
     if (c.cupo !== null && c.inscritas > c.cupo) t.appendChild(vcCrear("p", "vc-wa-error", `⚠️ Tiene más inscritas (${c.inscritas}) que cupo (${c.cupo}).`));
+    vcAvisosFechasClase(c).forEach((a) => t.appendChild(vcCrear("p", "vc-wa-error", a)));
     const hc = vcClasesDatos.horarioCurso;
     if (hc && (c.horaInicio < hc.inicio || c.horaFin > hc.fin)) t.appendChild(vcCrear("p", "vc-wa-error", `⚠️ Fuera del horario del curso (${hc.texto}). ¿a.m. en vez de p.m.?`));
     if (c.descripcion) t.appendChild(vcCrear("p", "vc-clase-descripcion", c.descripcion));
@@ -6283,10 +6289,119 @@ VC_DIAS_CLASE.forEach((dia) => {
   el("listaVcClaseDias").appendChild(label);
 });
 
+// --- "Cuándo es": días de la semana o fechas específicas (calendario) ---
+// Mismas reglas que el Worker (src/clasesCampamento.js en portalalumnas);
+// el Worker las vuelve a revisar al guardar. Fechas como "AAAA-MM-DD" y
+// cuentas en UTC, nunca la zona del navegador.
+const VC_CUANDO_FECHAS = "Fechas específicas";
+const VC_DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const VC_MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const VC_MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+let vcClaseFechas = new Set(); // fechas marcadas en el formulario
+
+const vcFechaUtc = (iso) => new Date(iso + "T00:00:00Z");
+const vcIso = (d) => d.toISOString().slice(0, 10);
+const vcFechaClase = (iso) => `${VC_DIAS_CORTOS[vcFechaUtc(iso).getUTCDay()]} ${Number(iso.slice(8, 10))} ${VC_MESES_CORTOS[Number(iso.slice(5, 7)) - 1]}`;
+
+function vcMotivoFechaBloqueada(fecha, curso) {
+  if (!curso || !curso.inicio || !curso.fin) return "la temporada no tiene fecha de inicio y fin";
+  if (fecha < curso.inicio || fecha > curso.fin) return "fuera de las fechas del curso";
+  const sinCurso = (curso.diasSinCurso || []).find((d) => d.fecha === fecha);
+  if (sinCurso) return sinCurso.motivo ? `sin curso (${sinCurso.motivo})` : "sin curso";
+  const dia = vcFechaUtc(fecha).getUTCDay();
+  if ((dia === 0 || dia === 6) && !curso.finesDeSemana) return "fin de semana (la temporada no tiene curso sábados y domingos)";
+  return "";
+}
+
+function vcAvisosFechasClase(c) {
+  if (c.cuando !== VC_CUANDO_FECHAS) return [];
+  const avisos = [];
+  if (!c.fechas.length) avisos.push("⚠️ Falta poner las fechas: no sale en la ficha hasta que las marques (✏️ Editar).");
+  if ((c.fechasFuera || []).length) {
+    avisos.push(`⚠️ ${c.fechasFuera.length === 1 ? "Esta fecha ya no es" : "Estas fechas ya no son"} del curso y no cuenta${c.fechasFuera.length === 1 ? "" : "n"}: ${c.fechasFuera.map(vcFechaClase).join(", ")}. Cambió la temporada; edita la clase para corregirla.`);
+  }
+  return avisos;
+}
+
+const vcCuandoElegido = () => (document.querySelector('input[name="vcClaseCuando"]:checked') || {}).value || "Días de la semana";
+
+function vcClasePintarCuando() {
+  const conFechas = vcCuandoElegido() === VC_CUANDO_FECHAS;
+  el("bloqueVcClaseDias").hidden = conFechas;
+  el("bloqueVcClaseFechas").hidden = !conFechas;
+  if (conFechas) vcPintarCalendario();
+}
+document.querySelectorAll('input[name="vcClaseCuando"]').forEach((r) => r.addEventListener("change", vcClasePintarCuando));
+
+// Un mes por recuadro, de lunes a domingo, desde el mes del inicio hasta
+// el del fin. Lo que no se puede marcar se ve en gris (los días sin curso
+// en rosa tachado) y dice el motivo al pasar el dedo.
+function vcPintarCalendario() {
+  const cont = el("calendarioVcClase");
+  cont.innerHTML = "";
+  const curso = vcClasesDatos && vcClasesDatos.curso;
+  if (!curso || !curso.inicio || !curso.fin) {
+    cont.appendChild(vcCrear("p", "vc-wa-error", "Primero pon la fecha de inicio y la de fin en ⚙️ Configuración y guarda."));
+    vcPintarResumenFechas();
+    return;
+  }
+  let mes = curso.inicio.slice(0, 7);
+  const ultimo = curso.fin.slice(0, 7);
+  for (let n = 0; mes <= ultimo && n < 24; n++) {
+    const [a, m] = mes.split("-").map(Number);
+    const caja = vcCrear("div", "vc-cal-mes");
+    caja.appendChild(vcCrear("p", "vc-cal-titulo", `${VC_MESES_LARGOS[m - 1]} ${a}`));
+    const grilla = vcCrear("div", "vc-cal-grilla");
+    ["lu", "ma", "mi", "ju", "vi", "sá", "do"].forEach((d) => grilla.appendChild(vcCrear("span", "vc-cal-cabeza", d)));
+    const primero = vcFechaUtc(`${mes}-01`);
+    for (let i = 0; i < (primero.getUTCDay() + 6) % 7; i++) grilla.appendChild(document.createElement("span"));
+    for (let d = new Date(primero); d.getUTCMonth() === m - 1; d.setUTCDate(d.getUTCDate() + 1)) {
+      const iso = vcIso(d);
+      const motivo = vcMotivoFechaBloqueada(iso, curso);
+      const boton = vcCrear("button", "vc-cal-dia", String(d.getUTCDate()));
+      boton.type = "button";
+      boton.disabled = !!motivo;
+      boton.title = motivo ? `${vcFechaClase(iso)}: ${motivo}` : vcFechaClase(iso);
+      boton.setAttribute("aria-label", boton.title);
+      if ((curso.diasSinCurso || []).some((x) => x.fecha === iso)) boton.classList.add("sin-curso");
+      const marcar = () => {
+        boton.classList.toggle("marcada", vcClaseFechas.has(iso));
+        boton.setAttribute("aria-pressed", vcClaseFechas.has(iso) ? "true" : "false");
+      };
+      marcar();
+      boton.addEventListener("click", () => {
+        if (vcClaseFechas.has(iso)) vcClaseFechas.delete(iso);
+        else vcClaseFechas.add(iso);
+        marcar();
+        vcPintarResumenFechas();
+      });
+      grilla.appendChild(boton);
+    }
+    caja.appendChild(grilla);
+    cont.appendChild(caja);
+    mes = m === 12 ? `${a + 1}-01` : `${a}-${String(m + 1).padStart(2, "0")}`;
+  }
+  vcPintarResumenFechas();
+}
+
+function vcPintarResumenFechas() {
+  const n = vcClaseFechas.size;
+  const orden = [...vcClaseFechas].sort();
+  el("resumenVcClaseFechas").textContent = n ? `${n} fecha${n === 1 ? "" : "s"}: ${orden.map(vcFechaClase).join(", ")}` : "Todavía no marcaste ninguna fecha.";
+}
+
 function vcClaseAbrirForm(c) {
   vcClaseEditando = c ? c.id : null;
   el("tituloFormVcClase").textContent = c ? `Editar «${c.nombre}»` : "Clase nueva";
   el("inputVcClaseNombre").value = c ? c.nombre : "";
+  const conFechas = !!c && c.cuando === VC_CUANDO_FECHAS;
+  document.querySelectorAll('input[name="vcClaseCuando"]').forEach((r) => (r.checked = r.value === (conFechas ? VC_CUANDO_FECHAS : "Días de la semana")));
+  // Solo las fechas vigentes: las que ya no son del curso se quitan al guardar.
+  vcClaseFechas = new Set(conFechas ? c.fechas : []);
+  const fuera = conFechas ? c.fechasFuera || [] : [];
+  el("avisoVcClaseFechas").hidden = !fuera.length;
+  el("avisoVcClaseFechas").textContent = fuera.length ? `⚠️ Ya no son del curso y se quitan al guardar: ${fuera.map(vcFechaClase).join(", ")}.` : "";
+  vcClasePintarCuando();
   el("listaVcClaseDias").querySelectorAll("input").forEach((i) => (i.checked = !!c && c.dias.includes(i.value)));
   el("inputVcClaseInicio").value = c ? c.horaInicio : "";
   el("inputVcClaseFin").value = c ? c.horaFin : "";
@@ -6313,7 +6428,9 @@ el("btnVcClaseGuardar").addEventListener("click", async () => {
       id: vcClaseEditando || undefined,
       clase: {
         nombre: el("inputVcClaseNombre").value,
+        cuando: vcCuandoElegido(),
         dias: [...el("listaVcClaseDias").querySelectorAll("input:checked")].map((i) => i.value),
+        fechas: [...vcClaseFechas].sort(),
         horaInicio: el("inputVcClaseInicio").value,
         horaFin: el("inputVcClaseFin").value,
         cupo: el("inputVcClaseCupo").value,
@@ -6404,7 +6521,7 @@ const vcNombreArchivoClases = (clases) =>
   `clases-${vcClasesDatos.temporada}-${clases.length === 1 ? clases[0].nombre : "todas"}`.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-");
 
 function vcClasesDescargarCsv(clases) {
-  const filas = [["Clase", "Días", "Horario", "Cupo", "#", "Alumna", "Edad", "Responsable", "Teléfono"]];
+  const filas = [["Clase", "Cuándo", "Horario", "Cupo", "#", "Alumna", "Edad", "Responsable", "Teléfono"]];
   clases.forEach((c) => {
     if (!c.ninas.length) filas.push([c.nombre, c.diasTexto, c.horario, c.cupo ?? "", "", "(sin inscritas)", "", "", ""]);
     c.ninas.forEach((n, i) => filas.push([c.nombre, c.diasTexto, c.horario, c.cupo ?? "", i + 1, n.alumna, n.edad ?? "", n.responsable, n.telefono]));
@@ -6424,9 +6541,11 @@ async function vcClasesDescargarPdf(clases) {
       doc.setFontSize(15);
       doc.text(textoPdfAmon(`${c.nombre} · Temporada ${vcClasesDatos.temporada}`), 40, 50);
       doc.setFontSize(10.5);
-      doc.text(textoPdfAmon(`${c.diasTexto} · ${c.horario} · ${vcCupoTexto(c)}${vcEdadesTexto(c) ? " · " + vcEdadesTexto(c) : ""}`), 40, 68);
+      // Con muchas fechas la línea no cabe: se parte en varias.
+      const lineas = doc.splitTextToSize(textoPdfAmon(`${c.diasTexto} · ${c.horario} · ${vcCupoTexto(c)}${vcEdadesTexto(c) ? " · " + vcEdadesTexto(c) : ""}`), 532);
+      doc.text(lineas, 40, 68);
       doc.autoTable({
-        startY: 84,
+        startY: 84 + (lineas.length - 1) * 13,
         head: [["#", "Alumna", "Edad", "Responsable", "Teléfono"]],
         body: c.ninas.length
           ? c.ninas.map((n, j) => [j + 1, textoPdfAmon(n.alumna), n.edad ?? "", textoPdfAmon(n.responsable), textoPdfAmon(n.telefono)])

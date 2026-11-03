@@ -379,9 +379,26 @@ async function cargarTemporada() {
 const clasesElegidas = new Set();
 
 const aMinutos = (h) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+// Clases de "Fechas específicas": solo chocan si caen en la misma fecha
+// (contra una de días de la semana, si la fecha es de uno de esos días).
+// Devuelve el día ("Miércoles") o la fecha ("mar 2 dic") del choque.
+const CUANDO_FECHAS = "Fechas específicas";
+const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const fechaCortaClase = (iso) => `${DIAS_CORTOS[diaSemana(iso)]} ${Number(iso.slice(8, 10))} ${MESES_CORTOS[Number(iso.slice(5, 7)) - 1]}`;
 function seCruzan(a, b) {
-  const dia = a.dias.find((d) => b.dias.includes(d));
-  return dia && aMinutos(a.horaInicio) < aMinutos(b.horaFin) && aMinutos(b.horaInicio) < aMinutos(a.horaFin) ? dia : "";
+  if (!(aMinutos(a.horaInicio) < aMinutos(b.horaFin) && aMinutos(b.horaInicio) < aMinutos(a.horaFin))) return "";
+  const fa = a.cuando === CUANDO_FECHAS;
+  const fb = b.cuando === CUANDO_FECHAS;
+  if (!fa && !fb) return a.dias.find((d) => b.dias.includes(d)) || "";
+  if (fa && fb) {
+    const fecha = a.fechas.find((f) => b.fechas.includes(f));
+    return fecha ? fechaCortaClase(fecha) : "";
+  }
+  const [conFechas, conDias] = fa ? [a, b] : [b, a];
+  const dias = new Set(conDias.dias.map((d) => d.toLowerCase()));
+  const fecha = conFechas.fechas.find((f) => dias.has(NOMBRES_DIA[diaSemana(f)]));
+  return fecha ? fechaCortaClase(fecha) : "";
 }
 
 function clasesDeSuEdad() {
@@ -435,7 +452,7 @@ function pintarClases() {
     const texto = document.createElement("span");
     const nombre = document.createElement("strong");
     nombre.textContent = c.nombre;
-    texto.append(nombre, ` — ${c.diasTexto}, ${c.horario}`);
+    texto.append(nombre, c.cuando === CUANDO_FECHAS ? ` — ${c.diasTexto} · ${c.horario}` : ` — ${c.diasTexto}, ${c.horario}`);
     label.append(input, " ", texto);
     const notas = [];
     if (c.lleno) notas.push("Lleno");
@@ -528,18 +545,22 @@ function pintarPaquetes() {
 
 // Días distintos del curso en que cae alguna de las clases elegidas: de
 // la fecha de inicio a la de fin, sin los días sin curso.
+// Fechas distintas del curso en que hay alguna de esas clases: las de
+// días de la semana en cada fecha del curso sin los días sin curso, más
+// las fechas marcadas de las de "Fechas específicas" (ya vienen solo las
+// que son del curso).
 function diasConClases(clases) {
   if (!temporada.inicio || !temporada.fin || !clases.length) return 0;
+  const fechas = new Set(clases.filter((c) => c.cuando === CUANDO_FECHAS).flatMap((c) => c.fechas));
   const sinCurso = new Set((temporada.diasSinCurso || []).map((d) => d.fecha));
-  const dias = new Set(clases.flatMap((c) => c.dias.map((x) => x.toLowerCase())));
-  let cuenta = 0;
+  const dias = new Set(clases.filter((c) => c.cuando !== CUANDO_FECHAS).flatMap((c) => c.dias.map((x) => x.toLowerCase())));
   const [a, m, d] = temporada.inicio.split("-").map(Number);
-  for (let t = Date.UTC(a, m - 1, d); ; t += 86400000) {
+  for (let t = Date.UTC(a, m - 1, d); dias.size; t += 86400000) {
     const iso = new Date(t).toISOString().slice(0, 10);
     if (iso > temporada.fin) break;
-    if (!sinCurso.has(iso) && dias.has(NOMBRES_DIA[diaSemana(iso)])) cuenta++;
+    if (!sinCurso.has(iso) && dias.has(NOMBRES_DIA[diaSemana(iso)])) fechas.add(iso);
   }
-  return cuenta;
+  return fechas.size;
 }
 
 // Aviso (no bloquea): las clases caen en más días que los del paquete.
