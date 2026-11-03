@@ -126,7 +126,8 @@
         <textarea id="inputMedicamentos" class="input-texto input-area" rows="2" maxlength="1500"></textarea>
       </div>
 
-      <div class="campo-form">
+      <!-- No aparece en cursos "Por clases" (era para Mini Chef). -->
+      <div class="campo-form" id="campoRestricciones">
         <label class="etiqueta-campo" for="inputRestricciones">Restricciones alimentarias</label>
         <textarea id="inputRestricciones" class="input-texto input-area" rows="2" maxlength="1500" placeholder="Importante para las clases de Mini Chef 👩‍🍳"></textarea>
       </div>
@@ -172,6 +173,22 @@
       </div>
     </fieldset>
 
+    <!-- Paquete de días: solo en cursos "Por clases". El precio sale del
+         paquete (el Worker lo vuelve a calcular al guardar). -->
+    <fieldset class="seccion" id="seccionPaquete" hidden>
+      <legend class="seccion-titulo">📦 Paquete</legend>
+      <div class="campo-form">
+        <p class="etiqueta-campo" id="etiquetaPaquete">Elige un paquete *</p>
+        <div class="opciones-columna" id="listaPaquetes" role="radiogroup" aria-labelledby="etiquetaPaquete"></div>
+        <p class="pista-campo" id="pistaPaquete"></p>
+      </div>
+      <div class="resumen-pago" id="resumenPaquete" hidden>
+        <div class="resumen-fila"><span>Total</span><strong id="montoTotalPaquete"></strong></div>
+        <div class="resumen-fila"><span id="etiquetaReservaPaquete">Reserva</span><strong id="montoReservaPaquete"></strong></div>
+        <div class="resumen-fila"><span id="etiquetaSaldoPaquete">Saldo — el primer día</span><strong id="montoSaldoPaquete"></strong></div>
+      </div>
+    </fieldset>
+
     <!-- Pago -->
     <fieldset class="seccion">
       <legend class="seccion-titulo">💳 Pago</legend>
@@ -202,7 +219,7 @@
 
     <label class="opcion opcion-acepto">
       <input type="checkbox" id="chkAcepto" />
-      <span>He leído y acepto las políticas del curso de vacaciones *</span>
+      <span>He leído y acepto las políticas del curso *</span>
     </label>
 
     <div class="campo-form">
@@ -229,6 +246,6 @@
 
 </div>
 
-<script src="inscripcion.js?v=por-clases-v1"></script>
+<script src="inscripcion.js?v=paquetes-v1"></script>
 </body>
 </html>

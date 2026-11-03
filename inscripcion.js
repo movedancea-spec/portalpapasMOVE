@@ -322,12 +322,16 @@ function pintarFicha() {
   // "Por clases": sin horario, edades, precio completo ni paquete parcial;
   // el curso son las clases que se eligen abajo.
   el("seccionModalidad").hidden = !!t.porClases;
+  el("campoRestricciones").hidden = !!t.porClases;
   if (t.porClases) {
-    el("subtituloFicha").textContent = `Del ${fechaLarga(t.inicio)} al ${fechaLarga(t.fin)}. Elige abajo las clases para tu niña. Los campos con * son obligatorios. 🌴`;
-    el("pistaFormaPago").textContent = "Elige primero las clases.";
+    el("subtituloFicha").textContent = `Del ${fechaLarga(t.inicio)} al ${fechaLarga(t.fin)}. Elige abajo las clases para tu niña y un paquete. Los campos con * son obligatorios. 🌴`;
+    el("pistaFormaPago").textContent = "Elige primero el paquete.";
+    el("etiquetaReservaPaquete").textContent = `Reserva (${pct}%)`;
+    el("etiquetaSaldoPaquete").textContent = `Saldo (${100 - pct}%) — el primer día`;
   }
   pintarSemanas();
   pintarClases();
+  pintarPaquetes();
   pintarPoliticas(t.politicas);
   el("textoListo").textContent = t.mensajeConfirmacion;
   mostrarSolo("pantallaFormulario");
@@ -431,7 +435,7 @@ function pintarClases() {
     const texto = document.createElement("span");
     const nombre = document.createElement("strong");
     nombre.textContent = c.nombre;
-    texto.append(nombre, ` — ${c.diasTexto}, ${c.horario}` + (temporada.porClases ? ` · ${formatoQ(c.precio)}` : ""));
+    texto.append(nombre, ` — ${c.diasTexto}, ${c.horario}`);
     label.append(input, " ", texto);
     const notas = [];
     if (c.lleno) notas.push("Lleno");
@@ -476,16 +480,62 @@ function actualizarClases() {
     nota.hidden = !nota.textContent;
   });
   const min = temporada.clasesMinimo || 0;
-  // "Por clases": el total es la suma de las clases elegidas.
-  const total = temporada.porClases ? Math.round(marcadas.reduce((t, c) => t + Math.round((c.precio || 0) * 100), 0)) / 100 : 0;
   el("pistaClases").textContent = marcadas.length
     ? `Elegiste ${marcadas.length} ${marcadas.length === 1 ? "clase" : "clases"}.` +
-      (temporada.porClases ? ` Total: ${formatoQ(total)}.` : "") +
       (min && marcadas.length < min ? ` Te falta${min - marcadas.length === 1 ? "" : "n"} ${min - marcadas.length}.` : " 🎉")
     : min
       ? `Elige al menos ${min}.`
       : "Puedes no elegir ninguna.";
-  if (temporada.porClases) pintarResumenPago(total);
+}
+
+// ---------------------------------------------------------------
+// PAQUETE (solo "Por clases"): la mamá elige uno, aparte de las clases.
+// El total es el precio del paquete; el Worker lo vuelve a calcular al
+// guardar (nunca usa el monto de la página). Con un paquete de X días
+// la niña viene cualquier X días del curso: no se eligen fechas.
+// ---------------------------------------------------------------
+function pintarPaquetes() {
+  const seccion = el("seccionPaquete");
+  const paquetes = temporada && temporada.porClases && Array.isArray(temporada.paquetes) ? temporada.paquetes : null;
+  seccion.hidden = !paquetes;
+  if (!paquetes) return;
+  const elegido = valorRadio("paquete");
+  const lista = el("listaPaquetes");
+  lista.innerHTML = "";
+  paquetes.forEach((p) => {
+    const label = document.createElement("label");
+    label.className = "opcion";
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "paquete";
+    input.value = p.id;
+    input.checked = p.id === elegido;
+    const texto = document.createElement("span");
+    const nombre = document.createElement("strong");
+    nombre.textContent = p.nombre;
+    // "4 días — Q400"; los días solo se agregan si el nombre no los dice.
+    const dias = !p.dias || p.nombre.toLowerCase().includes(p.diasTexto.toLowerCase()) ? "" : ` (${p.diasTexto.toLowerCase()})`;
+    texto.append(nombre, `${dias} — ${formatoQ(p.precio)}`);
+    label.append(input, " ", texto);
+    lista.appendChild(label);
+  });
+  el("pistaPaquete").textContent = paquetes.some((p) => p.dias)
+    ? `Con un paquete de días, tu niña puede venir cualquier día del ${fechaLarga(temporada.inicio)} al ${fechaLarga(temporada.fin)} hasta completar sus días.`
+    : "";
+  actualizarPaquete();
+}
+
+function actualizarPaquete() {
+  const p = (temporada.paquetes || []).find((x) => x.id === valorRadio("paquete"));
+  const total = p ? p.precio : 0;
+  el("resumenPaquete").hidden = !total;
+  if (total) {
+    const { reserva, saldo } = montos(total);
+    el("montoTotalPaquete").textContent = formatoQ(total);
+    el("montoReservaPaquete").textContent = formatoQ(reserva);
+    el("montoSaldoPaquete").textContent = formatoQ(saldo);
+  }
+  pintarResumenPago(total);
 }
 
 // Si una clase se llenó mientras llenaban la ficha, el Worker no guarda
@@ -496,6 +546,11 @@ async function recargarClases() {
     if (datos.temporada && Array.isArray(datos.temporada.clases)) {
       temporada.clases = datos.temporada.clases;
       pintarClases();
+    }
+    // Un paquete que ocultaron mientras llenaban la ficha desaparece.
+    if (datos.temporada && Array.isArray(datos.temporada.paquetes)) {
+      temporada.paquetes = datos.temporada.paquetes;
+      pintarPaquetes();
     }
   } catch (e) {
     // Si falla, queda la lista de antes; el Worker igual revisa al enviar.
@@ -520,6 +575,7 @@ function errorDelFormulario(d) {
   if (!d.tieneAlergia) faltan.push("si tiene alguna alergia");
   if (d.tieneAlergia === "SI" && !d.descripcionAlergia) faltan.push("descripción de la alergia");
   if (!temporada.porClases && !d.modalidad) faltan.push("modalidad de inscripción");
+  if (temporada.porClases && !d.paqueteId) faltan.push("paquete");
   if (!d.formaPago) faltan.push("forma de pago");
   if (!d.metodoPago) faltan.push("método de pago");
   if (!d.nombreAcepta) faltan.push("nombre de quien acepta");
@@ -541,7 +597,7 @@ function errorDelFormulario(d) {
     if (min && d.clases.length < min) return `Elige al menos ${min} ${min === 1 ? "clase" : "clases"}.`;
     if (max && d.clases.length > max) return `Puedes elegir máximo ${max} ${max === 1 ? "clase" : "clases"}.`;
   }
-  if (!d.aceptoPoliticas) return "Para enviar, marca que leíste y aceptas las políticas del curso de vacaciones.";
+  if (!d.aceptoPoliticas) return "Para enviar, marca que leíste y aceptas las políticas del curso.";
   return "";
 }
 
@@ -568,11 +624,12 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
     descripcionAlergia: el("inputDescripcionAlergia").value.trim(),
     condicionesMedicas: el("inputCondiciones").value.trim(),
     medicamentos: el("inputMedicamentos").value.trim(),
-    restriccionesAlimentarias: el("inputRestricciones").value.trim(),
+    restriccionesAlimentarias: temporada.porClases ? "" : el("inputRestricciones").value.trim(),
     otraInformacion: el("inputOtraInfo").value.trim(),
     modalidad,
     semanas: modalidad === "parcial" ? semanasMarcadas() : [],
     clases: Array.isArray(temporada.clases) ? [...clasesElegidas] : [],
+    paqueteId: temporada.porClases ? valorRadio("paquete") : "",
     formaPago: valorRadio("formaPago"),
     metodoPago: valorRadio("metodoPago"),
     aceptoPoliticas: el("chkAcepto").checked,
@@ -613,6 +670,7 @@ el("pantallaFormulario").addEventListener("submit", async (evento) => {
 el("inputNacimiento").addEventListener("change", actualizarPistaEdad);
 el("inputNacimiento").addEventListener("change", pintarClases);
 el("listaClases").addEventListener("change", actualizarClases);
+el("listaPaquetes").addEventListener("change", actualizarPaquete);
 document.querySelectorAll('input[name="alergia"]').forEach((i) =>
   i.addEventListener("change", () => {
     el("campoDescripcionAlergia").hidden = valorRadio("alergia") !== "SI";

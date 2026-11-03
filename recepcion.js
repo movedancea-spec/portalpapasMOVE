@@ -4803,6 +4803,7 @@ function vcPintarTodo() {
   vcPintarCodigos();
   vcPintarEstado();
   vcPintarInscritas();
+  vcPintarDiasPasados();
   vcPintarAsistencia();
   vcLlenarFormulario();
   // Otra temporada (u otra lista): la vista previa ya no vale.
@@ -5237,6 +5238,16 @@ function vcPintarInscritas() {
   vcDatos.inscritas.forEach((i) => cont.appendChild(vcTarjetaInscrita(i)));
 }
 
+// "Por clases": las que ya usaron más días que los de su paquete (el
+// kiosko les avisa pero registra la entrada).
+function vcPintarDiasPasados() {
+  const pasadas = (vcDatos.config.porClases ? vcDatos.inscritas : []).filter((i) => i.estado !== "Cancelada" && i.diasUsados && i.diasUsados.pasada);
+  el("cajaVcDiasPasados").hidden = !pasadas.length;
+  const lista = el("listaVcDiasPasados");
+  lista.innerHTML = "";
+  pasadas.forEach((i) => lista.appendChild(vcCrear("li", "", `${i.alumna} — ${i.diasUsados.texto} días (${i.paquete})`)));
+}
+
 function vcTarjetaInscrita(i) {
   const cancelada = i.estado === "Cancelada";
   const tarjeta = vcCrear("details", "show-tarjeta vc-inscrita" + (cancelada ? " inactivo" : ""));
@@ -5245,7 +5256,11 @@ function vcTarjetaInscrita(i) {
   const texto = vcCrear("span", "show-tarjeta-texto");
   const nombre = vcCrear("span", "show-tarjeta-nombre");
   nombre.append(vcCrear("span", "vc-flecha", "▸"), document.createTextNode(i.alumna));
-  texto.append(nombre, vcCrear("span", "tarjeta-resultado-detalle", i.modalidad + (i.semanas.length ? " · " + i.semanas.join(", ") : "")));
+  // "Por clases": el paquete y los días usados ("3 de 4").
+  const detalleModalidad = i.paquete
+    ? `📦 ${i.paquete}${i.diasUsados && i.diasUsados.texto ? ` · ${i.diasUsados.texto} días` : ""}`
+    : i.modalidad + (i.semanas.length ? " · " + i.semanas.join(", ") : "");
+  texto.append(nombre, vcCrear("span", "tarjeta-resultado-detalle", detalleModalidad));
   const etiquetas = vcCrear("span", "show-etiquetas");
   if (i.pagoRevertido) etiquetas.appendChild(vcCrear("span", "show-etiqueta vc-alerta", "⚠️ PAGO REVERTIDO"));
   if (i.whatsappEnviado === "No") etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-no", "Bienvenida pendiente"));
@@ -5255,6 +5270,7 @@ function vcTarjetaInscrita(i) {
     vcCrear("span", "show-etiqueta " + (i.reservaPagada ? "show-etiqueta-si" : "show-etiqueta-pendiente"), i.reservaPagada ? "Reserva ✓" : "Reserva pendiente")
   );
   if (i.tieneAlergia === "SI") etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-no", "⚠️ Alergia"));
+  if (!cancelada && i.diasUsados && i.diasUsados.pasada) etiquetas.appendChild(vcCrear("span", "show-etiqueta show-etiqueta-no", `⚠️ ${i.diasUsados.texto} días`));
   resumen.append(texto, etiquetas);
   tarjeta.appendChild(resumen);
 
@@ -5450,7 +5466,7 @@ function vcPintarTipoCurso() {
   el("btnVcTipoPorClases").disabled = conInscritas && !porClases;
   el("textoVcTipoCurso").textContent =
     (porClases
-      ? "Por clases: el curso son solo sus clases (🗓️ Clases y horarios), cada una con días, horario, edades, cupo y precio. La ficha no muestra horario ni precio general, y elegir al menos una clase es obligatorio."
+      ? "Por clases: el curso son solo sus clases (🗓️ Clases y horarios), cada una con días, horario, edades y cupo, y el precio sale del paquete de días que elige la mamá (📦 Paquetes, abajo). La ficha no muestra horario ni precio general; elegir al menos una clase y un paquete es obligatorio."
       : "Campamento: horario, edades, precio completo, paquete parcial y cupo generales.") +
     (conInscritas ? " Esta temporada ya tiene inscripciones: el tipo ya no se puede cambiar." : "");
 }
@@ -5458,7 +5474,7 @@ function vcPintarTipoCurso() {
 async function vcGuardarTipoCurso(tipo) {
   if (!vcDatos || !vcDatos.config || vcDatos.config.tipo === tipo) return;
   const aviso = tipo === "Por clases"
-    ? "¿Pasar esta temporada a «Por clases»? El horario, edades, precios y cupo generales dejan de usarse (no se borran) y el curso serán solo sus clases, cada una con su precio."
+    ? "¿Pasar esta temporada a «Por clases»? El horario, edades, precios y cupo generales dejan de usarse (no se borran): el curso serán sus clases y el precio saldrá de los paquetes de días."
     : "¿Pasar esta temporada a «Campamento»? Vuelven el horario, edades, precios y cupo generales; revísalos en esta pantalla antes de abrir inscripciones.";
   if (!confirm(aviso)) return;
   vcMensaje("mensajeVcTipoCurso", "Guardando...");
@@ -5473,9 +5489,97 @@ async function vcGuardarTipoCurso(tipo) {
 el("btnVcTipoCampamento").addEventListener("click", () => vcGuardarTipoCurso("Campamento"));
 el("btnVcTipoPorClases").addEventListener("click", () => vcGuardarTipoCurso("Por clases"));
 
+// ---------- Paquetes de días ("Por clases") ----------
+// El Worker valida (precio mínimo Q2, días 1–100) y no deja borrar uno
+// con inscritas: se oculta de la ficha con "Activo".
+let vcPaqueteEditando = null; // id del paquete del formulario (null = nuevo)
+const vcPaqueteDiasTexto = (p) => (p.dias ? `${p.dias} ${p.dias === 1 ? "día" : "días"}` : "Curso completo");
+
+function vcPintarPaquetes() {
+  const porClases = !!vcDatos.config.porClases;
+  el("cajaVcPaquetes").hidden = !porClases;
+  if (!porClases) return;
+  const cont = el("listaVcPaquetes");
+  cont.innerHTML = "";
+  const paquetes = vcDatos.paquetes || [];
+  if (!paquetes.length) cont.appendChild(vcCrear("p", "lista-vacia", "Todavía no hay paquetes: sin al menos uno activo, la ficha no deja inscribirse."));
+  paquetes.forEach((p) => {
+    const t = vcCrear("div", "show-tarjeta vc-clase-tarjeta" + (p.activo ? "" : " inactivo"));
+    t.appendChild(vcCrear("p", "vc-clase-nombre", p.nombre + (p.activo ? "" : " (oculto de la ficha)")));
+    t.appendChild(vcCrear("p", "vc-clase-detalle", `${vcPaqueteDiasTexto(p)} · ${vcQ(p.precio)} · ${p.inscritas} inscrita${p.inscritas === 1 ? "" : "s"}`));
+    const acciones = vcCrear("div", "show-acciones");
+    const editar = vcCrear("button", "btn-secundario btn-chico", "✏️ Editar");
+    editar.type = "button";
+    editar.addEventListener("click", () => vcPaqueteAbrirForm(p));
+    acciones.appendChild(editar);
+    if (!p.inscritas) {
+      const borrar = vcCrear("button", "btn-secundario btn-chico", "🗑️ Borrar");
+      borrar.type = "button";
+      borrar.addEventListener("click", () => vcPaqueteBorrar(p));
+      acciones.appendChild(borrar);
+    }
+    t.appendChild(acciones);
+    cont.appendChild(t);
+  });
+}
+
+function vcPaqueteAbrirForm(p) {
+  vcPaqueteEditando = p ? p.id : null;
+  el("tituloFormVcPaquete").textContent = p ? `Editar «${p.nombre}»` : "Paquete nuevo";
+  el("inputVcPaqueteNombre").value = p ? p.nombre : "";
+  el("inputVcPaqueteDias").value = p && p.dias ? p.dias : "";
+  el("inputVcPaquetePrecio").value = p && p.precio !== null ? p.precio : "";
+  el("chkVcPaqueteActivo").checked = p ? p.activo : true;
+  vcMensaje("mensajeVcPaquete", p && p.inscritas ? `Tiene ${p.inscritas} inscrita${p.inscritas === 1 ? "" : "s"}: si cambias el precio, ellas conservan su total.` : "");
+  el("formVcPaquete").hidden = false;
+}
+el("btnVcPaqueteNuevo").addEventListener("click", () => vcPaqueteAbrirForm(null));
+el("btnVcPaqueteCancelar").addEventListener("click", () => (el("formVcPaquete").hidden = true));
+
+el("btnVcPaqueteGuardar").addEventListener("click", async () => {
+  const boton = el("btnVcPaqueteGuardar");
+  boton.disabled = true;
+  vcMensaje("mensajeVcPaquete", "Guardando...");
+  try {
+    const r = await llamarWorker({
+      accion: "vcPaquetesGuardar",
+      clave: claveRecepcion,
+      configId: vcConfigId,
+      id: vcPaqueteEditando || undefined,
+      paquete: {
+        nombre: el("inputVcPaqueteNombre").value,
+        dias: el("inputVcPaqueteDias").value,
+        precio: el("inputVcPaquetePrecio").value,
+        activo: el("chkVcPaqueteActivo").checked,
+      },
+    });
+    vcDatos.paquetes = r.paquetes;
+    el("formVcPaquete").hidden = true;
+    vcPintarPaquetes();
+    vcMensaje("mensajeVcPaquetes", `✅ Paquete «${r.paquete.nombre}» guardado.`, "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcPaquete", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+async function vcPaqueteBorrar(p) {
+  if (!confirm(`¿Borrar el paquete «${p.nombre}»?`)) return;
+  try {
+    const r = await llamarWorker({ accion: "vcPaquetesEliminar", clave: claveRecepcion, configId: vcConfigId, id: p.id });
+    vcDatos.paquetes = r.paquetes;
+    vcPintarPaquetes();
+    vcMensaje("mensajeVcPaquetes", `✅ «${r.paquete}» borrado.`, "ok");
+  } catch (e) {
+    vcMensaje("mensajeVcPaquetes", e.message, "error");
+  }
+}
+
 function vcLlenarFormulario() {
   const c = vcDatos.config;
   vcPintarTipoCurso();
+  vcPintarPaquetes();
   el("inputVcNombre").value = c.nombre || "";
   el("inputVcInicio").value = c.inicio || "";
   el("inputVcFin").value = c.fin || "";
@@ -5667,7 +5771,7 @@ function textoEmpiezaWa(empiezaEn) {
 const VC_WA_VARIABLES = [
   "nombre_responsable", "nombre_participante", "codigo", "saldo", "total", "reserva",
   "nombre_curso", "fechas_curso", "fecha_inicio", "fecha_fin", "horario", "hora_recepcion",
-  "dias_sin_curso", "edades", "precio_completo", "precio_parcial", "clases",
+  "dias_sin_curso", "edades", "precio_completo", "precio_parcial", "clases", "paquete",
 ];
 let vcWaPlantillas = [];
 let vcWaFiltro = "todas";
@@ -6097,7 +6201,7 @@ function vcClasesPintarConfig() {
   el("botonesVcClasesFicha").hidden = porClases;
   el("inputVcClasesMinimo").min = porClases ? 1 : 0;
   el("textoVcClasesEstado").textContent = porClases
-    ? `Curso «Por clases»: la ficha de ${vcClasesDatos.temporada} siempre muestra sus clases, con su precio, y hay que elegir al menos una.`
+    ? `Curso «Por clases»: la ficha de ${vcClasesDatos.temporada} siempre muestra sus clases (sin precio: el precio sale del paquete) y hay que elegir al menos una.`
     : cfg.mostrar
       ? `Activo: la ficha de la temporada ${vcClasesDatos.temporada} muestra la sección «Clases».`
       : `Inactivo: la ficha de la temporada ${vcClasesDatos.temporada} queda igual que siempre, sin clases.`;
@@ -6151,7 +6255,7 @@ function vcClasesPintarLista() {
     const t = vcCrear("div", "show-tarjeta vc-clase-tarjeta");
     t.appendChild(vcCrear("p", "vc-clase-nombre", c.nombre));
     t.appendChild(vcCrear("p", "vc-clase-detalle", `${c.diasTexto} · ${c.horario}`));
-    const extra = [vcClasesDatos.porClases ? vcQ(c.precio) : "", vcCupoTexto(c), vcEdadesTexto(c)].filter(Boolean).join(" · ");
+    const extra = [vcCupoTexto(c), vcEdadesTexto(c)].filter(Boolean).join(" · ");
     t.appendChild(vcCrear("p", "vc-clase-detalle", extra));
     if (c.cupo !== null && c.inscritas > c.cupo) t.appendChild(vcCrear("p", "vc-wa-error", `⚠️ Tiene más inscritas (${c.inscritas}) que cupo (${c.cupo}).`));
     const hc = vcClasesDatos.horarioCurso;
@@ -6190,8 +6294,6 @@ function vcClaseAbrirForm(c) {
   el("inputVcClaseEdadMin").value = c && c.edadMinima !== null ? c.edadMinima : "";
   el("inputVcClaseEdadMax").value = c && c.edadMaxima !== null ? c.edadMaxima : "";
   el("inputVcClaseDescripcion").value = c ? c.descripcion : "";
-  el("campoVcClasePrecio").hidden = !vcClasesDatos.porClases;
-  el("inputVcClasePrecio").value = c && c.precio !== null && c.precio !== undefined ? c.precio : "";
   vcMensaje("mensajeVcClase", "");
   el("formVcClase").hidden = false;
   el("formVcClase").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -6218,7 +6320,6 @@ el("btnVcClaseGuardar").addEventListener("click", async () => {
         edadMinima: el("inputVcClaseEdadMin").value,
         edadMaxima: el("inputVcClaseEdadMax").value,
         descripcion: el("inputVcClaseDescripcion").value,
-        precio: el("inputVcClasePrecio").value,
       },
     });
     el("formVcClase").hidden = true;
@@ -6274,7 +6375,7 @@ function vcClasesPintarPorClase() {
     const t = vcCrear("details", "show-tarjeta vc-clase-tarjeta");
     const resumen = vcCrear("summary", "show-tarjeta-fila");
     const texto = vcCrear("span", "show-tarjeta-texto");
-    texto.append(vcCrear("span", "show-tarjeta-nombre", c.nombre), vcCrear("span", "tarjeta-resultado-detalle", `${c.diasTexto} · ${c.horario}${vcClasesDatos.porClases ? " · " + vcQ(c.precio) : ""}`));
+    texto.append(vcCrear("span", "show-tarjeta-nombre", c.nombre), vcCrear("span", "tarjeta-resultado-detalle", `${c.diasTexto} · ${c.horario}`));
     const lleno = c.cupo !== null && c.inscritas >= c.cupo;
     resumen.append(texto, vcCrear("span", "show-etiqueta " + (lleno ? "show-etiqueta-no" : "show-etiqueta-si"), vcCupoTexto(c) + (lleno ? " · Lleno" : "")));
     t.appendChild(resumen);
@@ -6323,7 +6424,7 @@ async function vcClasesDescargarPdf(clases) {
       doc.setFontSize(15);
       doc.text(textoPdfAmon(`${c.nombre} · Temporada ${vcClasesDatos.temporada}`), 40, 50);
       doc.setFontSize(10.5);
-      doc.text(textoPdfAmon(`${c.diasTexto} · ${c.horario} · ${vcCupoTexto(c)}${vcEdadesTexto(c) ? " · " + vcEdadesTexto(c) : ""}${vcClasesDatos.porClases ? " · " + vcQ(c.precio) : ""}`), 40, 68);
+      doc.text(textoPdfAmon(`${c.diasTexto} · ${c.horario} · ${vcCupoTexto(c)}${vcEdadesTexto(c) ? " · " + vcEdadesTexto(c) : ""}`), 40, 68);
       doc.autoTable({
         startY: 84,
         head: [["#", "Alumna", "Edad", "Responsable", "Teléfono"]],
@@ -6364,10 +6465,14 @@ function vcClasesPintarPorAlumna() {
     texto.append(vcCrear("span", "show-tarjeta-nombre", `${p.alumna}${p.edad !== null ? ` · ${p.edad} años` : ""}`), vcCrear("span", "tarjeta-resultado-detalle", detalle || p.modalidad));
     resumen.append(texto, vcCrear("span", "show-etiqueta " + (p.clases.length ? "show-etiqueta-si" : "show-etiqueta-no"), p.clases.length ? `${p.clases.length} clase${p.clases.length === 1 ? "" : "s"}` : "Sin clase asignada"));
     t.appendChild(resumen);
-    // "Por clases": lo que debe la familia (cambia al cambiar sus clases).
+    // "Por clases": paquete, días usados y lo que debe la familia (cambia
+    // al cambiar el paquete; cambiar clases ya no cambia el precio).
     if (vcClasesDatos.porClases) {
       const saldoTexto = p.montoSaldo < 0 ? `saldo a favor ${vcQ(-p.montoSaldo)}` : `saldo ${vcQ(p.montoSaldo)}${p.saldoPagado ? " (pagado)" : ""}`;
+      const dias = p.diasUsados && p.diasUsados.texto ? ` · ${p.diasUsados.texto} días${p.diasUsados.pasada ? " ⚠️ se pasó" : ""}` : "";
+      t.appendChild(vcCrear("p", "vc-clase-detalle", `📦 ${p.paquete.nombre || "Sin paquete"}${dias}`));
       t.appendChild(vcCrear("p", "vc-clase-detalle", `Total ${vcQ(p.montoTotal)} · reserva ${vcQ(p.montoReserva)}${p.reservaPagada ? " (pagada)" : ""} · ${saldoTexto}`));
+      t.appendChild(vcFilaCambiarPaquete(p));
     }
 
     // Asignar / cambiar / quitar (el Worker revisa cupo y choques).
@@ -6409,6 +6514,50 @@ function vcClasesPintarPorAlumna() {
     t.append(guardar, msg);
     cont.appendChild(t);
   });
+}
+
+// "Cambiar paquete": el Worker recalcula según lo pagado (sin pagar →
+// todo nuevo; reserva pagada → total y saldo; todo pagado → solo avisa la
+// diferencia) y lo deja en el historial. Se puede elegir un paquete oculto.
+function vcFilaCambiarPaquete(p) {
+  const fila = vcCrear("div", "show-acciones");
+  const select = document.createElement("select");
+  select.className = "input-texto";
+  (vcClasesDatos.paquetes || []).forEach((q) => {
+    const op = vcCrear("option", "", `${q.nombre} · ${vcQ(q.precio)}${q.activo ? "" : " (oculto)"}`);
+    op.value = q.id;
+    select.appendChild(op);
+  });
+  if (!p.paquete.id) {
+    const op = vcCrear("option", "", "Elige un paquete");
+    op.value = "";
+    select.prepend(op);
+  }
+  select.value = p.paquete.id || "";
+  const boton = vcCrear("button", "btn-secundario btn-chico", "📦 Cambiar paquete");
+  boton.type = "button";
+  const msg = vcCrear("p", "mensaje-form");
+  boton.addEventListener("click", async () => {
+    const elegido = (vcClasesDatos.paquetes || []).find((q) => q.id === select.value);
+    if (!elegido || elegido.id === p.paquete.id) return;
+    if (!confirm(`¿Cambiar el paquete de ${p.alumna} a «${elegido.nombre}» (${vcQ(elegido.precio)})? Se recalcula lo que debe según lo que ya pagó.`)) return;
+    boton.disabled = true;
+    msg.textContent = "Guardando...";
+    msg.className = "mensaje-form";
+    try {
+      const r = await llamarWorker({ accion: "vcCambiarPaquete", clave: claveRecepcion, inscripcionId: p.id, paqueteId: elegido.id });
+      await vcClasesCargar();
+      vcMensaje("mensajeVcClases", `✅ Paquete de ${p.alumna}: «${elegido.nombre}».${r.aviso ? " " + r.aviso : ""}`, "ok");
+    } catch (e) {
+      msg.textContent = e.message;
+      msg.className = "mensaje-form mensaje-form-error";
+      boton.disabled = false;
+    }
+  });
+  fila.append(select, boton);
+  const envoltura = vcCrear("div", "");
+  envoltura.append(fila, msg);
+  return envoltura;
 }
 
 // ---------- Pestañas y selector ----------

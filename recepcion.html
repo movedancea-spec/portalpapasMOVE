@@ -970,6 +970,11 @@
       <p class="pista-campo">
         Al marcar "Reserva pagada" se genera solo el código del kiosko. Una inscripción cancelada no cuenta para el cupo y su código deja de funcionar.
       </p>
+      <!-- "Por clases": las que ya usaron más días que los de su paquete. -->
+      <div class="bloque-info" id="cajaVcDiasPasados" hidden>
+        <p class="bloque-info-titulo">⚠️ Se pasaron de los días de su paquete</p>
+        <ul id="listaVcDiasPasados"></ul>
+      </div>
       <div id="listaVcInscritas" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
     </div>
 
@@ -983,7 +988,8 @@
     <div id="vistaVcConfig" hidden>
       <!-- Tipo de curso (TIPO DE CURSO): "Campamento" (horario, edades,
            precios y cupo generales) o "Por clases" (el curso son sus
-           clases, cada una con precio). No se cambia con inscritas. -->
+           clases y el precio sale del paquete de días). No se cambia con
+           inscritas. -->
       <div class="bloque-info vc-codigos" id="cajaVcTipoCurso">
         <p class="bloque-info-titulo">🧭 Tipo de curso</p>
         <div class="vc-codigos-botones">
@@ -992,6 +998,38 @@
         </div>
         <p class="pista-campo" id="textoVcTipoCurso"></p>
         <p class="mensaje-form" id="mensajeVcTipoCurso" role="status"></p>
+      </div>
+
+      <!-- Paquetes de días (solo "Por clases"): la mamá elige uno en la
+           ficha y el total es su precio. Con inscritas no se borran: se
+           ocultan de la ficha desmarcando "Activo". -->
+      <div class="bloque-info" id="cajaVcPaquetes" hidden>
+        <p class="bloque-info-titulo">📦 Paquetes</p>
+        <p class="pista-campo">La mamá elige las clases y, aparte, un paquete. El total es el precio del paquete (reserva y saldo salen de ahí). Días vacío = curso completo. Cambiar el precio no toca a las ya inscritas: para eso, «Cambiar paquete» en 🗓️ Clases y horarios → Por alumna.</p>
+        <div id="listaVcPaquetes" class="show-lista"></div>
+        <button class="btn-secundario btn-ancho" id="btnVcPaqueteNuevo" type="button">+ Agregar paquete</button>
+        <div class="caja-form-ingreso" id="formVcPaquete" hidden>
+          <p class="bloque-info-titulo" id="tituloFormVcPaquete">Paquete nuevo</p>
+          <p class="etiqueta-campo">Nombre (ej. «4 días», «Camp completo»)</p>
+          <input type="text" id="inputVcPaqueteNombre" class="input-texto" maxlength="60" autocomplete="off" />
+          <div class="vc-dos-columnas">
+            <div>
+              <p class="etiqueta-campo">Cantidad de días (vacío = curso completo)</p>
+              <input type="number" id="inputVcPaqueteDias" class="input-texto" min="1" max="100" step="1" inputmode="numeric" />
+            </div>
+            <div>
+              <p class="etiqueta-campo">Precio (Q, mínimo Q2)</p>
+              <input type="number" id="inputVcPaquetePrecio" class="input-texto" min="2" step="0.01" inputmode="decimal" />
+            </div>
+          </div>
+          <label class="vc-clase-dia"><input type="checkbox" id="chkVcPaqueteActivo" checked /> Activo (sale en la ficha)</label>
+          <div class="show-acciones">
+            <button class="btn-secundario btn-chico" id="btnVcPaqueteGuardar" type="button">💾 Guardar paquete</button>
+            <button class="btn-secundario btn-chico" id="btnVcPaqueteCancelar" type="button">Cancelar</button>
+          </div>
+          <p class="mensaje-form" id="mensajeVcPaquete" role="status"></p>
+        </div>
+        <p class="mensaje-form" id="mensajeVcPaquetes" role="status"></p>
       </div>
 
       <div class="caja-form-ingreso">
@@ -1223,10 +1261,6 @@
               <input type="number" id="inputVcClaseEdadMax" class="input-texto" min="0" max="99" step="1" inputmode="numeric" />
             </div>
           </div>
-          <div id="campoVcClasePrecio" hidden>
-            <p class="etiqueta-campo">Precio por todo el curso (Q, mínimo Q2)</p>
-            <input type="number" id="inputVcClasePrecio" class="input-texto" min="2" step="0.01" inputmode="decimal" />
-          </div>
           <p class="etiqueta-campo">Descripción corta (opcional)</p>
           <textarea id="inputVcClaseDescripcion" class="input-textarea" rows="2" maxlength="300"></textarea>
           <p class="pista-campo">La hora es de Guatemala. La edad se cuenta el día que empieza el curso.</p>
@@ -1333,7 +1367,7 @@
 
 </div>
 
-<script src="recepcion.js?v=por-clases-v1"></script>
+<script src="recepcion.js?v=paquetes-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
