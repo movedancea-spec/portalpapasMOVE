@@ -48,6 +48,7 @@ const PANTALLAS = [
   "pantallaMenu",
   "pantallaRecepcion",
   "pantallaElegirGrupoChat",
+  "pantallaMapaShow",
   "pantallaAlumnas",
   "pantallaIngresos",
   "pantallaPagos",
@@ -438,6 +439,10 @@ el("btnMenuShow").addEventListener("click", () => {
   mostrarPantalla("pantallaShow");
   abrirShow();
 });
+el("btnMenuMapaShow").addEventListener("click", () => {
+  mostrarPantalla("pantallaMapaShow");
+  abrirMapaShow();
+});
 el("btnMenuCampamento").addEventListener("click", () => {
   mostrarPantalla("pantallaCampamento");
   abrirCampamento();
@@ -472,6 +477,7 @@ el("btnVolverAvisoImportante").addEventListener("click", () => mostrarPantalla("
 el("btnVolverExtranamos").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverFeriados").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverShow").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
+el("btnVolverMapaShow").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 el("btnVolverCampamento").addEventListener("click", () => mostrarPantalla("pantallaMenu"));
 
 el("btnSalirMenu").addEventListener("click", () => {
@@ -3255,6 +3261,321 @@ async function guardarPago() {
     boton.textContent = textoOriginal;
   }
 }
+
+// ==========================================
+// MAPA DEL SHOW
+// Horario, en vivo, textos, votos y reacciones de academiamovedance.com/show/.
+// Todo lo guarda y lo calcula el Worker (acciones mapaShow*): aquí no se suma
+// ni se calcula nada. Lo que se va a guardar (orden, textos) vive en memoria
+// hasta tocar Guardar, por eso el refresco solo repinta En vivo y Votos.
+// ==========================================
+let mapaDatos = null;
+let mapaPrograma = null; // copia que se edita en ⏱️ Horario
+let mapaPestana = "Vivo";
+let mapaConfirmar = "";
+
+function hayAlgoQueMirarMapa() {
+  return claveRecepcion && !el("pantallaMapaShow").hidden && !document.hidden && (mapaPestana === "Vivo" || mapaPestana === "Votos");
+}
+setInterval(() => {
+  if (hayAlgoQueMirarMapa()) cargarMapaShow({ soloVivo: true }).catch(() => {});
+}, 5000);
+
+function abrirMapaShow() {
+  mensajeShow("mensajeMapaShow", "");
+  mapaPrograma = null;
+  cambiarPestanaMapa(mapaPestana);
+  cargarMapaShow().catch((e) => mensajeShow("mensajeMapaShow", e.message, "error"));
+}
+
+document.querySelectorAll("[data-mapa-pestana]").forEach((chip) => {
+  chip.addEventListener("click", () => cambiarPestanaMapa(chip.dataset.mapaPestana));
+});
+
+function cambiarPestanaMapa(nombre) {
+  mapaPestana = nombre;
+  document.querySelectorAll("[data-mapa-pestana]").forEach((chip) => {
+    chip.classList.toggle("activo", chip.dataset.mapaPestana === nombre);
+  });
+  ["Vivo", "Horario", "Textos", "Votos"].forEach((n) => {
+    el("vistaMapa" + n).hidden = n !== nombre;
+  });
+}
+
+async function cargarMapaShow({ soloVivo = false } = {}) {
+  aplicarMapaShow(await llamarWorker({ accion: "mapaShowDatos", clave: claveRecepcion }), { soloVivo });
+}
+
+function aplicarMapaShow(d, { soloVivo = false } = {}) {
+  mapaDatos = d;
+  el("mapaActivo").checked = d.config.activo;
+  pintarMapaVivo();
+  pintarMapaVotos();
+  if (soloVivo) return;
+  mapaPrograma = d.config.programa.map((p) => ({ ...p }));
+  el("inputMapaInicio").value = d.config.inicio ? new Date(d.config.inicio - 6 * 3600000).toISOString().slice(0, 16) : "";
+  el("inputMapaRefresco").value = d.config.refrescoSeg;
+  el("inputMapaRefrescoAtento").value = d.config.refrescoAtentoSeg;
+  pintarMapaActos();
+  pintarMapaTextos();
+}
+
+function nombreMapa(id) {
+  const t = mapaDatos.config.textos[id] || {};
+  return t.nombre || id;
+}
+function nombreItemMapa(p) {
+  return p.tipo === "intermedio" ? "🍿 Intermedio" : nombreMapa(p.id);
+}
+
+function pintarMapaVivo() {
+  const d = mapaDatos;
+  const lista = d.programa;
+  const actual = d.actual;
+  el("mapaAhora").textContent = d.terminado
+    ? "✨ Show finalizado"
+    : actual !== null
+      ? `Ahora: ${nombreItemMapa(lista[actual])}`
+      : d.enVivo
+        ? "Sin acto en escena"
+        : "El show todavía no empieza";
+  const iSigue = d.enVivo ? d.config.vivo.idx + 1 : actual === null ? 0 : actual + 1;
+  el("mapaSigue").textContent = lista[iSigue] ? `Sigue: ${nombreItemMapa(lista[iSigue])}` : "";
+  el("mapaSigue").textContent += d.enVivo ? " · En vivo" : " · Automático, según el horario";
+  el("btnMapaSiguiente").textContent = d.enVivo ? "▶️ Siguiente acto" : "▶️ Empezar: primer acto";
+  el("btnMapaSiguiente").disabled = d.terminado;
+  el("btnMapaAnterior").disabled = !d.enVivo;
+  el("btnMapaAutomatico").disabled = !d.enVivo;
+}
+
+async function mandarActoMapa(movimiento, boton) {
+  boton.disabled = true;
+  mensajeShow("mensajeMapaShow", "");
+  try {
+    const desde = mapaDatos.config.vivo ? mapaDatos.config.vivo.idx : -1;
+    aplicarMapaShow(await llamarWorker({ accion: "mapaShowActo", clave: claveRecepcion, movimiento, desde }), { soloVivo: true });
+  } catch (e) {
+    mensajeShow("mensajeMapaShow", e.message, "error");
+    await cargarMapaShow({ soloVivo: true }).catch(() => {});
+  }
+  pintarMapaVivo();
+}
+el("btnMapaSiguiente").addEventListener("click", (e) => mandarActoMapa("siguiente", e.currentTarget));
+el("btnMapaAnterior").addEventListener("click", (e) => mandarActoMapa("anterior", e.currentTarget));
+el("btnMapaAutomatico").addEventListener("click", (e) => mandarActoMapa("automatico", e.currentTarget));
+
+function moverActoMapa(i, delta) {
+  const j = i + delta;
+  if (j < 0 || j >= mapaPrograma.length) return;
+  [mapaPrograma[i], mapaPrograma[j]] = [mapaPrograma[j], mapaPrograma[i]];
+  pintarMapaActos();
+}
+
+function pintarMapaActos() {
+  const cont = el("listaMapaActos");
+  cont.innerHTML = "";
+  mapaPrograma.forEach((p, i) => {
+    const fila = crearEl("div", "mapa-acto");
+    fila.item = p;
+    const asa = crearEl("span", "mapa-asa", "☰");
+    asa.addEventListener("pointerdown", (e) => empezarArrastreActo(e, fila, asa));
+    const nombre = crearEl("span", "mapa-acto-nombre", `${i + 1}. ${nombreItemMapa(p)}`);
+    const min = crearEl("input", "input-texto mapa-min");
+    min.type = "number";
+    min.min = "1";
+    min.max = "60";
+    min.value = p.min;
+    min.setAttribute("aria-label", "Minutos");
+    min.addEventListener("input", () => { p.min = Number(min.value); });
+    const arriba = crearEl("button", "btn-secundario btn-chico", "↑");
+    arriba.type = "button";
+    arriba.addEventListener("click", () => moverActoMapa(i, -1));
+    const abajo = crearEl("button", "btn-secundario btn-chico", "↓");
+    abajo.type = "button";
+    abajo.addEventListener("click", () => moverActoMapa(i, 1));
+    fila.append(asa, nombre, min, crearEl("span", "tarjeta-resultado-detalle", "min"), arriba, abajo);
+    if (p.tipo === "intermedio") {
+      const quitar = crearEl("button", "btn-secundario btn-chico show-btn-peligro", "✕");
+      quitar.type = "button";
+      quitar.addEventListener("click", () => {
+        mapaPrograma.splice(i, 1);
+        pintarMapaActos();
+      });
+      fila.append(quitar);
+    }
+    cont.appendChild(fila);
+  });
+}
+
+// La fila no se mueve hasta soltar: mover un elemento dentro de la página hace
+// que el navegador pierda el dedo a media arrastrada. Mientras tanto una línea
+// marca dónde va a caer.
+function empezarArrastreActo(e, fila, asa) {
+  e.preventDefault();
+  asa.setPointerCapture(e.pointerId);
+  fila.classList.add("arrastrando");
+  const cont = el("listaMapaActos");
+  const filas = [...cont.children];
+  const origen = filas.indexOf(fila);
+  let destino = origen;
+  const mover = (ev) => {
+    filas.forEach((f) => f.classList.remove("mapa-destino-arriba", "mapa-destino-abajo"));
+    const encima = filas.findIndex((f) => {
+      const r = f.getBoundingClientRect();
+      return ev.clientY < r.top + r.height / 2;
+    });
+    const hueco = encima === -1 ? filas.length : encima; // antes de esta fila
+    destino = hueco > origen ? hueco - 1 : hueco;
+    if (hueco < filas.length) filas[hueco].classList.add("mapa-destino-arriba");
+    else filas[filas.length - 1].classList.add("mapa-destino-abajo");
+  };
+  const soltar = () => {
+    asa.removeEventListener("pointermove", mover);
+    asa.removeEventListener("pointerup", soltar);
+    asa.removeEventListener("pointercancel", soltar);
+    const [item] = mapaPrograma.splice(origen, 1);
+    mapaPrograma.splice(destino, 0, item);
+    pintarMapaActos();
+  };
+  asa.addEventListener("pointermove", mover);
+  asa.addEventListener("pointerup", soltar);
+  asa.addEventListener("pointercancel", soltar);
+}
+
+el("btnMapaIntermedio").addEventListener("click", () => {
+  mapaPrograma.splice(Math.floor(mapaPrograma.length / 2), 0, { tipo: "intermedio", min: 15 });
+  pintarMapaActos();
+});
+
+async function guardarMapa(boton, accion, datos, aviso) {
+  boton.disabled = true;
+  mensajeShow("mensajeMapaShow", "");
+  try {
+    aplicarMapaShow(await llamarWorker({ accion, clave: claveRecepcion, ...datos }));
+    mensajeShow("mensajeMapaShow", aviso, "ok");
+  } catch (e) {
+    mensajeShow("mensajeMapaShow", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+}
+el("btnMapaGuardarHorario").addEventListener("click", (e) =>
+  guardarMapa(e.currentTarget, "mapaShowGuardarHorario", { inicio: el("inputMapaInicio").value, programa: mapaPrograma }, "✅ Horario guardado.")
+);
+
+function pintarMapaTextos() {
+  const cont = el("listaMapaTextos");
+  cont.innerHTML = "";
+  Object.entries(mapaDatos.textosBase).forEach(([id, base]) => {
+    const t = mapaDatos.config.textos[id] || {};
+    const fila = crearEl("div", "mapa-texto");
+    fila.dataset.id = id;
+    fila.appendChild(crearEl("p", "etiqueta-campo", id));
+    const nombre = crearEl("input", "input-texto");
+    nombre.dataset.campo = "nombre";
+    nombre.maxLength = 40;
+    nombre.placeholder = id;
+    nombre.value = t.nombre || "";
+    nombre.setAttribute("aria-label", `Nombre de ${id}`);
+    const tema = crearEl("input", "input-texto");
+    tema.dataset.campo = "tema";
+    tema.maxLength = 60;
+    tema.placeholder = base.tema;
+    tema.value = t.tema || "";
+    tema.setAttribute("aria-label", `Tema de ${id}`);
+    const color = crearEl("input", "mapa-color");
+    color.type = "color";
+    color.dataset.campo = "color";
+    color.value = t.color || base.color;
+    color.setAttribute("aria-label", `Color de ${id}`);
+    fila.append(nombre, tema, color);
+    cont.appendChild(fila);
+  });
+}
+el("btnMapaGuardarTextos").addEventListener("click", (e) => {
+  const textos = {};
+  document.querySelectorAll("#listaMapaTextos .mapa-texto").forEach((f) => {
+    textos[f.dataset.id] = Object.fromEntries([...f.querySelectorAll("[data-campo]")].map((c) => [c.dataset.campo, c.value]));
+  });
+  guardarMapa(e.currentTarget, "mapaShowGuardarTextos", { textos }, "✅ Textos guardados.");
+});
+
+function pintarMapaVotos() {
+  const d = mapaDatos;
+  el("mapaVotacion").checked = d.config.votacionAbierta;
+  el("mapaResultados").checked = d.config.resultadosPublicos;
+  el("mapaReacciones").checked = d.config.reaccionesAbiertas;
+  const s = d.sincronizacion;
+  el("mapaSincronizacion").textContent = s.error
+    ? `⚠️ ${s.error}`
+    : s.ultima
+      ? `Último respaldo en Airtable: ${new Date(s.ultima).toLocaleTimeString("es-GT", { timeZone: "America/Guatemala", hour: "numeric", minute: "2-digit" })}`
+      : "Todavía no hay respaldo en Airtable.";
+  const a = d.actividad;
+  const raro = a.celularesUltimoMinuto > 150;
+  el("mapaActividad").textContent = `${raro ? "⚠️ Muchos celulares nuevos de golpe. " : ""}Celulares nuevos: ${a.celularesUltimoMinuto} en el último minuto, ${a.celularesUltimos10Min} en 10 minutos.`;
+
+  const cont = el("listaMapaResultados");
+  cont.innerHTML = "";
+  const votos = new Map(d.ranking.map((f) => [f.id, f.votos]));
+  const ids = [...new Set([...d.ranking.map((f) => f.id), ...Object.keys(d.textosBase)])];
+  ids.forEach((id, i) => {
+    const r = d.reacciones[id] || {};
+    const textoReacciones = d.emojis.filter((e) => r[e]).map((e) => `${e} ${r[e]}`).join("  ");
+    const tarjeta = crearEl("div", "show-tarjeta show-tarjeta-fila");
+    const texto = crearEl("span", "show-tarjeta-texto");
+    texto.appendChild(crearEl("span", "show-tarjeta-nombre", `${votos.get(id) ? i + 1 + ". " : ""}${nombreMapa(id)}`));
+    texto.appendChild(crearEl("span", "tarjeta-resultado-detalle", textoReacciones || "Sin reacciones"));
+    tarjeta.append(texto, crearEl("span", "show-etiqueta", `${votos.get(id) || 0} votos`));
+    cont.appendChild(tarjeta);
+  });
+}
+
+[["mapaActivo", "activo"], ["mapaVotacion", "votacionAbierta"], ["mapaResultados", "resultadosPublicos"], ["mapaReacciones", "reaccionesAbiertas"]].forEach(([id, campo]) => {
+  el(id).addEventListener("change", async (e) => {
+    const casilla = e.currentTarget;
+    casilla.disabled = true;
+    mensajeShow("mensajeMapaShow", "");
+    try {
+      aplicarMapaShow(await llamarWorker({ accion: "mapaShowInterruptor", clave: claveRecepcion, campo, valor: casilla.checked }), { soloVivo: true });
+    } catch (err) {
+      casilla.checked = !casilla.checked;
+      mensajeShow("mensajeMapaShow", err.message, "error");
+    } finally {
+      casilla.disabled = false;
+    }
+  });
+});
+
+el("btnMapaGuardarRefresco").addEventListener("click", (e) =>
+  guardarMapa(
+    e.currentTarget,
+    "mapaShowRefresco",
+    { refrescoSeg: Number(el("inputMapaRefresco").value), refrescoAtentoSeg: Number(el("inputMapaRefrescoAtento").value) },
+    "✅ Guardado. Los celulares lo toman en su próxima actualización."
+  )
+);
+
+// Dos toques, sin confirm(): el primero pregunta y el segundo reinicia.
+function botonReiniciarMapa(id, tipo, texto) {
+  const boton = el(id);
+  boton.addEventListener("click", async () => {
+    if (mapaConfirmar !== tipo) {
+      mapaConfirmar = tipo;
+      boton.textContent = "¿Segura? Toca otra vez";
+      setTimeout(() => {
+        if (mapaConfirmar === tipo) mapaConfirmar = "";
+        boton.textContent = texto;
+      }, 5000);
+      return;
+    }
+    mapaConfirmar = "";
+    boton.textContent = texto;
+    await guardarMapa(boton, "mapaShowReiniciar", { tipo, confirmar: true }, "✅ Reiniciado.");
+  });
+}
+botonReiniciarMapa("btnMapaReiniciarVotos", "votos", "🔄 Reiniciar votos");
+botonReiniciarMapa("btnMapaReiniciarReacciones", "reacciones", "🔄 Reiniciar reacciones");
 
 // ==========================================
 // ALUMNAS SHOW

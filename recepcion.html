@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=clases-fechas-v1" />
+<link rel="stylesheet" href="recepcion.css?v=mapa-show-v2" />
 </head>
 <body>
 
@@ -114,6 +114,10 @@
       <button class="btn-menu" id="btnMenuShow" type="button">
         <span class="btn-menu-icono">🎭</span>
         <span class="btn-menu-texto">Alumnas Show</span>
+      </button>
+      <button class="btn-menu" id="btnMenuMapaShow" type="button">
+        <span class="btn-menu-icono">🗺️</span>
+        <span class="btn-menu-texto">Mapa del Show</span>
       </button>
       <button class="btn-menu" id="btnMenuCampamento" type="button">
         <span class="btn-menu-icono">🏕️</span>
@@ -703,6 +707,84 @@
     <p class="etiqueta-campo">Filtrar por maestra</p>
     <select id="selectAmonFiltro" class="input-select"></select>
     <div id="listaAmonestaciones"><p class="lista-vacia">Cargando...</p></div>
+  </section>
+
+  <!-- ============ PANTALLA: MAPA DEL SHOW ============ -->
+  <!-- Horario, en vivo, textos, votos y reacciones de academiamovedance.com/show/.
+       Lo guarda el Worker (ver recepcion.js, sección MAPA DEL SHOW). -->
+  <section id="pantallaMapaShow" class="pantalla" hidden>
+    <div class="barra-superior">
+      <button class="btn-volver" id="btnVolverMapaShow" type="button">← Menú</button>
+      <span class="barra-titulo">🗺️ Mapa del Show</span>
+    </div>
+    <div class="caja-form-ingreso">
+      <label class="mapa-interruptor"><input type="checkbox" id="mapaActivo" /> <span>Mapa encendido en academiamovedance.com/show</span></label>
+      <p class="pista-campo">Apagado muestra “La temporada del show terminó, ¡gracias!”. Se apaga solo el 1 de enero.</p>
+    </div>
+    <div class="chips-contenedor show-pestanas">
+      <button class="chip activo" type="button" data-mapa-pestana="Vivo">🎬 En vivo</button>
+      <button class="chip" type="button" data-mapa-pestana="Horario">⏱️ Horario</button>
+      <button class="chip" type="button" data-mapa-pestana="Textos">✏️ Textos</button>
+      <button class="chip" type="button" data-mapa-pestana="Votos">🗳️ Votos y reacciones</button>
+    </div>
+    <p class="mensaje-form" id="mensajeMapaShow"></p>
+
+    <div id="vistaMapaVivo">
+      <div class="caja-form-ingreso">
+        <p class="subtitulo" id="mapaAhora"></p>
+        <p class="pista-campo" id="mapaSigue"></p>
+        <button class="btn-grande btn-siguiente" id="btnMapaSiguiente" type="button">▶️ Siguiente acto</button>
+        <div class="show-acciones">
+          <button class="btn-secundario btn-chico" id="btnMapaAnterior" type="button">◀️ Acto anterior</button>
+          <button class="btn-secundario btn-chico" id="btnMapaAutomatico" type="button">↩️ Volver a automático</button>
+        </div>
+        <p class="pista-campo">Toca “Siguiente acto” cuando empieza cada uno. El mapa se actualiza en unos 20 segundos.</p>
+      </div>
+    </div>
+
+    <div id="vistaMapaHorario" hidden>
+      <div class="caja-form-ingreso">
+        <p class="etiqueta-campo">Fecha y hora de inicio (Guatemala)</p>
+        <input type="datetime-local" id="inputMapaInicio" class="input-texto" />
+        <p class="etiqueta-campo">Orden de los actos</p>
+        <p class="pista-campo">Arrastra desde ☰ o usa las flechas. Los minutos van al lado.</p>
+        <div id="listaMapaActos" class="mapa-actos"></div>
+        <button class="btn-secundario btn-chico" id="btnMapaIntermedio" type="button">➕ Agregar intermedio</button>
+        <button class="btn-grande btn-siguiente" id="btnMapaGuardarHorario" type="button">Guardar horario</button>
+      </div>
+    </div>
+
+    <div id="vistaMapaTextos" hidden>
+      <div class="caja-form-ingreso">
+        <p class="pista-campo">La posición en el mapa no cambia. Vacío = el texto original.</p>
+        <div id="listaMapaTextos" class="mapa-textos"></div>
+        <button class="btn-grande btn-siguiente" id="btnMapaGuardarTextos" type="button">Guardar textos</button>
+      </div>
+    </div>
+
+    <div id="vistaMapaVotos" hidden>
+      <div class="caja-form-ingreso">
+        <label class="mapa-interruptor"><input type="checkbox" id="mapaVotacion" /> <span>Votación abierta</span></label>
+        <label class="mapa-interruptor"><input type="checkbox" id="mapaResultados" /> <span>Mostrar resultados al público</span></label>
+        <label class="mapa-interruptor"><input type="checkbox" id="mapaReacciones" /> <span>Reacciones abiertas</span></label>
+        <p class="pista-campo" id="mapaSincronizacion"></p>
+        <p class="pista-campo" id="mapaActividad"></p>
+      </div>
+      <p class="subtitulo">Resultados en vivo</p>
+      <div id="listaMapaResultados" class="show-lista"></div>
+      <div class="caja-form-ingreso">
+        <p class="etiqueta-campo">Actualizar el mapa cada (segundos)</p>
+        <div class="mapa-refresco">
+          <label>General <input type="number" id="inputMapaRefresco" class="input-texto" min="5" max="120" /></label>
+          <label>Tarjeta o ranking abiertos <input type="number" id="inputMapaRefrescoAtento" class="input-texto" min="5" max="120" /></label>
+        </div>
+        <button class="btn-secundario btn-chico" id="btnMapaGuardarRefresco" type="button">Guardar</button>
+      </div>
+      <div class="show-acciones">
+        <button class="btn-secundario btn-chico show-btn-peligro" id="btnMapaReiniciarVotos" type="button">🔄 Reiniciar votos</button>
+        <button class="btn-secundario btn-chico show-btn-peligro" id="btnMapaReiniciarReacciones" type="button">🔄 Reiniciar reacciones</button>
+      </div>
+    </div>
   </section>
 
   <!-- ============ PANTALLA: ALUMNAS SHOW ============ -->
@@ -1392,7 +1474,7 @@
 
 </div>
 
-<script src="recepcion.js?v=show-reparto-v1"></script>
+<script src="recepcion.js?v=mapa-show-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

@@ -305,6 +305,18 @@
   }
   .ticket-actions button.active{ background: rgba(255,107,94,.2); color:#ff8a7d; border-color: rgba(255,107,94,.4); }
   .ticket-actions a.vote{ background: rgba(47,158,82,.18); color:#6bd68f; border-color: rgba(47,158,82,.4); }
+  .ticket-actions button.votado{ background: rgba(47,158,82,.22); color:#8fe6ad; border-color: rgba(47,158,82,.5); }
+  .reacciones{ display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; margin-bottom: 4px; }
+  .reaccion{
+    display:flex; flex-direction:column; align-items:center; gap:1px;
+    border:1px solid rgba(243,210,122,.25); border-radius:12px; padding:5px 0 4px;
+    background: rgba(255,255,255,.05); color: var(--cream); cursor:pointer;
+    font-family:'Poppins',sans-serif; font-size:11px; font-weight:600;
+  }
+  .reaccion .emoji{ font-size:19px; line-height:1.2; }
+  .reaccion.activa{ background: rgba(243,210,122,.22); border-color: var(--gold); color: var(--gold-bright); }
+  .reaccion.salto .emoji{ animation: saltoEmoji .35s ease; }
+  @keyframes saltoEmoji{ 40%{ transform: scale(1.5) translateY(-3px); } }
   .perforation{ border-top: 1.5px dashed rgba(243,210,122,.25); margin: 18px 0; }
   .cast-label{
     font-family:'Space Mono', monospace;
@@ -363,6 +375,37 @@
   }
   .modal-actions .save{ background: linear-gradient(90deg,var(--gold-deep),var(--gold)); color:#241a05; }
   .modal-actions .skip{ background: rgba(255,255,255,.08); color: var(--cream); }
+
+  .ranking-btn{
+    display:inline-flex; align-items:center; gap:6px; margin:12px 0 0 8px;
+    border:1px solid var(--gold-deep); border-radius:999px; padding:6px 14px;
+    background: rgba(243,210,122,.14); color: var(--gold); cursor:pointer;
+    font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:700;
+  }
+  .ranking-lista{ max-height:55vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .ranking-fila{
+    display:grid; grid-template-columns: 26px 1fr auto; align-items:center; gap:8px;
+    background: rgba(255,255,255,.05); border-radius:10px; padding:7px 10px; font-size:13px;
+  }
+  .ranking-puesto{ font-family:'Space Mono',monospace; font-weight:700; color: var(--gold); }
+  .ranking-votos{ font-weight:700; color: var(--gold-bright); }
+  .aviso-toque{
+    position:fixed; left:50%; bottom:78px; transform:translateX(-50%); z-index:210;
+    background:#0a0b1f; color:var(--cream); border:1px solid var(--gold-deep);
+    border-radius:999px; padding:8px 16px; font-size:12.5px; font-weight:600;
+    opacity:0; pointer-events:none; transition:opacity .2s ease; max-width:90vw; text-align:center;
+  }
+  .aviso-toque.visible{ opacity:1; }
+  .temporada-fin{ display:none; }
+  body.show-apagado{ padding-top:0; }
+  body.show-apagado > *:not(.temporada-fin):not(script){ display:none !important; }
+  body.show-apagado .temporada-fin{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    min-height:100vh; min-height:100dvh; padding:24px; text-align:center;
+  }
+  .temporada-fin img{ width:min(420px, 80vw); height:auto; filter: drop-shadow(0 6px 18px rgba(0,0,0,.5)); }
+  .temporada-fin h1{ font-size: clamp(30px, 7vw, 54px); }
+  .temporada-fin p{ margin:0; max-width:460px; opacity:.8; font-size:15px; }
 
   .confetti-piece{
     position:fixed; width:8px; height:8px; border-radius:2px; pointer-events:none; z-index:200;
@@ -441,6 +484,12 @@
 </head>
 <body>
 
+<div class="temporada-fin" id="temporadaFin">
+  <img src="logo-dance-rollercoaster.webp" alt="The Dance Rollercoaster">
+  <h1>La temporada del show terminó, ¡gracias!</h1>
+  <p>Gracias por vivir la adrenalina de The Dance Rollercoaster con MOVE Dance Academy. 💛</p>
+</div>
+
 <div class="status-bar">
   <div class="status-live"><span class="live-dot"></span><span id="liveText">Cargando horario…</span></div>
   <div class="status-follow" id="followBar">
@@ -457,6 +506,7 @@
     <span id="progressText">0/21 recorridas</span>
     <span class="progress-track"><span class="progress-fill" id="progressFill"></span></span>
   </div>
+  <button class="ranking-btn" id="rankingBtn" type="button" hidden>🏆 Mejor baile</button>
 </header>
 
 <div class="map-wrap">
@@ -493,8 +543,9 @@
   <div class="ticket-actions">
     <button id="favBtn">🤍 Favorito</button>
     <button id="shareActBtn">📲 Compartir</button>
-    <a id="voteLink" class="vote" href="#" target="_blank" rel="noopener" style="display:none;">🗳️ Votar</a>
+    <button id="voteBtn" type="button" hidden>🗳️ Votar</button>
   </div>
+  <div class="reacciones" id="tReacciones" hidden></div>
   <div id="tReparto">
     <div class="perforation"></div>
     <div class="cast-label">Reparto</div>
@@ -513,14 +564,22 @@
   </div>
 </div>
 
+<div class="modal" id="rankingModal">
+  <h2>🏆 Mejor baile del show</h2>
+  <div class="ranking-lista" id="rankingLista"></div>
+  <div class="modal-actions"><button class="skip" id="rankingCerrar" type="button">Cerrar</button></div>
+</div>
+<div class="aviso-toque" id="avisoToque" role="status"></div>
+
 <script>
 /* =========================================================
-   CONFIGURACIÓN DEL SHOW — editá esto con tus datos reales
+   VALORES DE RESPALDO. El horario, los textos y los interruptores
+   reales se manejan en Recepción → Mapa del Show; esto solo se usa
+   si la página nunca logró hablar con el Worker.
    ========================================================= */
 const SHOW_CONFIG = {
   startDateTime: "2026-11-15T18:00:00",
-  minutesPerAct: 4,
-  votingFormUrl: ""
+  minutesPerAct: 4
 };
 
 /* =========================================================
@@ -601,7 +660,12 @@ const tReparto = document.getElementById('tReparto');
 const masAbajo = document.getElementById('masAbajo');
 const favBtn = document.getElementById('favBtn');
 const shareActBtn = document.getElementById('shareActBtn');
-const voteLink = document.getElementById('voteLink');
+const voteBtn = document.getElementById('voteBtn');
+const tReacciones = document.getElementById('tReacciones');
+const rankingBtn = document.getElementById('rankingBtn');
+const rankingModal = document.getElementById('rankingModal');
+const rankingLista = document.getElementById('rankingLista');
+const avisoToque = document.getElementById('avisoToque');
 const waFab = document.getElementById('waFab');
 const modal = document.getElementById('modal');
 const modalSelect = document.getElementById('modalSelect');
@@ -615,8 +679,13 @@ const progressFill = document.getElementById('progressFill');
 
 let currentGroupIndex = null;
 let repartoListo = false;
+// El nombre original es la llave (reparto, votos, horario): Recepción solo
+// cambia lo que se ve.
+GROUPS.forEach(g => { g.id = g.attraction; g.base = { attraction: g.attraction, theme: g.theme, color: g.color }; });
 let visited = JSON.parse(localStorage.getItem('show_visitados') || '[]');
 let favoritos = JSON.parse(localStorage.getItem('show_favoritos') || '[]');
+let estado = null;
+let desfaseReloj = 0;
 let miBaile = localStorage.getItem('show_miBaile');
 miBaile = miBaile === null ? null : parseInt(miBaile, 10);
 
@@ -725,18 +794,16 @@ function openTicket(group, i){
   pintarReparto(group);
   favBtn.classList.toggle('active', favoritos.includes(i));
   favBtn.textContent = favoritos.includes(i) ? '❤️ Favorito' : '🤍 Favorito';
-  if(SHOW_CONFIG.votingFormUrl){
-    voteLink.style.display = 'inline-flex';
-    voteLink.href = SHOW_CONFIG.votingFormUrl;
-  } else {
-    voteLink.style.display = 'none';
-  }
+  pintarInteraccion();
   overlay.classList.add('open');
   ticket.classList.add('open');
+  programarEstado();
 }
 function closeTicket(){
   overlay.classList.remove('open');
   ticket.classList.remove('open');
+  currentGroupIndex = null;
+  rankingModal.classList.remove('open');
   if(modal.classList.contains('open')) modal.classList.remove('open');
   if(photoModal.classList.contains('open')) photoModal.classList.remove('open');
 }
@@ -871,10 +938,15 @@ GROUPS.forEach((group, i) => {
   btn.style.left = group.x + '%';
   btn.style.top = group.y + '%';
   btn.style.animationDelay = (i * 0.045) + 's';
-  btn.setAttribute('aria-label', `${group.attraction}: ${group.theme}`);
-  btn.innerHTML = `
-    <span class="pin" style="--pin-color:${group.color}"><span class="ico">${group.icon}</span><span class="pin-text">${group.attraction}</span></span>
-  `;
+  const pin = document.createElement('span');
+  pin.className = 'pin';
+  const ico = document.createElement('span');
+  ico.className = 'ico';
+  ico.textContent = group.icon;
+  const texto = document.createElement('span');
+  texto.className = 'pin-text';
+  pin.append(ico, texto);
+  btn.append(pin);
   if(visited.includes(i)){
     btn.querySelector('.pin').insertAdjacentHTML('beforeend', '<span class="check">✓</span>');
   }
@@ -888,53 +960,80 @@ GROUPS.forEach((group, i) => {
 
   const li = document.createElement('div');
   li.className = 'legend-item';
-  li.innerHTML = `<span class="legend-dot" style="background:${group.color}">${group.icon}</span>${group.attraction}`;
+  const punto = document.createElement('span');
+  punto.className = 'legend-dot';
+  punto.textContent = group.icon;
+  li.append(punto, document.createTextNode(''));
   legend.appendChild(li);
 
   const opt = document.createElement('option');
   opt.value = i;
-  opt.textContent = `${group.attraction} — ${group.theme}`;
   modalSelect.appendChild(opt);
+  group.nodos = { btn, pin, texto, li, punto, opt };
+  pintarGrupo(group);
 });
 updateProgress();
 
-function getSchedule(){
-  const start = new Date(SHOW_CONFIG.startDateTime);
-  return GROUPS.map((g, i) => {
-    const s = new Date(start.getTime() + i*SHOW_CONFIG.minutesPerAct*60000);
-    const e = new Date(start.getTime() + (i+1)*SHOW_CONFIG.minutesPerAct*60000);
-    return { start: s, end: e };
-  });
+// Con textContent y style.setProperty: estos textos se escriben en Recepción.
+function pintarGrupo(g){
+  const n = g.nodos;
+  n.btn.setAttribute('aria-label', `${g.attraction}: ${g.theme}`);
+  n.pin.style.setProperty('--pin-color', g.color);
+  n.texto.textContent = g.attraction;
+  n.li.lastChild.textContent = g.attraction;
+  n.punto.style.background = g.color;
+  n.opt.textContent = `${g.attraction} — ${g.theme}`;
 }
+
+// El Worker calcula el horario; sin él, el de respaldo de SHOW_CONFIG.
+function programaActual(){
+  if(estado && estado.programa) return estado.programa;
+  const inicio = new Date(SHOW_CONFIG.startDateTime).getTime();
+  const ms = SHOW_CONFIG.minutesPerAct * 60000;
+  return GROUPS.map((g, i) => ({ tipo:'acto', id:g.id, inicio: inicio + i*ms, fin: inicio + (i+1)*ms }));
+}
+const grupoDe = (id) => GROUPS.find(g => g.id === id);
+
 function updateLiveStatus(){
-  const schedule = getSchedule();
-  const now = new Date();
-  let liveIndex = null;
-  for(let i=0;i<schedule.length;i++){
-    if(now >= schedule[i].start && now < schedule[i].end){ liveIndex = i; break; }
-  }
+  const prog = programaActual();
+  const now = Date.now() + desfaseReloj;
+  const enVivo = !!(estado && estado.enVivo);
+  let actual = enVivo ? estado.actual : prog.findIndex(p => p.inicio !== null && now >= p.inicio && now < p.fin);
+  if(actual === null || actual < 0) actual = null;
+  const ultimo = prog[prog.length-1];
+  const terminado = enVivo ? estado.terminado : (ultimo.fin !== null && now >= ultimo.fin);
+
   document.querySelectorAll('.node').forEach(n => n.classList.remove('live'));
-  if(liveIndex !== null){
-    const g = GROUPS[liveIndex];
-    liveText.textContent = `Ahora en escena: ${g.attraction} — ${g.theme}`;
-    const nodes = document.querySelectorAll('.node');
-    if(nodes[liveIndex]) nodes[liveIndex].classList.add('live');
-  } else if(now < schedule[0].start){
-    const mins = Math.round((schedule[0].start - now)/60000);
-    liveText.textContent = mins > 0 ? `El show empieza en ~${mins} min` : 'El show está por comenzar';
-  } else if(now >= schedule[schedule.length-1].end){
+  if(actual !== null){
+    const p = prog[actual];
+    if(p.tipo === 'intermedio'){
+      liveText.textContent = '🍿 Intermedio';
+    } else {
+      const g = grupoDe(p.id);
+      liveText.textContent = `Ahora en escena: ${g.attraction} — ${g.theme}`;
+      g.nodos.btn.classList.add('live');
+    }
+  } else if(terminado){
     liveText.textContent = '✨ ¡Show finalizado! Gracias por venir';
+  } else if(prog[0].inicio === null){
+    liveText.textContent = 'Pronto el horario del show';
+  } else {
+    const mins = Math.round((prog[0].inicio - now)/60000);
+    liveText.textContent = mins > 0 ? `El show empieza en ~${mins} min` : 'El show está por comenzar';
   }
 
   if(miBaile !== null){
     const g = GROUPS[miBaile];
-    if(liveIndex === miBaile){
+    const i = prog.findIndex(p => p.id === g.id);
+    const p = prog[i];
+    if(i === actual){
       followText.textContent = `🎉 ¡Es ahora! ${g.attraction}`;
-    } else if(now < schedule[miBaile].start){
-      const mins = Math.max(0, Math.round((schedule[miBaile].start - now)/60000));
-      followText.textContent = `${g.attraction}: faltan ~${mins} min`;
-    } else {
+    } else if(terminado || (p && (p.pasado || (p.fin !== null && !enVivo && now >= p.fin)))){
       followText.textContent = `✅ ${g.attraction} ya se presentó`;
+    } else if(p && p.inicio !== null){
+      followText.textContent = `${g.attraction}: faltan ~${Math.max(0, Math.round((p.inicio - now)/60000))} min`;
+    } else {
+      followText.textContent = g.attraction;
     }
     followBtn.textContent = 'Cambiar';
   } else {
@@ -943,7 +1042,6 @@ function updateLiveStatus(){
   }
 }
 setInterval(updateLiveStatus, 15000);
-updateLiveStatus();
 
 function openModal(){ modal.classList.add('open'); overlay.classList.add('open'); }
 function closeModal(){ modal.classList.remove('open'); overlay.classList.remove('open'); }
@@ -978,7 +1076,7 @@ function repartoValido(a){
 }
 function aplicarReparto(atracciones){
   GROUPS.forEach(g => {
-    if(!g.fijo) g.members = (atracciones[g.attraction] || []).map(name => ({ name }));
+    if(!g.fijo) g.members = (atracciones[g.id] || []).map(name => ({ name }));
   });
   repartoListo = true;
   if(currentGroupIndex !== null) pintarReparto(GROUPS[currentGroupIndex]);
@@ -1004,6 +1102,230 @@ async function cargarReparto(){
   }
 }
 cargarReparto();
+
+/* ---------- estado en vivo: horario, textos, votos y reacciones ---------- */
+// Nunca pregunta con la pantalla apagada o en otra pestaña. El Worker manda
+// cada cuántos segundos, y el azar evita que 300 celulares pregunten a la vez.
+const EMOJIS = ['🔥','😍','👏','🤩','💖','🎢'];
+const URL_ESTADO = URL_REPARTO.replace('/show-reparto', '/show-estado');
+const URL_DISPOSITIVO = URL_REPARTO.replace('/show-reparto', '/show-dispositivo');
+const URL_INTERACCION = URL_REPARTO.replace('/show-reparto', '/show-interaccion');
+const ESPERA_ESTADO_MS = 6000;
+let temporizadorEstado = null;
+let marcas = { rondaVotos: 0, rondaReacciones: 0, votos: [], reacciones: {} };
+const colaToques = new Map();
+const recientes = new Map(); // reacción recién tocada → { base, esperado, hasta }
+try{ marcas = { ...marcas, ...JSON.parse(localStorage.getItem('show_marcas') || '{}') }; }catch(e){}
+function guardarMarcas(){ try{ localStorage.setItem('show_marcas', JSON.stringify(marcas)); }catch(e){} }
+
+function aplicarEstado(e, { guardado = false } = {}){
+  estado = e;
+  if(!guardado) desfaseReloj = e.ahora - Date.now();
+  document.body.classList.toggle('show-apagado', !e.activo);
+  if(!e.activo){ closeTicket(); return; }
+  GROUPS.forEach(g => {
+    const t = (e.textos && e.textos[g.id]) || {};
+    g.attraction = t.nombre || g.base.attraction;
+    g.theme = t.tema || g.base.theme;
+    g.color = t.color || g.base.color;
+    pintarGrupo(g);
+  });
+  // Recepción reinició: lo marcado en este celular ya no cuenta.
+  if(marcas.rondaVotos !== e.rondaVotos){ if(marcas.rondaVotos) marcas.votos = []; marcas.rondaVotos = e.rondaVotos; guardarMarcas(); }
+  if(marcas.rondaReacciones !== e.rondaReacciones){ if(marcas.rondaReacciones) marcas.reacciones = {}; marcas.rondaReacciones = e.rondaReacciones; guardarMarcas(); }
+  rankingBtn.hidden = !e.ranking;
+  if(!e.ranking) rankingModal.classList.remove('open');
+  else if(rankingModal.classList.contains('open')) pintarRanking();
+  if(currentGroupIndex !== null){
+    const g = GROUPS[currentGroupIndex];
+    tAttraction.textContent = g.attraction;
+    tTheme.textContent = g.theme;
+    tBar.style.setProperty('--bar-color', g.color);
+    ticket.style.setProperty('--bar-color', g.color);
+    pintarInteraccion();
+  }
+  updateLiveStatus();
+}
+
+function programarEstado(){
+  clearTimeout(temporizadorEstado);
+  if(document.hidden) return;
+  const atento = currentGroupIndex !== null || rankingModal.classList.contains('open');
+  const seg = (estado && (atento ? estado.refrescoAtentoSeg : estado.refrescoSeg)) || (atento ? 8 : 15);
+  temporizadorEstado = setTimeout(cargarEstado, seg * 1000 * (0.8 + Math.random() * 0.4));
+}
+async function cargarEstado(){
+  clearTimeout(temporizadorEstado);
+  if(document.hidden) return;
+  const control = new AbortController();
+  const reloj = setTimeout(() => control.abort(), ESPERA_ESTADO_MS);
+  try{
+    const r = await fetch(URL_ESTADO, { cache:'no-store', signal: control.signal });
+    if(r.ok){
+      const e = await r.json();
+      aplicarEstado(e);
+      try{ localStorage.setItem('show_estado', JSON.stringify(e)); }catch(er){}
+      mandarToques();
+    }
+  }catch(e){
+    // Sin señal: se queda lo último que se vio.
+  }finally{
+    clearTimeout(reloj);
+    programarEstado();
+  }
+}
+document.addEventListener('visibilitychange', () => { if(document.hidden) clearTimeout(temporizadorEstado); else cargarEstado(); });
+
+async function miDispositivo(){
+  let id = null;
+  try{ id = localStorage.getItem('show_dispositivo'); }catch(e){}
+  if(id) return id;
+  const r = await fetch(URL_DISPOSITIVO, { cache:'no-store' });
+  if(!r.ok) throw new Error('sin dispositivo');
+  id = (await r.json()).id;
+  try{ localStorage.setItem('show_dispositivo', id); }catch(e){}
+  return id;
+}
+let mandando = false;
+// Cada toque dice cómo debe quedar: reintentarlo no lo deshace.
+async function mandarToques(){
+  if(mandando || !colaToques.size) return;
+  mandando = true;
+  try{
+    const dispositivo = await miDispositivo();
+    for(const [llave, t] of [...colaToques]){
+      const r = await fetch(URL_INTERACCION, { method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify({ dispositivo, ...t }) });
+      if(r.status === 401){ try{ localStorage.removeItem('show_dispositivo'); }catch(e){} break; }
+      if(r.status === 429) break;
+      if(colaToques.get(llave) === t) colaToques.delete(llave);
+      if(r.status === 409){ avisar('Ya está cerrado 🙈'); cargarEstado(); }
+    }
+  }catch(e){
+    // Sin señal: sigue en la cola y sale con el próximo refresco.
+  }finally{
+    mandando = false;
+  }
+}
+function avisar(texto){
+  avisoToque.textContent = texto;
+  avisoToque.classList.add('visible');
+  setTimeout(() => avisoToque.classList.remove('visible'), 2400);
+}
+
+function conteoReaccion(id, emoji){
+  const n = ((estado.reacciones || {})[id] || {})[emoji] || 0;
+  const r = recientes.get(id + emoji);
+  // El servidor tarda unos segundos en reflejar el toque: que el número no
+  // regrese mientras tanto.
+  return r && r.hasta > Date.now() && n === r.base ? r.esperado : n;
+}
+function pintarInteraccion(){
+  const hay = estado && estado.activo;
+  const g = currentGroupIndex === null ? null : GROUPS[currentGroupIndex];
+  voteBtn.hidden = !(hay && estado.votacionAbierta);
+  if(g && !voteBtn.hidden){
+    const votado = marcas.votos.includes(g.id);
+    voteBtn.classList.toggle('votado', votado);
+    voteBtn.textContent = votado ? '✅ Votaste' : '🗳️ Votar';
+  }
+  tReacciones.hidden = !(hay && estado.reaccionesAbiertas);
+  if(!g || tReacciones.hidden){ revisarMasAbajo(); return; }
+  if(!tReacciones.children.length){
+    EMOJIS.forEach(emoji => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'reaccion';
+      b.dataset.emoji = emoji;
+      b.setAttribute('aria-label', 'Reaccionar con ' + emoji);
+      const e = document.createElement('span');
+      e.className = 'emoji';
+      e.textContent = emoji;
+      const n = document.createElement('span');
+      n.className = 'num';
+      b.append(e, n);
+      b.addEventListener('click', () => tocarReaccion(emoji, b));
+      tReacciones.appendChild(b);
+    });
+  }
+  const mias = marcas.reacciones[g.id] || [];
+  [...tReacciones.children].forEach(b => {
+    b.classList.toggle('activa', mias.includes(b.dataset.emoji));
+    b.querySelector('.num').textContent = conteoReaccion(g.id, b.dataset.emoji);
+  });
+  revisarMasAbajo();
+}
+function tocarReaccion(emoji, boton){
+  if(currentGroupIndex === null) return;
+  const id = GROUPS[currentGroupIndex].id;
+  const mias = marcas.reacciones[id] || (marcas.reacciones[id] = []);
+  const valor = !mias.includes(emoji);
+  const antes = conteoReaccion(id, emoji);
+  if(valor) mias.push(emoji); else mias.splice(mias.indexOf(emoji), 1);
+  guardarMarcas();
+  recientes.set(id + emoji, { base: ((estado.reacciones || {})[id] || {})[emoji] || 0, esperado: Math.max(0, antes + (valor ? 1 : -1)), hasta: Date.now() + 12000 });
+  boton.classList.remove('salto');
+  void boton.offsetWidth;
+  boton.classList.add('salto');
+  colaToques.set('r' + id + emoji, { tipo:'reaccion', atraccion:id, emoji, valor });
+  pintarInteraccion();
+  mandarToques();
+}
+voteBtn.addEventListener('click', () => {
+  if(currentGroupIndex === null) return;
+  const id = GROUPS[currentGroupIndex].id;
+  const i = marcas.votos.indexOf(id);
+  const valor = i === -1;
+  if(valor) marcas.votos.push(id); else marcas.votos.splice(i, 1);
+  guardarMarcas();
+  colaToques.set('v' + id, { tipo:'voto', atraccion:id, valor });
+  if(valor) spawnConfetti(voteBtn.getBoundingClientRect().left + 30, voteBtn.getBoundingClientRect().top, GROUPS[currentGroupIndex].color);
+  pintarInteraccion();
+  mandarToques();
+});
+
+function pintarRanking(){
+  rankingLista.innerHTML = '';
+  const lista = (estado && estado.ranking) || [];
+  if(!lista.length){
+    const p = document.createElement('p');
+    p.textContent = 'Todavía no hay votos. ¡Sé la primera persona en votar!';
+    rankingLista.appendChild(p);
+    return;
+  }
+  lista.forEach((f, i) => {
+    const fila = document.createElement('div');
+    fila.className = 'ranking-fila';
+    const puesto = document.createElement('span');
+    puesto.className = 'ranking-puesto';
+    puesto.textContent = i + 1;
+    const nombre = document.createElement('span');
+    const g = grupoDe(f.id);
+    nombre.textContent = g ? `${g.nodos.punto.textContent} ${g.attraction}` : f.id;
+    const votos = document.createElement('span');
+    votos.className = 'ranking-votos';
+    votos.textContent = f.votos;
+    fila.append(puesto, nombre, votos);
+    rankingLista.appendChild(fila);
+  });
+}
+rankingBtn.addEventListener('click', () => {
+  pintarRanking();
+  rankingModal.classList.add('open');
+  overlay.classList.add('open');
+  programarEstado();
+});
+document.getElementById('rankingCerrar').addEventListener('click', () => {
+  rankingModal.classList.remove('open');
+  overlay.classList.remove('open');
+  programarEstado();
+});
+
+try{
+  const guardado = JSON.parse(localStorage.getItem('show_estado') || 'null');
+  if(guardado && typeof guardado === 'object') aplicarEstado(guardado, { guardado: true });
+}catch(e){}
+updateLiveStatus();
+cargarEstado();
 
 // Su carpeta y su scope lo limitan a /show/: el sw.js del portal, sus push
 // y sus llaves VAPID no se enteran de que existe.

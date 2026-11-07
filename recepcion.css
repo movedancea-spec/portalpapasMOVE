@@ -1798,3 +1798,29 @@ overflow-wrap:anywhere;
 /* ---------- Curso de vacaciones: tipo de curso ---------- */
 #cajaVcTipoCurso .vc-codigos-btn.elegido{ background:#eb578d; border-color:#eb578d; color:white; }
 #cajaVcTipoCurso .vc-codigos-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+/* ---------- Mapa del Show ---------- */
+.mapa-interruptor{ display:flex; align-items:center; gap:10px; font-weight:600; margin:6px 0; cursor:pointer; }
+.mapa-interruptor span{ min-width:0; overflow-wrap:anywhere; }
+.mapa-interruptor input{ width:20px; height:20px; flex-shrink:0; }
+.mapa-actos{ display:flex; flex-direction:column; gap:6px; margin:8px 0 12px; }
+.mapa-acto{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; background:#fff; border:1px solid #eee; border-radius:12px; padding:6px 8px; }
+.mapa-acto.arrastrando{ opacity:.6; box-shadow:0 4px 12px rgba(0,0,0,.2); }
+.mapa-destino-arriba{ box-shadow:0 -3px 0 #ef4b9b; }
+.mapa-destino-abajo{ box-shadow:0 3px 0 #ef4b9b; }
+.mapa-asa{ cursor:grab; touch-action:none; padding:6px 8px; font-size:18px; user-select:none; }
+/* En celular el nombre ocupa su renglón y los controles bajan al siguiente. */
+.mapa-acto-nombre{ flex:1 1 calc(100% - 50px); min-width:0; font-weight:600; overflow-wrap:anywhere; }
+@media (min-width:640px){ .mapa-acto-nombre{ flex-basis:0; } }
+.mapa-min.input-texto{ width:64px; flex:0 0 64px; padding:6px; margin:0 0 0 auto; text-align:center; }
+.mapa-textos{ display:flex; flex-direction:column; gap:12px; margin-bottom:12px; }
+.mapa-texto{ display:grid; grid-template-columns:1fr 1fr 44px; gap:6px; align-items:center; }
+.mapa-texto .etiqueta-campo{ grid-column:1 / -1; margin:0; }
+.mapa-texto .input-texto{ margin:0; min-width:0; }
+.mapa-color{ width:44px; height:38px; padding:0; border:none; background:none; }
+.mapa-refresco{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; font-size:13px; }
+@media (max-width:480px){
+  .mapa-texto{ grid-template-columns:1fr 44px; }
+  .mapa-texto [data-campo="tema"]{ grid-column:1; grid-row:3; }
+  .mapa-texto [data-campo="color"]{ grid-column:2; grid-row:2 / 4; }
+}
