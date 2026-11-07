@@ -411,6 +411,12 @@
     display:grid; grid-template-columns: 26px 1fr auto; align-items:center; gap:8px;
     background: rgba(255,255,255,.05); border-radius:10px; padding:7px 10px; font-size:13px;
   }
+  .equipo-fila{ display:flex; align-items:center; gap:12px; background: rgba(255,255,255,.05); border-radius:12px; padding:8px 10px; }
+  .equipo-foto{ flex:none; width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--gold); }
+  .equipo-iniciales{ display:flex; align-items:center; justify-content:center; background: rgba(243,210,122,.14); color: var(--gold); font-weight:700; font-size:18px; }
+  .equipo-texto{ min-width:0; display:flex; flex-direction:column; gap:2px; overflow-wrap:anywhere; }
+  .equipo-nombre{ font-weight:700; font-size:14.5px; }
+  .equipo-puesto{ font-size:12.5px; color: var(--gold); }
   .ranking-puesto{ font-family:'Space Mono',monospace; font-weight:700; color: var(--gold); }
   .ranking-votos{ font-weight:700; color: var(--gold-bright); }
   .ranking-reacciones{ grid-column:2 / -1; font-size:12px; font-weight:400; opacity:.9; display:flex; flex-wrap:wrap; gap:2px 8px; }
@@ -582,6 +588,7 @@
     <span class="progress-track"><span class="progress-fill" id="progressFill"></span></span>
   </div>
   <button class="ranking-btn" id="rankingBtn" type="button" hidden>🏆 Mejor Baile del Show</button>
+  <button class="ranking-btn" id="equipoBtn" type="button" hidden>👩‍🏫 Nuestro equipo</button>
 </header>
 
 <div class="aviso-votacion" id="avisoVotacion" hidden>
@@ -659,6 +666,11 @@
   <div class="ranking-lista" id="rankingLista"></div>
   <div class="modal-actions"><button class="skip" id="rankingCerrar" type="button">Cerrar</button></div>
 </div>
+<div class="modal" id="equipoModal">
+  <h2>👩‍🏫 Nuestro equipo</h2>
+  <div class="ranking-lista" id="equipoLista"></div>
+  <div class="modal-actions"><button class="skip" id="equipoCerrar" type="button">Cerrar</button></div>
+</div>
 <div class="modal" id="comoFunciona">
   <h2>¿Cómo funciona? 🎢</h2>
   <div class="explica-lista">
@@ -688,7 +700,9 @@
 
 <script>
 /* =========================================================
-   DATOS DE CADA GRUPO (21 en total). El reparto viene de Recepción →
+   LAS 21 ATRACCIONES ORIGINALES. Las que se agregan desde Recepción llegan por
+   /show-reparto (nuevas) y se suman a esta lista: nada puede dar por hecho que
+   son 21. El reparto viene de Recepción →
    Alumnas Show por /show-reparto. Aquí nunca van nombres de alumnas:
    este repo es público y quedarían en su historial. Solo Men in Black
    (fijo: true) tiene texto propio porque no tiene baile.
@@ -772,6 +786,9 @@ const tReacciones = document.getElementById('tReacciones');
 const rankingBtn = document.getElementById('rankingBtn');
 const rankingModal = document.getElementById('rankingModal');
 const rankingLista = document.getElementById('rankingLista');
+const equipoBtn = document.getElementById('equipoBtn');
+const equipoModal = document.getElementById('equipoModal');
+const equipoLista = document.getElementById('equipoLista');
 const avisoToque = document.getElementById('avisoToque');
 const waFab = document.getElementById('waFab');
 const modal = document.getElementById('modal');
@@ -792,12 +809,24 @@ let currentGroupIndex = null;
 let repartoListo = false;
 // El nombre original es la llave (reparto, votos, horario): Recepción solo
 // cambia lo que se ve.
-GROUPS.forEach(g => { g.id = g.attraction; g.base = { attraction: g.attraction, theme: g.theme, color: g.color }; });
-let visited = JSON.parse(localStorage.getItem('show_visitados') || '[]');
-let favoritos = JSON.parse(localStorage.getItem('show_favoritos') || '[]');
+GROUPS.forEach(g => { g.id = g.attraction; g.base = { attraction: g.attraction, theme: g.theme, color: g.color, icon: g.icon, members: g.members }; });
+const grupoDe = (id) => GROUPS.find(g => g.id === id);
+// Antes se guardaba la posición en GROUPS: con atracciones que se pueden borrar,
+// la posición de las demás cambia. Las llaves viejas no se tocan, así volver a
+// una versión anterior de la página no le borra nada a nadie.
+function llavesGuardadas(nueva, vieja){
+  try{
+    const guardadas = JSON.parse(localStorage.getItem(nueva));
+    if(Array.isArray(guardadas)) return guardadas;
+    return JSON.parse(localStorage.getItem(vieja) || '[]').map(n => GROUPS[n] && GROUPS[n].id).filter(Boolean);
+  }catch(e){ return []; }
+}
+let visited = llavesGuardadas('show_visitados_ids', 'show_visitados');
+let favoritos = llavesGuardadas('show_favoritos_ids', 'show_favoritos');
 let estado = null;
 let misBailes = JSON.parse(localStorage.getItem('show_mis_bailes') || 'null');
 let repartoVersion = null;
+let staffMapa = [];
 let fotosBaile = {};
 // Antes se elegía un solo baile y se guardaba su posición.
 if(!Array.isArray(misBailes)){
@@ -878,7 +907,7 @@ function pulsar(elemento){
 }
 function pintarRecorrida(){
   if(currentGroupIndex === null) return;
-  const hecha = visited.includes(currentGroupIndex);
+  const hecha = visited.includes(GROUPS[currentGroupIndex].id);
   recorridaBtn.classList.toggle('recorrida', hecha);
   recorridaBtn.textContent = hecha ? '✅ Recorrida' : '✅ Marcar como recorrida';
 }
@@ -887,8 +916,9 @@ function alternarRecorrida(){
   const i = currentGroupIndex;
   if(i === null) return;
   const pin = GROUPS[i].nodos.pin;
-  if(visited.includes(i)){
-    visited = visited.filter(x => x !== i);
+  const id = GROUPS[i].id;
+  if(visited.includes(id)){
+    visited = visited.filter(x => x !== id);
     sonar('quitar');
     const sello = pin.querySelector('.check');
     if(sello){
@@ -896,7 +926,7 @@ function alternarRecorrida(){
       setTimeout(() => sello.remove(), 220);
     }
   } else {
-    visited.push(i);
+    visited.push(id);
     const previo = pin.querySelector('.check');
     if(previo) previo.remove();
     const sello = document.createElement('span');
@@ -908,7 +938,7 @@ function alternarRecorrida(){
     sonar('recorrida');
     festejarPasaporte();
   }
-  localStorage.setItem('show_visitados', JSON.stringify(visited));
+  localStorage.setItem('show_visitados_ids', JSON.stringify(visited));
   updateProgress();
   pulsar(progressPill);
   pulsar(recorridaBtn);
@@ -916,7 +946,7 @@ function alternarRecorrida(){
 }
 // Una sola vez por celular, aunque desmarquen y vuelvan a marcar la última.
 function festejarPasaporte(){
-  if(visited.length < GROUPS.length || localStorage.getItem('show_pasaporte_completo')) return;
+  if(recorridas() < GROUPS.length || localStorage.getItem('show_pasaporte_completo')) return;
   localStorage.setItem('show_pasaporte_completo', '1');
   sonar('confeti');
   [0.2, 0.5, 0.8].forEach((x, n) => setTimeout(() => {
@@ -924,9 +954,11 @@ function festejarPasaporte(){
   }, n * 180));
   avisar('🎉 ¡Completaste tu pasaporte! 🎢');
 }
+// Una atracción borrada puede seguir guardada en este celular: no cuenta.
+const recorridas = () => visited.filter(grupoDe).length;
 function updateProgress(){
-  progressText.textContent = `${visited.length}/${GROUPS.length} recorridas`;
-  progressFill.style.width = (visited.length/GROUPS.length*100) + '%';
+  progressText.textContent = `${recorridas()}/${GROUPS.length} recorridas`;
+  progressFill.style.width = (recorridas()/GROUPS.length*100) + '%';
 }
 
 // Con textContent: estos nombres ya no están en el código, se escriben en Recepción.
@@ -1008,8 +1040,8 @@ function openTicket(group, i){
   // bajó la anterior y se ve sin el título ni los primeros nombres.
   ticket.scrollTop = 0;
   pintarReparto(group);
-  favBtn.classList.toggle('active', favoritos.includes(i));
-  favBtn.textContent = favoritos.includes(i) ? '❤️ Favorito' : '🤍 Favorito';
+  favBtn.classList.toggle('active', favoritos.includes(group.id));
+  favBtn.textContent = favoritos.includes(group.id) ? '❤️ Favorito' : '🤍 Favorito';
   pintarRecorrida();
   pintarInteraccion();
   overlay.classList.add('open');
@@ -1021,6 +1053,7 @@ function closeTicket(){
   ticket.classList.remove('open');
   currentGroupIndex = null;
   rankingModal.classList.remove('open');
+  equipoModal.classList.remove('open');
   document.getElementById('comoFunciona').classList.remove('open');
   document.getElementById('pasosMarco').classList.remove('open');
   if(modal.classList.contains('open')) modal.classList.remove('open');
@@ -1160,18 +1193,19 @@ photoShareBtn.addEventListener('click', async () => {
 
 favBtn.addEventListener('click', () => {
   if(currentGroupIndex === null) return;
-  const idx = favoritos.indexOf(currentGroupIndex);
-  if(idx === -1){ favoritos.push(currentGroupIndex); }
+  const id = GROUPS[currentGroupIndex].id;
+  const idx = favoritos.indexOf(id);
+  if(idx === -1){ favoritos.push(id); }
   else { favoritos.splice(idx,1); }
-  localStorage.setItem('show_favoritos', JSON.stringify(favoritos));
-  favBtn.classList.toggle('active', favoritos.includes(currentGroupIndex));
-  favBtn.textContent = favoritos.includes(currentGroupIndex) ? '❤️ Favorito' : '🤍 Favorito';
-  sonar(favoritos.includes(currentGroupIndex) ? 'favorito' : 'quitar');
+  localStorage.setItem('show_favoritos_ids', JSON.stringify(favoritos));
+  favBtn.classList.toggle('active', favoritos.includes(id));
+  favBtn.textContent = favoritos.includes(id) ? '❤️ Favorito' : '🤍 Favorito';
+  sonar(favoritos.includes(id) ? 'favorito' : 'quitar');
   pulsar(favBtn);
 });
 recorridaBtn.addEventListener('click', alternarRecorrida);
 
-GROUPS.forEach((group, i) => {
+function crearNodos(group, i){
   const btn = document.createElement('button');
   btn.className = 'node' + (group.hub ? ' node-hub' : '');
   btn.style.left = group.x + '%';
@@ -1186,7 +1220,7 @@ GROUPS.forEach((group, i) => {
   texto.className = 'pin-text';
   pin.append(ico, texto);
   btn.append(pin);
-  if(visited.includes(i)){
+  if(visited.includes(group.id)){
     const sello = document.createElement('span');
     sello.className = 'check';
     sello.textContent = '✓';
@@ -1194,7 +1228,8 @@ GROUPS.forEach((group, i) => {
   }
   btn.addEventListener('click', () => {
     sonar('abrir');
-    openTicket(group, i);
+    // Por búsqueda: al borrar una atracción, las que siguen cambian de posición.
+    openTicket(group, GROUPS.indexOf(group));
   });
   mapFrame.appendChild(btn);
 
@@ -1214,9 +1249,10 @@ GROUPS.forEach((group, i) => {
   casilla.addEventListener('change', () => marcarMiBaile(group.id, casilla.checked));
   opcion.append(casilla, document.createElement('span'));
   bailesLista.appendChild(opcion);
-  group.nodos = { btn, pin, texto, li, punto, opcion };
+  group.nodos = { btn, pin, ico, texto, li, punto, opcion };
   pintarGrupo(group);
-});
+}
+GROUPS.forEach(crearNodos);
 updateProgress();
 
 // Con textContent y style.setProperty: estos textos se escriben en Recepción.
@@ -1225,12 +1261,42 @@ function pintarGrupo(g){
   n.btn.setAttribute('aria-label', `${g.attraction}: ${g.theme}`);
   n.pin.style.setProperty('--pin-color', g.color);
   n.texto.textContent = g.attraction;
+  n.ico.textContent = g.icon;
+  n.punto.textContent = g.icon;
   n.li.lastChild.textContent = g.attraction;
   n.punto.style.background = g.color;
   n.opcion.lastChild.textContent = `${g.attraction} — ${g.theme}`;
 }
 
-const grupoDe = (id) => GROUPS.find(g => g.id === id);
+// Las atracciones agregadas en Recepción: se crean, se actualizan y se quitan
+// sin recargar, porque un mapa puede quedar abierto toda la función.
+function aplicarNuevas(nuevas){
+  if(!Array.isArray(nuevas)) return;
+  const abierta = currentGroupIndex === null ? null : GROUPS[currentGroupIndex];
+  const validas = nuevas.filter(n => n && typeof n.id === 'string' && n.nombre && Number.isFinite(n.x) && Number.isFinite(n.y));
+  GROUPS.filter(g => g.nueva && !validas.some(n => n.id === g.id)).forEach(g => {
+    const { btn, li, opcion, etiqueta } = g.nodos;
+    [btn, li, opcion, etiqueta].forEach(el => el && el.remove());
+    GROUPS.splice(GROUPS.indexOf(g), 1);
+  });
+  validas.forEach(n => {
+    let g = grupoDe(n.id);
+    if(!g){ g = { id: n.id, nueva: true, members: [] }; GROUPS.push(g); }
+    g.base = { attraction: n.nombre, theme: n.tema || '', color: n.color, icon: n.emoji };
+    Object.assign(g, { attraction: n.nombre, theme: n.tema || '', color: n.color, icon: n.emoji, x: n.x, y: n.y });
+    if(!g.nodos) crearNodos(g, 0);
+    g.nodos.btn.style.left = g.x + '%';
+    g.nodos.btn.style.top = g.y + '%';
+    if(g.nodos.etiqueta){ g.nodos.etiqueta.style.left = g.x + '%'; g.nodos.etiqueta.style.top = g.y + '%'; }
+    pintarGrupo(g);
+  });
+  if(abierta){
+    const i = GROUPS.indexOf(abierta);
+    if(i === -1) closeTicket(); else currentGroupIndex = i;
+  }
+  updateProgress();
+  pintarMisBailes();
+}
 
 function marcarMiBaile(id, marcado){
   misBailes = misBailes.filter(x => x !== id);
@@ -1278,11 +1344,15 @@ function repartoValido(a){
   return !!a && typeof a === 'object' && !Array.isArray(a) &&
     Object.values(a).every(l => Array.isArray(l) && l.every(n => typeof n === 'string' && n.trim()));
 }
-function aplicarReparto(atracciones, fotos = {}, deBailes = {}){
+function aplicarReparto(atracciones, fotos = {}, deBailes = {}, nuevas, staff){
+  aplicarNuevas(nuevas);
   GROUPS.forEach(g => {
     const suyas = fotos[g.id] || {};
-    if(!g.fijo) g.members = (atracciones[g.id] || []).map(name => ({ name, foto: ARCHIVO_FOTO.test(suyas[name]) ? suyas[name] : null }));
+    const lista = atracciones[g.id] || [];
+    // Men in Black conserva su texto fijo hasta que Recepción elija a alguien.
+    g.members = g.fijo && !lista.length ? g.base.members : lista.map(name => ({ name, foto: ARCHIVO_FOTO.test(suyas[name]) ? suyas[name] : null }));
   });
+  if(Array.isArray(staff)){ staffMapa = staff.filter(p => p && p.nombre); pintarBotonEquipo(); }
   fotosBaile = Object.fromEntries(Object.entries(deBailes).filter(([, f]) => ARCHIVO_FOTO.test(f)));
   repartoListo = true;
   if(currentGroupIndex !== null) pintarReparto(GROUPS[currentGroupIndex]);
@@ -1291,19 +1361,19 @@ async function cargarReparto(version){
   if(version === undefined) try{
     const guardado = JSON.parse(localStorage.getItem('show_reparto') || 'null');
     const fotos = JSON.parse(localStorage.getItem('show_reparto_fotos') || '{}');
-    if(repartoValido(guardado)) aplicarReparto(guardado, fotos.fotos, fotos.fotosBaile);
+    if(repartoValido(guardado)) aplicarReparto(guardado, fotos.fotos, fotos.fotosBaile, fotos.nuevas, fotos.staff);
   }catch(e){}
   const control = new AbortController();
   const reloj = setTimeout(() => control.abort(), ESPERA_REPARTO_MS);
   try{
     const r = await fetch(URL_REPARTO + (version === undefined ? '' : `?v=${version}`), { cache: 'no-store', signal: control.signal });
     if(!r.ok) return;
-    const { atracciones, fotos, fotosBaile: deBailes } = await r.json();
+    const { atracciones, fotos, fotosBaile: deBailes, nuevas, staff } = await r.json();
     if(!repartoValido(atracciones)) return;
-    aplicarReparto(atracciones, fotos, deBailes);
+    aplicarReparto(atracciones, fotos, deBailes, nuevas, staff);
     try{
       localStorage.setItem('show_reparto', JSON.stringify(atracciones));
-      localStorage.setItem('show_reparto_fotos', JSON.stringify({ fotos, fotosBaile: deBailes }));
+      localStorage.setItem('show_reparto_fotos', JSON.stringify({ fotos, fotosBaile: deBailes, nuevas, staff }));
     }catch(e){}
   }catch(e){
     // Sin señal o error: se queda lo que ya está en pantalla.
@@ -1338,12 +1408,14 @@ function aplicarEstado(e, { guardado = false } = {}){
     repartoVersion = e.repartoVersion;
   }
   document.body.classList.toggle('show-apagado', !e.activo);
+  pintarBotonEquipo();
   if(!e.activo){ closeTicket(); return; }
   GROUPS.forEach(g => {
     const t = (e.textos && e.textos[g.id]) || {};
     g.attraction = t.nombre || g.base.attraction;
     g.theme = t.tema || g.base.theme;
     g.color = t.color || g.base.color;
+    g.icon = t.emoji || g.base.icon;
     pintarGrupo(g);
   });
   // Recepción reinició: lo marcado en este celular ya no cuenta.
@@ -1358,6 +1430,7 @@ function aplicarEstado(e, { guardado = false } = {}){
     avisarVotos(e.totalVotos);
   }
   rankingBtn.hidden = !e.ranking;
+  pintarBotonEquipo();
   if(!e.ranking) rankingModal.classList.remove('open');
   else if(rankingModal.classList.contains('open')) pintarRanking();
   if(currentGroupIndex !== null){
@@ -1668,7 +1741,7 @@ function textoReacciones(id){
 }
 function nombreEnRanking(id){
   const g = grupoDe(id);
-  return g ? `${g.nodos.punto.textContent} ${g.attraction}` : id;
+  return g ? `${g.nodos.punto.textContent} ${g.attraction}` : 'Atracción nueva';
 }
 function pintarMasAplaudidos(){
   const filas = Object.keys((estado && estado.reacciones) || {})
@@ -1736,6 +1809,56 @@ function pintarRanking(){
   pintarMasAplaudidos();
   rankingLista.scrollTop = scroll;
 }
+/* ---------- nuestro equipo ---------- */
+function pintarBotonEquipo(){
+  equipoBtn.hidden = !(estado && estado.activo && staffMapa.length);
+  if(equipoBtn.hidden) equipoModal.classList.remove('open');
+}
+function pintarEquipo(){
+  equipoLista.innerHTML = '';
+  staffMapa.forEach(p => {
+    const fila = document.createElement('div');
+    fila.className = 'equipo-fila';
+    const iniciales = document.createElement('div');
+    iniciales.className = 'equipo-foto equipo-iniciales';
+    iniciales.textContent = initials(p.nombre);
+    const texto = document.createElement('div');
+    texto.className = 'equipo-texto';
+    const nombre = document.createElement('span');
+    nombre.className = 'equipo-nombre';
+    nombre.textContent = p.nombre;
+    texto.appendChild(nombre);
+    if(p.puesto){
+      const puesto = document.createElement('span');
+      puesto.className = 'equipo-puesto';
+      puesto.textContent = p.puesto;
+      texto.appendChild(puesto);
+    }
+    if(ARCHIVO_FOTO.test(p.foto || '')){
+      const img = document.createElement('img');
+      img.className = 'equipo-foto foto-protegida';
+      img.alt = p.nombre;
+      img.loading = 'lazy';
+      img.draggable = false;
+      img.src = URL_FOTO + p.foto;
+      img.addEventListener('error', () => img.replaceWith(iniciales));
+      fila.append(img, texto);
+    } else {
+      fila.append(iniciales, texto);
+    }
+    equipoLista.appendChild(fila);
+  });
+}
+equipoBtn.addEventListener('click', () => {
+  pintarEquipo();
+  sonar('lista');
+  equipoModal.classList.add('open');
+  overlay.classList.add('open');
+});
+document.getElementById('equipoCerrar').addEventListener('click', () => {
+  equipoModal.classList.remove('open');
+  overlay.classList.remove('open');
+});
 rankingBtn.addEventListener('click', () => {
   pintarRanking();
   sonar('lista');

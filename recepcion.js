@@ -3317,22 +3317,29 @@ function dibujar(fuente, sx, sy, sw, sh, ancho, alto) {
   return canvas;
 }
 
-async function prepararFoto(file, { tipo, encuadre }) {
-  let img;
+async function abrirImagenFoto(file) {
   try {
-    img = await createImageBitmap(file);
+    return await createImageBitmap(file);
   } catch {
     throw new Error("No se pudo abrir (si es HEIC, conviértela a JPG).");
   }
+}
+
+// La misma optimización para alumnas y staff.
+function miniDeFoto(img, { tipo, encuadre }) {
   const { width: w, height: h } = img;
-  let mini;
   if (tipo === "baile") {
     const ancho = Math.min(FOTO_GRUPAL_ANCHO, w);
-    mini = await comprimirCanvas(dibujar(img, 0, 0, w, h, ancho, Math.round((ancho * h) / w)), "image/webp", FOTO_GRUPAL_MAX_BYTES);
-  } else {
-    const c = encuadre || encuadrePorDefecto(w, h);
-    mini = await comprimirCanvas(dibujar(img, c.x, c.y, c.lado, c.lado, FOTO_LADO, FOTO_LADO), "image/webp", FOTO_MAX_BYTES);
+    return comprimirCanvas(dibujar(img, 0, 0, w, h, ancho, Math.round((ancho * h) / w)), "image/webp", FOTO_GRUPAL_MAX_BYTES);
   }
+  const c = encuadre || encuadrePorDefecto(w, h);
+  return comprimirCanvas(dibujar(img, c.x, c.y, c.lado, c.lado, FOTO_LADO, FOTO_LADO), "image/webp", FOTO_MAX_BYTES);
+}
+
+async function prepararFoto(file, { tipo, encuadre }) {
+  const img = await abrirImagenFoto(file);
+  const { width: w, height: h } = img;
+  const mini = await miniDeFoto(img, { tipo, encuadre });
   const escala = Math.min(1, FOTO_DESCARGA_LADO / Math.max(w, h));
   const descarga = await comprimirCanvas(dibujar(img, 0, 0, w, h, Math.round(w * escala), Math.round(h * escala)), "image/jpeg", FOTO_DESCARGA_MAX_BYTES);
   img.close();
@@ -3770,9 +3777,11 @@ function cambiarPestanaMapa(nombre) {
   document.querySelectorAll("[data-mapa-pestana]").forEach((chip) => {
     chip.classList.toggle("activo", chip.dataset.mapaPestana === nombre);
   });
-  ["Textos", "Votos"].forEach((n) => {
-    el("vistaMapa" + n).hidden = n !== nombre;
+  ["Textos", "Votos", "Atracciones", "Staff"].forEach((n) => {
+    const vista = el("vistaMapa" + n);
+    if (vista) vista.hidden = n !== nombre;
   });
+  if (nombre === "Atracciones" || nombre === "Staff") cargarCatalogoMapa();
 }
 
 async function cargarMapaShow({ soloVivo = false } = {}) {
@@ -3791,7 +3800,8 @@ function aplicarMapaShow(d, { soloVivo = false } = {}) {
 
 function nombreMapa(id) {
   const t = mapaDatos.config.textos[id] || {};
-  return t.nombre || id;
+  const nueva = (mapaDatos.config.nuevas || []).find((n) => n.id === id);
+  return t.nombre || (nueva ? nueva.nombre : id);
 }
 async function guardarMapa(boton, accion, datos, aviso) {
   boton.disabled = true;
@@ -3825,12 +3835,17 @@ function pintarMapaTextos() {
     tema.placeholder = base.tema;
     tema.value = t.tema || "";
     tema.setAttribute("aria-label", `Tema de ${id}`);
+    const emoji = crearEl("input", "input-texto");
+    emoji.dataset.campo = "emoji";
+    emoji.placeholder = base.emoji || "";
+    emoji.value = t.emoji || "";
+    emoji.setAttribute("aria-label", `Emoji de ${id}`);
     const color = crearEl("input", "mapa-color");
     color.type = "color";
     color.dataset.campo = "color";
     color.value = t.color || base.color;
     color.setAttribute("aria-label", `Color de ${id}`);
-    fila.append(nombre, tema, color);
+    fila.append(nombre, tema, emoji, color);
     cont.appendChild(fila);
   });
 }
@@ -3862,7 +3877,7 @@ function pintarMapaVotos() {
   const cont = el("listaMapaResultados");
   cont.innerHTML = "";
   const votos = new Map(d.ranking.map((f) => [f.id, f.votos]));
-  const ids = [...new Set([...d.ranking.map((f) => f.id), ...Object.keys(d.textosBase)])];
+  const ids = [...new Set([...d.ranking.map((f) => f.id), ...Object.keys(d.textosBase), ...(d.config.nuevas || []).map((n) => n.id)])];
   ids.forEach((id, i) => {
     const r = d.reacciones[id] || {};
     const textoReacciones = d.emojis.filter((e) => r[e]).map((e) => `${e} ${r[e]}`).join("  ");
@@ -3920,6 +3935,555 @@ function botonReiniciarMapa(id, tipo, texto) {
 }
 botonReiniciarMapa("btnMapaReiniciarVotos", "votos", "🔄 Reiniciar votos");
 botonReiniciarMapa("btnMapaReiniciarReacciones", "reacciones", "🔄 Reiniciar reacciones");
+
+// ==========================================
+// ATRACCIONES NUEVAS Y STAFF DEL MAPA
+// Sin máximo de atracciones. Los datos salen de mapaShowCatalogo, que sí va a
+// Airtable: por eso no entra en el refresco de cada 5 segundos.
+// ==========================================
+let catalogoMapaDatos = null;
+let atrEdicion = null; // { id?, nombre, emoji, tema, color, x, y, origen, foto }
+let atrConfirmarBorrar = false;
+let staffEdicion = null; // { id?, foto, fotoSrc }
+let staffAbiertaAtraccion = "";
+// El mapa en un celular de 375 px y lo que mide un pin ahí (ver show/index.html).
+const ANCHO_MAPA_CELULAR = 343;
+const ALTO_MAPA_CELULAR = 229;
+const PIN_CELULAR = 36;
+
+async function cargarCatalogoMapa() {
+  try {
+    aplicarCatalogoMapa(await llamarWorker({ accion: "mapaShowCatalogo", clave: claveRecepcion }));
+  } catch (e) {
+    mensajeShow("mensajeMapaShow", e.message, "error");
+  }
+}
+
+function aplicarCatalogoMapa(d) {
+  catalogoMapaDatos = d;
+  pintarEditorMapa();
+  pintarListaAtracciones();
+  pintarListaStaff();
+}
+
+async function accionCatalogo(boton, accion, datos, aviso) {
+  if (boton) boton.disabled = true;
+  mensajeShow("mensajeMapaShow", "");
+  try {
+    const d = await llamarWorker({ accion, clave: claveRecepcion, ...datos });
+    if (d.necesitaConfirmar) return d;
+    aplicarCatalogoMapa(d);
+    if (aviso) mensajeShow("mensajeMapaShow", aviso, "ok");
+    return d;
+  } catch (e) {
+    mensajeShow("mensajeMapaShow", e.message, "error");
+    return null;
+  } finally {
+    if (boton) boton.disabled = false;
+  }
+}
+
+function todasLasAtracciones() {
+  const { textosBase, nuevas } = catalogoMapaDatos;
+  const textos = (mapaDatos && mapaDatos.config.textos) || {};
+  return [
+    ...Object.entries(textosBase).map(([id, b]) => {
+      const t = textos[id] || {};
+      return { id, nombre: t.nombre || id, emoji: t.emoji || b.emoji, color: t.color || b.color, x: b.x, y: b.y, fija: true };
+    }),
+    ...nuevas,
+  ];
+}
+
+// Se avisa, no se impide: Ana decide si lo mueve.
+function atraccionesMuyCerca(x, y, propia) {
+  return todasLasAtracciones().filter((a) => {
+    if (a.id === propia) return false;
+    const dx = ((a.x - x) / 100) * ANCHO_MAPA_CELULAR;
+    const dy = ((a.y - y) / 100) * ALTO_MAPA_CELULAR;
+    return Math.hypot(dx, dy) < PIN_CELULAR;
+  });
+}
+
+function pinSeCorta(x, y) {
+  const margenX = (PIN_CELULAR / 2 / ANCHO_MAPA_CELULAR) * 100;
+  const margenY = (PIN_CELULAR / 2 / ALTO_MAPA_CELULAR) * 100;
+  return x < margenX || x > 100 - margenX || y < margenY || y > 100 - margenY;
+}
+
+function pintarAvisoCerca() {
+  const aviso = el("mapaAvisoCerca");
+  const hayLugar = atrEdicion && atrEdicion.x !== null;
+  const lista = hayLugar ? atraccionesMuyCerca(atrEdicion.x, atrEdicion.y, atrEdicion.id) : [];
+  const avisos = [];
+  if (lista.length) avisos.push(`En celular queda muy pegada a ${lista.map((a) => `«${a.nombre}»`).join(", ")}.`);
+  if (hayLugar && pinSeCorta(atrEdicion.x, atrEdicion.y)) avisos.push("En celular el pin se corta en la orilla del mapa.");
+  aviso.hidden = !avisos.length;
+  aviso.textContent = avisos.length ? `⚠️ ${avisos.join(" ")} Arrastra el pin para moverlo o guarda así si te parece bien.` : "";
+}
+
+function crearPinMapa(a, clase) {
+  const pin = crearEl("span", `mapa-pin ${clase}`, a.emoji || "📍");
+  pin.style.left = `${a.x}%`;
+  pin.style.top = `${a.y}%`;
+  pin.style.background = a.color;
+  pin.title = a.nombre || "";
+  return pin;
+}
+
+function pintarEditorMapa() {
+  const editor = el("mapaEditor");
+  if (!editor || !catalogoMapaDatos) return;
+  editor.querySelectorAll(".mapa-pin").forEach((p) => p.remove());
+  editor.classList.toggle("eligiendo", Boolean(atrEdicion) && atrEdicion.x === null);
+  todasLasAtracciones().forEach((a) => {
+    if (atrEdicion && a.id && a.id === atrEdicion.id) return;
+    const pin = crearPinMapa(a, a.fija ? "fijo" : "movible");
+    if (!a.fija) pin.addEventListener("pointerdown", (e) => empezarArrastre(e, a));
+    editor.appendChild(pin);
+  });
+  if (atrEdicion && atrEdicion.x !== null) {
+    const pin = crearPinMapa({ ...atrEdicion, emoji: el("atrEmoji").value.trim() || atrEdicion.emoji, color: el("atrColor").value }, "movible editando");
+    pin.addEventListener("pointerdown", (e) => empezarArrastre(e, atrEdicion));
+    editor.appendChild(pin);
+  }
+  pintarAvisoCerca();
+}
+
+function lugarEnMapa(ev) {
+  const r = el("mapaEditor").getBoundingClientRect();
+  const limitar = (v) => Math.round(Math.max(0, Math.min(100, v)) * 100) / 100;
+  return { x: limitar(((ev.clientX - r.left) / r.width) * 100), y: limitar(((ev.clientY - r.top) / r.height) * 100) };
+}
+
+// Tocar un pin nuevo lo abre; arrastrarlo además lo mueve. Se guarda con el botón.
+function empezarArrastre(ev, atraccion) {
+  ev.preventDefault();
+  ev.stopPropagation();
+  if (!atrEdicion || atrEdicion.id !== atraccion.id) abrirFormAtraccion(atraccion);
+  const pin = el("mapaEditor").querySelector(".editando");
+  pin.setPointerCapture(ev.pointerId);
+  const mover = (m) => {
+    Object.assign(atrEdicion, lugarEnMapa(m));
+    pin.style.left = `${atrEdicion.x}%`;
+    pin.style.top = `${atrEdicion.y}%`;
+    pintarAvisoCerca();
+  };
+  const soltar = () => {
+    pin.removeEventListener("pointermove", mover);
+    pin.removeEventListener("pointerup", soltar);
+    pin.removeEventListener("pointercancel", soltar);
+  };
+  pin.addEventListener("pointermove", mover);
+  pin.addEventListener("pointerup", soltar);
+  pin.addEventListener("pointercancel", soltar);
+}
+
+el("mapaEditor")?.addEventListener("click", (ev) => {
+  if (!atrEdicion) return;
+  // Un toque suelto solo pone el pin la primera vez; después se arrastra.
+  if (atrEdicion.x !== null) return;
+  Object.assign(atrEdicion, lugarEnMapa(ev));
+  el("mapaAyudaLugar").textContent = "Arrastra el pin si quieres moverlo.";
+  pintarEditorMapa();
+  el("atrNombre").focus();
+});
+
+function abrirFormAtraccion(a) {
+  atrEdicion = { ...a };
+  atrConfirmarBorrar = false;
+  el("formAtraccion").hidden = false;
+  el("atrNombre").value = a.nombre || "";
+  el("atrEmoji").value = a.emoji || "";
+  el("atrTema").value = a.tema || "";
+  el("atrColor").value = a.color || "#6a3fa0";
+  el("atrOrigen").value = a.origen || "Alumnas";
+  const borrar = el("btnAtrBorrar");
+  borrar.hidden = !a.id;
+  borrar.textContent = "🗑️ Borrar atracción";
+  pintarFotoAtraccion();
+  pintarEditorMapa();
+}
+
+function pintarFotoAtraccion() {
+  const guardadaDeStaff = atrEdicion && atrEdicion.id && atrEdicion.origen === "Staff" && el("atrOrigen").value === "Staff";
+  el("atrFotoCaja").hidden = !guardadaDeStaff;
+  el("btnAtrFotoQuitar").hidden = !(guardadaDeStaff && atrEdicion.foto);
+  el("btnAtrFoto").textContent = guardadaDeStaff && atrEdicion.foto ? "📸 Reemplazar foto grupal" : "📸 Subir foto grupal";
+}
+
+function cerrarFormAtraccion() {
+  atrEdicion = null;
+  el("formAtraccion").hidden = true;
+  el("mapaAyudaLugar").textContent = "Las atracciones nuevas se conservan para el próximo año. Toca un pin nuevo para editarlo o arrástralo para moverlo.";
+  pintarEditorMapa();
+}
+
+el("btnMapaAgregarAtraccion")?.addEventListener("click", () => {
+  abrirFormAtraccion({ x: null, y: null });
+  el("mapaAyudaLugar").textContent = "👆 Toca el lugar del mapa donde va el pin.";
+  el("mapaEditor").scrollIntoView({ block: "center", behavior: "smooth" });
+});
+el("btnAtrCancelar")?.addEventListener("click", cerrarFormAtraccion);
+el("atrOrigen")?.addEventListener("change", pintarFotoAtraccion);
+["atrEmoji", "atrColor"].forEach((id) => el(id)?.addEventListener("input", pintarEditorMapa));
+
+el("btnAtrGuardar")?.addEventListener("click", async (e) => {
+  if (atrEdicion.x === null) {
+    mensajeShow("mensajeMapaShow", "Toca el mapa para elegir el lugar.", "error");
+    return;
+  }
+  const atraccion = {
+    id: atrEdicion.id,
+    nombre: el("atrNombre").value,
+    emoji: el("atrEmoji").value,
+    tema: el("atrTema").value,
+    color: el("atrColor").value,
+    x: atrEdicion.x,
+    y: atrEdicion.y,
+    origen: el("atrOrigen").value,
+  };
+  const r = await accionCatalogo(e.currentTarget, "mapaShowAtraccionGuardar", { atraccion }, "✅ Atracción guardada. Se ve en el mapa en unos 20 segundos.");
+  if (r) cerrarFormAtraccion();
+});
+
+// Dos toques, sin confirm(): el primero dice qué se pierde.
+el("btnAtrBorrar")?.addEventListener("click", async (e) => {
+  const boton = e.currentTarget;
+  const r = await accionCatalogo(boton, "mapaShowAtraccionEliminar", { id: atrEdicion.id, confirmar: atrConfirmarBorrar }, "✅ Atracción borrada.");
+  if (!r) return;
+  if (r.necesitaConfirmar) {
+    atrConfirmarBorrar = true;
+    const partes = [r.votos && `${r.votos} votos`, r.reacciones && `${r.reacciones} reacciones`].filter(Boolean);
+    boton.textContent = "¿Segura? Toca otra vez";
+    mensajeShow(
+      "mensajeMapaShow",
+      `${partes.length ? `Tiene ${partes.join(" y ")}, que salen del ranking. ` : ""}${r.baile ? `El baile «${r.baile}» queda libre, no se borra.` : ""}`,
+      "error"
+    );
+    return;
+  }
+  cerrarFormAtraccion();
+});
+
+el("btnAtrFoto")?.addEventListener("click", () => {
+  el("inputAtrFoto").value = "";
+  el("inputAtrFoto").click();
+});
+el("inputAtrFoto")?.addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file || !atrEdicion) return;
+  try {
+    mensajeShow("mensajeMapaShow", "Subiendo...");
+    const img = await abrirImagenFoto(file);
+    const archivo = await subirFotoMapa("grupal", await miniDeFoto(img, { tipo: "baile" }));
+    img.close();
+    const r = await accionCatalogo(null, "mapaShowAtraccionFoto", { id: atrEdicion.id, foto: archivo }, "✅ Foto grupal guardada.");
+    if (r) {
+      atrEdicion.foto = archivo;
+      pintarFotoAtraccion();
+    }
+  } catch (err) {
+    mensajeShow("mensajeMapaShow", err.message, "error");
+  }
+});
+el("btnAtrFotoQuitar")?.addEventListener("click", async (e) => {
+  const r = await accionCatalogo(e.currentTarget, "mapaShowAtraccionFoto", { id: atrEdicion.id, foto: "" }, "✅ Foto quitada.");
+  if (r) {
+    atrEdicion.foto = "";
+    pintarFotoAtraccion();
+  }
+});
+
+async function subirFotoMapa(tipo, blob) {
+  const form = new FormData();
+  form.set("tipo", tipo);
+  form.set("foto", blob, "foto");
+  const resp = await fetch(`${WORKER_URL}/subirFotoStaff`, { method: "POST", headers: { "X-Clave-Recepcion": claveRecepcion }, body: form });
+  const datos = await resp.json().catch(() => ({}));
+  if (!resp.ok || !datos.success) throw new Error(datos.error || "No se pudo subir.");
+  return datos.archivo;
+}
+
+function pintarListaAtracciones() {
+  const cont = el("listaMapaAtracciones");
+  if (!cont) return;
+  cont.innerHTML = "";
+  const { staff, baileDe } = catalogoMapaDatos;
+  todasLasAtracciones().forEach((a) => {
+    const suyos = staff.filter((p) => p.atracciones.includes(a.id));
+    const tarjeta = crearEl("div", "show-tarjeta show-tarjeta-fila");
+    tarjeta.style.flexWrap = "wrap";
+    const texto = crearEl("span", "show-tarjeta-texto");
+    texto.style.flex = "1 1 60%"; // Si no, un detalle largo baja los botones a otra línea.
+    texto.appendChild(crearEl("span", "show-tarjeta-nombre", `${a.emoji} ${a.nombre}`));
+    const alumnas = a.origen === "Staff" ? "" : baileDe[a.id] ? `Alumnas: ${baileDe[a.id]}` : "";
+    const detalle = [alumnas, suyos.length ? `Staff: ${suyos.map((p) => p.nombre).join(", ")}` : "Sin staff"].filter(Boolean).join(" · ");
+    texto.appendChild(crearEl("span", "tarjeta-resultado-detalle", detalle));
+    const acciones = crearEl("span", "staff-botones");
+    if (!a.fija) {
+      const editar = crearEl("button", "", "✏️");
+      editar.type = "button";
+      editar.setAttribute("aria-label", `Editar ${a.nombre}`);
+      editar.addEventListener("click", () => {
+        abrirFormAtraccion(a);
+        el("mapaEditor").scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+      acciones.appendChild(editar);
+    }
+    const elegir = crearEl("button", "", "👩‍🏫");
+    elegir.type = "button";
+    elegir.setAttribute("aria-label", `Elegir staff de ${a.nombre}`);
+    elegir.addEventListener("click", () => {
+      staffAbiertaAtraccion = staffAbiertaAtraccion === a.id ? "" : a.id;
+      pintarListaAtracciones();
+    });
+    acciones.appendChild(elegir);
+    tarjeta.append(texto, acciones);
+    if (staffAbiertaAtraccion === a.id) tarjeta.appendChild(crearElegirStaff(a, suyos));
+    cont.appendChild(tarjeta);
+  });
+}
+
+function crearElegirStaff(a, suyos) {
+  const caja = crearEl("div", "mapa-staff-opciones");
+  const { staff } = catalogoMapaDatos;
+  if (!staff.length) {
+    caja.appendChild(crearEl("p", "pista-campo", "Primero agrega personas en la pestaña Staff."));
+    return caja;
+  }
+  staff.forEach((p) => {
+    const fila = crearEl("label", "mapa-interruptor");
+    const casilla = crearEl("input");
+    casilla.type = "checkbox";
+    casilla.value = p.id;
+    casilla.checked = suyos.includes(p);
+    fila.append(casilla, crearEl("span", "", p.nombre));
+    caja.appendChild(fila);
+  });
+  const guardar = crearEl("button", "btn-secundario btn-chico", "Guardar staff");
+  guardar.type = "button";
+  guardar.addEventListener("click", async () => {
+    const staffIds = [...caja.querySelectorAll("input:checked")].map((c) => c.value);
+    staffAbiertaAtraccion = "";
+    await accionCatalogo(guardar, "mapaShowStaffAsignar", { atraccion: a.id, staffIds }, "✅ Staff guardado.");
+  });
+  caja.appendChild(guardar);
+  return caja;
+}
+
+function inicialesStaff(nombre) {
+  return nombre.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
+
+// La foto de quien no se muestra no tiene URL pública: se pide con la clave.
+async function ponerFotoPrivada(img, archivo) {
+  const resp = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "showFotoRecepcion", clave: claveRecepcion, archivo }) });
+  if (resp.ok) img.src = URL.createObjectURL(await resp.blob());
+}
+
+function crearAvatarStaff(nombre, { archivo = "", src = "" } = {}) {
+  const avatar = crearEl("span", "staff-avatar", archivo || src ? "" : inicialesStaff(nombre || "?"));
+  if (archivo || src) {
+    const img = crearEl("img");
+    img.alt = "";
+    if (src) img.src = src;
+    else ponerFotoPrivada(img, archivo);
+    avatar.appendChild(img);
+  }
+  return avatar;
+}
+
+function pintarListaStaff() {
+  const cont = el("listaMapaStaff");
+  if (!cont) return;
+  cont.innerHTML = "";
+  const { staff } = catalogoMapaDatos;
+  if (!staff.length) cont.appendChild(crearEl("p", "pista-campo", "Todavía no hay nadie."));
+  staff.forEach((p, i) => {
+    const fila = crearEl("div", "staff-fila");
+    fila.dataset.id = p.id;
+    const agarre = crearEl("span", "staff-agarre", "⠿");
+    agarre.setAttribute("aria-label", `Arrastrar a ${p.nombre}`);
+    agarre.addEventListener("pointerdown", (e) => arrastrarFilaStaff(e, fila));
+    const texto = crearEl("span", "staff-texto");
+    texto.appendChild(crearEl("span", "show-tarjeta-nombre", p.nombre));
+    texto.appendChild(crearEl("span", "tarjeta-resultado-detalle", p.puesto || "Sin puesto"));
+    const mostrar = crearEl("label", "mapa-interruptor");
+    const casilla = crearEl("input");
+    casilla.type = "checkbox";
+    casilla.checked = p.mostrar;
+    casilla.setAttribute("aria-label", `Mostrar a ${p.nombre} en el mapa`);
+    casilla.addEventListener("change", async () => {
+      const ok = await accionCatalogo(casilla, "mapaShowStaffGuardar", { persona: { id: p.id, nombre: p.nombre, puesto: p.puesto, foto: p.foto, mostrar: casilla.checked } });
+      if (!ok) casilla.checked = !casilla.checked;
+    });
+    mostrar.append(casilla, crearEl("span", "", "Mapa"));
+    const botones = crearEl("span", "staff-botones");
+    const boton = (t, etiqueta, fn, apagado) => {
+      const b = crearEl("button", "", t);
+      b.type = "button";
+      b.setAttribute("aria-label", etiqueta);
+      b.disabled = Boolean(apagado);
+      b.addEventListener("click", fn);
+      botones.appendChild(b);
+    };
+    boton("↑", `Subir a ${p.nombre}`, () => moverStaff(i, -1), i === 0);
+    boton("↓", `Bajar a ${p.nombre}`, () => moverStaff(i, 1), i === staff.length - 1);
+    boton("✏️", `Editar a ${p.nombre}`, () => abrirFormStaff(p));
+    boton("🗑️", `Borrar a ${p.nombre}`, (e) => borrarStaff(e.currentTarget, p));
+    fila.append(agarre, crearAvatarStaff(p.nombre, { archivo: p.foto }), texto, mostrar, botones);
+    cont.appendChild(fila);
+  });
+}
+
+async function moverStaff(i, paso) {
+  const ids = catalogoMapaDatos.staff.map((p) => p.id);
+  [ids[i], ids[i + paso]] = [ids[i + paso], ids[i]];
+  await accionCatalogo(null, "mapaShowStaffOrdenar", { ids });
+}
+
+// El DOM se reordena en vivo y solo al soltar se guarda. Se escucha en window:
+// mover la fila en el DOM suelta el setPointerCapture y se perdería el dedo.
+function arrastrarFilaStaff(ev, fila) {
+  ev.preventDefault();
+  fila.classList.add("moviendo");
+  const cont = el("listaMapaStaff");
+  const mover = (m) => {
+    const otra = [...cont.children].find((f) => {
+      if (f === fila) return false;
+      const r = f.getBoundingClientRect();
+      return m.clientY > r.top && m.clientY < r.bottom;
+    });
+    if (!otra) return;
+    const r = otra.getBoundingClientRect();
+    cont.insertBefore(fila, m.clientY < r.top + r.height / 2 ? otra : otra.nextSibling);
+  };
+  const soltar = async () => {
+    window.removeEventListener("pointermove", mover);
+    window.removeEventListener("pointerup", soltar);
+    window.removeEventListener("pointercancel", soltar);
+    fila.classList.remove("moviendo");
+    const ids = [...cont.children].map((f) => f.dataset.id);
+    if (ids.join() !== catalogoMapaDatos.staff.map((p) => p.id).join()) await accionCatalogo(null, "mapaShowStaffOrdenar", { ids }, "✅ Orden guardado.");
+  };
+  window.addEventListener("pointermove", mover);
+  window.addEventListener("pointerup", soltar);
+  window.addEventListener("pointercancel", soltar);
+}
+
+function pintarFotoStaffForm() {
+  const vista = el("staffFotoVista");
+  vista.replaceWith(Object.assign(crearAvatarStaff(el("staffNombre").value, { archivo: staffEdicion.fotoSrc ? "" : staffEdicion.foto, src: staffEdicion.fotoSrc }), { id: "staffFotoVista" }));
+  el("btnStaffFotoQuitar").hidden = !staffEdicion.foto;
+  el("btnStaffFoto").textContent = staffEdicion.foto ? "📸 Reemplazar foto" : "📸 Elegir foto";
+}
+
+function abrirFormStaff(p) {
+  staffEdicion = { id: p && p.id, foto: (p && p.foto) || "", fotoSrc: "" };
+  el("formStaff").hidden = false;
+  el("cajaStaffMaestras").hidden = true;
+  el("staffNombre").value = (p && p.nombre) || "";
+  el("staffPuesto").value = (p && p.puesto) || "";
+  el("staffMostrar").checked = Boolean(p && p.mostrar);
+  pintarFotoStaffForm();
+  el("staffNombre").focus();
+}
+function cerrarFormStaff() {
+  staffEdicion = null;
+  el("formStaff").hidden = true;
+}
+el("btnStaffAgregar")?.addEventListener("click", () => abrirFormStaff(null));
+el("btnStaffCancelar")?.addEventListener("click", cerrarFormStaff);
+el("btnStaffFoto")?.addEventListener("click", () => {
+  el("inputStaffFoto").value = "";
+  el("inputStaffFoto").click();
+});
+el("inputStaffFoto")?.addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file || !staffEdicion) return;
+  try {
+    const encuadre = await pedirEncuadre(file);
+    if (!encuadre) return;
+    mensajeShow("mensajeMapaShow", "Subiendo...");
+    const img = await abrirImagenFoto(file);
+    const blob = await miniDeFoto(img, { tipo: "alumna", encuadre });
+    img.close();
+    staffEdicion.foto = await subirFotoMapa("staff", blob);
+    staffEdicion.fotoSrc = URL.createObjectURL(blob);
+    pintarFotoStaffForm();
+    mensajeShow("mensajeMapaShow", "Foto lista. Falta tocar Guardar.", "ok");
+  } catch (err) {
+    mensajeShow("mensajeMapaShow", err.message, "error");
+  }
+});
+el("btnStaffFotoQuitar")?.addEventListener("click", () => {
+  staffEdicion.foto = "";
+  staffEdicion.fotoSrc = "";
+  pintarFotoStaffForm();
+});
+el("btnStaffGuardar")?.addEventListener("click", async (e) => {
+  const persona = { id: staffEdicion.id, nombre: el("staffNombre").value, puesto: el("staffPuesto").value, foto: staffEdicion.foto, mostrar: el("staffMostrar").checked };
+  const r = await accionCatalogo(e.currentTarget, "mapaShowStaffGuardar", { persona }, "✅ Guardado.");
+  if (r) cerrarFormStaff();
+});
+
+let staffPorBorrar = "";
+async function borrarStaff(boton, p) {
+  if (staffPorBorrar !== p.id) {
+    staffPorBorrar = p.id;
+    boton.textContent = "❓";
+    mensajeShow("mensajeMapaShow", `Toca otra vez para borrar a ${p.nombre}.`, "error");
+    setTimeout(() => {
+      if (staffPorBorrar === p.id) staffPorBorrar = "";
+      boton.textContent = "🗑️";
+    }, 5000);
+    return;
+  }
+  staffPorBorrar = "";
+  await accionCatalogo(boton, "mapaShowStaffEliminar", { id: p.id }, `✅ ${p.nombre} se quitó de la lista.`);
+}
+
+el("btnStaffMaestras")?.addEventListener("click", async (e) => {
+  const caja = el("cajaStaffMaestras");
+  if (!caja.hidden) {
+    caja.hidden = true;
+    return;
+  }
+  cerrarFormStaff();
+  const boton = e.currentTarget;
+  boton.disabled = true;
+  mensajeShow("mensajeMapaShow", "");
+  try {
+    const { maestras } = await llamarWorker({ accion: "mapaShowStaffMaestras", clave: claveRecepcion });
+    const lista = el("listaStaffMaestras");
+    lista.innerHTML = "";
+    if (!maestras.length) lista.appendChild(crearEl("p", "pista-campo", "Ya están todas en la lista."));
+    maestras.forEach((n) => {
+      const fila = crearEl("label", "mapa-interruptor");
+      const casilla = crearEl("input");
+      casilla.type = "checkbox";
+      casilla.value = n;
+      casilla.checked = true;
+      fila.append(casilla, crearEl("span", "", n));
+      lista.appendChild(fila);
+    });
+    el("btnStaffImportar").hidden = !maestras.length;
+    caja.hidden = false;
+  } catch (err) {
+    mensajeShow("mensajeMapaShow", err.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+el("btnStaffImportar")?.addEventListener("click", async (e) => {
+  const nombres = [...document.querySelectorAll("#listaStaffMaestras input:checked")].map((c) => c.value);
+  const r = await accionCatalogo(e.currentTarget, "mapaShowStaffImportar", { nombres });
+  if (r) {
+    el("cajaStaffMaestras").hidden = true;
+    mensajeShow("mensajeMapaShow", `✅ ${r.agregadas} agregadas, sin mostrarse en el mapa todavía.`, "ok");
+  }
+});
 
 // ==========================================
 // ALUMNAS SHOW
@@ -4041,9 +4605,10 @@ function renderSelectAtraccionBaile() {
   const vacia = crearEl("option", "", "Sin atracción");
   vacia.value = "";
   select.appendChild(vacia);
-  (showDatos.atraccionesMapa || []).forEach((atraccion) => {
+  const todas = [...(showDatos.atraccionesMapa || []).map((a) => ({ id: a, nombre: a })), ...(showDatos.atraccionesNuevas || [])];
+  todas.forEach(({ id: atraccion, nombre }) => {
     const duena = showDatos.bailes.find((b) => b.atraccion === atraccion && b.id !== showBaileEditandoId);
-    const opcion = crearEl("option", "", duena ? `${atraccion} (ya es de ${duena.nombre})` : atraccion);
+    const opcion = crearEl("option", "", duena ? `${nombre} (ya es de ${duena.nombre})` : nombre);
     opcion.value = atraccion;
     opcion.disabled = Boolean(duena);
     select.appendChild(opcion);
@@ -4082,7 +4647,7 @@ function renderCatalogoShow() {
           `Modista ${formatoQuetzales(b.precio)} · Venta ${formatoQuetzales(b.precioVenta)} · ${b.alumnas.length} alumna${b.alumnas.length === 1 ? "" : "s"}`
         )
       );
-      tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", b.atraccion ? `🗺️ ${b.atraccion}` : "🗺️ Sin atracción (no sale en el mapa)"));
+      tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", b.atraccion ? `🗺️ ${b.atraccionNombre || b.atraccion}` : "🗺️ Sin atracción (no sale en el mapa)"));
 
       const acciones = crearEl("div", "show-acciones");
       const btnEditar = crearEl("button", "btn-secundario btn-chico", "✏️ Editar");

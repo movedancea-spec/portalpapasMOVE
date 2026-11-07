@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=show-explicacion-v1" />
+<link rel="stylesheet" href="recepcion.css?v=mapa-staff-v1" />
 </head>
 <body>
 
@@ -746,8 +746,87 @@
     <div class="chips-contenedor show-pestanas">
       <button class="chip activo" type="button" data-mapa-pestana="Votos">🗳️ Votos y reacciones</button>
       <button class="chip" type="button" data-mapa-pestana="Textos">✏️ Textos</button>
+      <button class="chip" type="button" data-mapa-pestana="Atracciones">🎢 Atracciones</button>
+      <button class="chip" type="button" data-mapa-pestana="Staff">👩‍🏫 Staff</button>
     </div>
     <p class="mensaje-form" id="mensajeMapaShow"></p>
+
+    <div id="vistaMapaAtracciones" hidden>
+      <div class="caja-form-ingreso">
+        <button class="btn-grande btn-siguiente" id="btnMapaAgregarAtraccion" type="button">➕ Agregar atracción</button>
+        <p class="pista-campo" id="mapaAyudaLugar">Las atracciones nuevas se conservan para el próximo año. Toca un pin nuevo para editarlo o arrástralo para moverlo.</p>
+        <div class="mapa-editor" id="mapaEditor">
+          <img src="show/park-map.webp" alt="Mapa del show" draggable="false" />
+        </div>
+        <p class="mapa-aviso" id="mapaAvisoCerca" hidden></p>
+        <div id="formAtraccion" hidden>
+          <p class="etiqueta-campo">Nombre</p>
+          <input type="text" id="atrNombre" class="input-texto" maxlength="40" />
+          <div class="mapa-fila-dos">
+            <div>
+              <p class="etiqueta-campo">Emoji</p>
+              <input type="text" id="atrEmoji" class="input-texto" placeholder="🎠" />
+            </div>
+            <div>
+              <p class="etiqueta-campo">Color</p>
+              <input type="color" id="atrColor" class="mapa-color" value="#6a3fa0" />
+            </div>
+          </div>
+          <p class="etiqueta-campo">Tema</p>
+          <input type="text" id="atrTema" class="input-texto" maxlength="60" placeholder="Ej.: Ballet Mini" />
+          <p class="etiqueta-campo">¿De dónde sale el reparto?</p>
+          <select id="atrOrigen" class="input-select">
+            <option value="Alumnas">Alumnas (se elige en Alumnas Show → Bailes)</option>
+            <option value="Staff">Staff (se elige aquí abajo)</option>
+          </select>
+          <div id="atrFotoCaja" hidden>
+            <p class="etiqueta-campo">Foto grupal</p>
+            <button class="btn-secundario btn-chico" id="btnAtrFoto" type="button">📸 Subir foto grupal</button>
+            <button class="btn-secundario btn-chico show-btn-peligro" id="btnAtrFotoQuitar" type="button" hidden>Quitar foto</button>
+            <input type="file" id="inputAtrFoto" accept="image/*" hidden />
+          </div>
+          <button class="btn-grande btn-siguiente" id="btnAtrGuardar" type="button">Guardar atracción</button>
+          <div class="show-acciones">
+            <button class="btn-secundario btn-chico" id="btnAtrCancelar" type="button">Cancelar</button>
+            <button class="btn-secundario btn-chico show-btn-peligro" id="btnAtrBorrar" type="button" hidden>🗑️ Borrar atracción</button>
+          </div>
+        </div>
+      </div>
+      <p class="subtitulo">Quién baila en cada atracción (staff)</p>
+      <p class="pista-campo">Se reinicia el 1 de enero. Alumnas y staff pueden salir juntos en la misma atracción.</p>
+      <div id="listaMapaAtracciones" class="show-lista"></div>
+    </div>
+
+    <div id="vistaMapaStaff" hidden>
+      <div class="caja-form-ingreso">
+        <div class="show-acciones">
+          <button class="btn-secundario btn-chico" id="btnStaffAgregar" type="button">➕ Agregar persona</button>
+          <button class="btn-secundario btn-chico" id="btnStaffMaestras" type="button">📥 Cargar maestras</button>
+        </div>
+        <p class="pista-campo">Lista propia del mapa: no cambia nada en el Portal de Maestras. Se conserva para el próximo show.</p>
+        <div id="cajaStaffMaestras" hidden>
+          <p class="etiqueta-campo">Elige a quién agregar</p>
+          <div id="listaStaffMaestras"></div>
+          <button class="btn-secundario btn-chico" id="btnStaffImportar" type="button">Agregar seleccionadas</button>
+        </div>
+        <div id="formStaff" hidden>
+          <p class="etiqueta-campo">Nombre como se mostrará</p>
+          <input type="text" id="staffNombre" class="input-texto" maxlength="40" />
+          <p class="etiqueta-campo">Puesto</p>
+          <input type="text" id="staffPuesto" class="input-texto" maxlength="60" placeholder="Ej.: Maestra de Ballet y Acro" />
+          <div class="staff-foto-fila">
+            <span class="staff-avatar" id="staffFotoVista"></span>
+            <button class="btn-secundario btn-chico" id="btnStaffFoto" type="button">📸 Elegir foto</button>
+            <button class="btn-secundario btn-chico show-btn-peligro" id="btnStaffFotoQuitar" type="button" hidden>Quitar foto</button>
+            <input type="file" id="inputStaffFoto" accept="image/*" hidden />
+          </div>
+          <label class="mapa-interruptor"><input type="checkbox" id="staffMostrar" /> <span>Mostrar en el mapa (Nuestro equipo)</span></label>
+          <button class="btn-grande btn-siguiente" id="btnStaffGuardar" type="button">Guardar</button>
+          <button class="btn-enlace" id="btnStaffCancelar" type="button">Cancelar</button>
+        </div>
+      </div>
+      <div id="listaMapaStaff" class="show-lista"></div>
+    </div>
 
     <div id="vistaMapaTextos" hidden>
       <div class="caja-form-ingreso">
@@ -822,7 +901,7 @@
         <p class="pista-campo">🔒 Solo lo ve Recepción (ni la modista, ni las maestras, ni las familias). Si lo dejas vacío queda “Sin precio”.</p>
         <p class="etiqueta-campo">Atracción del mapa del show</p>
         <select id="selectShowAtraccionBaile" class="input-select"></select>
-        <p class="pista-campo">Las alumnas activas de este baile salen en esa atracción de academiamovedance.com/show (tarda hasta 5 minutos). Men in Black es fija: “Maestras de Move Dance Academy”.</p>
+        <p class="pista-campo">Las alumnas activas de este baile salen en esa atracción de academiamovedance.com/show (tarda hasta 5 minutos). Men in Black y las atracciones de staff se llenan en Mapa del Show → Atracciones.</p>
         <button class="btn-grande btn-siguiente" id="btnGuardarBaile" type="button">Agregar baile</button>
         <button class="btn-enlace" id="btnCancelarEdicionBaile" type="button" hidden>Cancelar edición</button>
         <p class="mensaje-form" id="mensajeFormBaile"></p>
@@ -1504,7 +1583,7 @@
 
 </div>
 
-<script src="recepcion.js?v=show-explicacion-v1"></script>
+<script src="recepcion.js?v=mapa-staff-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
