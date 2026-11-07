@@ -453,8 +453,9 @@
   #ayudaReaccion{ margin:6px 0 4px; }
   .ayuda-tarjeta[hidden]{ display:none; }
   .pasos-marco{ margin:0 0 14px; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; font-size:13.5px; }
+  /* Capa propia, encima de todos los pines: si no, el pin vecino tapa los emojis. */
   .pin-emojis{
-    position:absolute; left:50%; top:100%; transform:translate(-50%,3px); white-space:nowrap; pointer-events:none;
+    position:absolute; z-index:30; transform:translate(-50%,16px); white-space:nowrap; pointer-events:none;
     padding:1px 6px; border-radius:999px; background: rgba(10,11,31,.72); color:#fff;
     font-family:'Poppins',sans-serif; font-size:10px; font-weight:600; line-height:1.5;
   }
@@ -1345,7 +1346,10 @@ function aplicarEstado(e, { guardado = false } = {}){
   pintarEmojisMapa();
   // Si abren la votación con el mapa ya abierto, también se explica.
   if(!guardado && bienvenidaLista) explicarSiToca();
-  if(!guardado) avisarCambiosRanking(e.ranking);
+  if(!guardado){
+    avisarCambiosRanking(e.ranking);
+    avisarVotos(e.totalVotos);
+  }
   rankingBtn.hidden = !e.ranking;
   if(!e.ranking) rankingModal.classList.remove('open');
   else if(rankingModal.classList.contains('open')) pintarRanking();
@@ -1425,14 +1429,17 @@ function pintarEmojisMapa(){
   const cuantos = CELULAR.matches ? 1 : 3;
   let flotando = 0;
   GROUPS.forEach(g => {
-    let etiqueta = g.nodos.pin.querySelector('.pin-emojis');
+    let etiqueta = g.nodos.etiqueta;
     const lista = mostrar ? emojisDe(g) : [];
-    if(!lista.length){ if(etiqueta) etiqueta.remove(); }
+    if(!lista.length){ if(etiqueta){ etiqueta.remove(); g.nodos.etiqueta = null; } }
     else {
       if(!etiqueta){
         etiqueta = document.createElement('span');
         etiqueta.className = 'pin-emojis';
-        g.nodos.pin.appendChild(etiqueta);
+        etiqueta.style.left = g.x + '%';
+        etiqueta.style.top = g.y + '%';
+        mapFrame.appendChild(etiqueta);
+        g.nodos.etiqueta = etiqueta;
       }
       etiqueta.textContent = lista.slice(0, cuantos).map(([e, n]) => `${e} ${n}`).join('  ');
     }
@@ -1449,15 +1456,24 @@ function pintarEmojisMapa(){
 }
 CELULAR.addEventListener('change', () => { if(estado) pintarEmojisMapa(); });
 
-/* ---------- avisos del ranking (solo con el ranking visible) ---------- */
-const MS_ENTRE_AVISOS_RANKING = 30000;
+/* ---------- avisos en vivo, dentro del mapa ---------- */
+// Comparten el mismo espacio en pantalla: máximo uno cada 30 s entre todos.
+const MS_ENTRE_AVISOS_VIVO = 30000;
+let ultimoAvisoVivo = 0;
+const puedeAvisar = () => Date.now() - ultimoAvisoVivo >= MS_ENTRE_AVISOS_VIVO;
+function mostrarAvisoVivo(texto){
+  ultimoAvisoVivo = Date.now();
+  avisar(texto, true);
+  sonar('aviso');
+}
+
+// Solo con el ranking visible: nombrar a un baile revela resultados.
 let rankingPrevio = null;
-let ultimoAvisoRanking = 0;
 function avisarCambiosRanking(ranking){
   if(!ranking){ rankingPrevio = null; return; }
   const antes = rankingPrevio;
   rankingPrevio = ranking;
-  if(!antes || Date.now() - ultimoAvisoRanking < MS_ENTRE_AVISOS_RANKING) return;
+  if(!antes || !puedeAvisar()) return;
   for(let i = 0; i < Math.min(3, ranking.length); i++){
     const f = ranking[i];
     const previo = antes.findIndex(x => x.id === f.id);
@@ -1466,11 +1482,23 @@ function avisarCambiosRanking(ranking){
     if((previo !== -1 && previo <= i) || (siguiente && siguiente.votos >= f.votos)) continue;
     const g = grupoDe(f.id);
     if(!g) continue;
-    ultimoAvisoRanking = Date.now();
-    avisar(i === 0 ? `🔥 ¡${g.attraction} pasa al primer lugar!` : `⬆️ ¡${g.attraction} sube al lugar ${i + 1}!`, true);
-    sonar('aviso');
+    mostrarAvisoVivo(i === 0 ? `🔥 ¡${g.attraction} pasa al primer lugar!` : `⬆️ ¡${g.attraction} sube al lugar ${i + 1}!`);
     return;
   }
+}
+
+// El total no dice quién va ganando: sale aunque el ranking esté oculto.
+const HITOS_VOTOS = [50, 100, 200, 300, 500, 750, 1000];
+const hitoDe = (total) => HITOS_VOTOS.filter(h => h <= total).pop() || 0;
+let hitoAnunciado = null;
+function avisarVotos(total){
+  if(typeof total !== 'number'){ hitoAnunciado = null; return; }
+  const hito = hitoDe(total);
+  // Quien abre el mapa no recibe el aviso de un número que ya pasó; reiniciar baja el total.
+  if(hitoAnunciado === null || hito < hitoAnunciado){ hitoAnunciado = hito; return; }
+  if(hito === hitoAnunciado || !puedeAvisar()) return;
+  hitoAnunciado = hito;
+  mostrarAvisoVivo(`🎉 ¡Ya van ${hito} votos para el Mejor Baile!`);
 }
 
 function programarEstado(){
