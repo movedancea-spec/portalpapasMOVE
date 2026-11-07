@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Dance Rollercoaster — Mapa del Show</title>
+<meta name="description" content="Mapa interactivo del show de MOVE Dance Academy: toca cada atracción y descubre el grupo, el baile y sus bailarinas.">
+<meta name="theme-color" content="#0a0b1f">
+<link rel="canonical" href="https://academiamovedance.com/show/">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="MOVE Dance Academy">
+<meta property="og:locale" content="es_GT">
+<meta property="og:title" content="The Dance Rollercoaster — Mapa del Show">
+<meta property="og:description" content="Vive la adrenalina de una atracción en la danza. Toca el mapa y descubre cada baile y sus bailarinas.">
+<meta property="og:url" content="https://academiamovedance.com/show/">
+<meta property="og:image" content="https://academiamovedance.com/show/og-show.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Logo de The Dance Rollercoaster sobre el mapa del parque">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@500;600&family=Poppins:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night-deep: #0a0b1f;
+    --night: #14163f;
+    --night-mid: #1e2158;
+    --gold: #f3d27a;
+    --gold-deep: #c79a2e;
+    --gold-bright: #ffe9b0;
+    --cream: #f6ecd6;
+    --card: #171a42;
+    --card-hi: #232766;
+    --shadow: rgba(0,0,0,.55);
+    --grass: #3f6b47;
+    --grass-dark: #2b4a33;
+    --grass-light: #5c8a5f;
+    --river: #4a94a8;
+    --river-dark: #326e7d;
+    --sky: #e7f1ea;
+    --road: #c9a86a;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html,body{
+    margin:0; padding:0;
+    background: radial-gradient(ellipse at 50% -10%, #2a1f5e 0%, var(--night) 40%, var(--night-deep) 100%);
+    color: var(--cream);
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body{ padding-top: 54px; }
+  @media (max-width:640px){ body{ padding-top: 78px; } }
+
+  /* barra fija superior */
+  .status-bar{
+    position: fixed; top:0; left:0; right:0; z-index: 120;
+    background: rgba(10,11,31,.85);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid rgba(243,210,122,.2);
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 9px 18px;
+    font-size: 12.5px;
+    font-weight: 600;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: var(--cream);
+  }
+  .status-live{ display:flex; align-items:center; gap:8px; }
+  .live-dot{
+    width:9px; height:9px; border-radius:50%; background:#ff6b5e;
+    box-shadow: 0 0 0 0 rgba(255,107,94,.6);
+    animation: livepulse 1.6s infinite;
+    flex-shrink:0;
+  }
+  @keyframes livepulse{
+    0%{ box-shadow: 0 0 0 0 rgba(255,107,94,.55);}
+    70%{ box-shadow: 0 0 0 8px rgba(255,107,94,0);}
+    100%{ box-shadow: 0 0 0 0 rgba(255,107,94,0);}
+  }
+  .status-follow{ display:flex; align-items:center; gap:8px; color: var(--gold); }
+  .status-follow button{
+    border: 1px solid var(--gold-deep); background: rgba(243,210,122,.12); color: var(--gold);
+    font-weight:700; padding:3px 10px; border-radius:999px; cursor:pointer; font-size:11.5px;
+  }
+  .status-follow button:hover{ background: rgba(243,210,122,.22); }
+
+  header{
+    text-align:center;
+    padding: 24px 20px 16px;
+    position: relative;
+    z-index: 5;
+  }
+  header img.logo{
+    max-width: min(480px, 85vw);
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 6px 18px rgba(0,0,0,.5));
+  }
+  .eyebrow{
+    font-family:'Cinzel', serif;
+    letter-spacing:.35em;
+    text-transform:uppercase;
+    font-size:11.5px;
+    color: var(--gold);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  h1{
+    font-family:'Bebas Neue', sans-serif;
+    font-weight: 400;
+    font-size: clamp(38px, 8vw, 76px);
+    letter-spacing:.05em;
+    margin:0;
+    line-height:0.95;
+    background: linear-gradient(180deg, #fff6da 0%, var(--gold) 45%, var(--gold-deep) 75%, #8a6a1e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 3px 10px rgba(0,0,0,.5)) drop-shadow(0 0 22px rgba(243,210,122,.25));
+  }
+  .sub{
+    font-size:14px; opacity:.75; margin-top:12px; max-width:560px; margin-inline:auto;
+    font-weight: 400; color: var(--cream);
+  }
+
+  .progress-pill{
+    display:inline-flex; align-items:center; gap:8px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(243,210,122,.3);
+    border-radius:999px; padding:6px 16px;
+    font-size:12.5px; font-weight:700; margin-top:16px; color: var(--gold);
+  }
+  .progress-track{
+    width:90px; height:7px; border-radius:999px; background: rgba(255,255,255,.12); overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; background: linear-gradient(90deg,var(--gold-deep),var(--gold)); width:0%;
+    transition: width .4s ease;
+  }
+
+  .map-wrap{
+    position: relative;
+    max-width: 1100px;
+    margin: 10px auto 0;
+    padding: 0 16px;
+  }
+  .map-frame{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1536 / 1024;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #dff2ee, var(--sky) 55%);
+    border: 1px solid rgba(243,210,122,.35);
+    box-shadow: 0 24px 60px var(--shadow), inset 0 0 90px rgba(0,0,0,.06);
+    overflow: hidden;
+  }
+  .map-frame img.map-bg{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+  }
+
+  .node{
+    position:absolute;
+    transform: translate(-50%,-50%);
+    display:flex; flex-direction:column; align-items:center;
+    gap:0;
+    background:none; border:none; cursor:pointer;
+    padding:0;
+    animation: pop .45s ease backwards;
+  }
+  .node .pin{
+    position:relative;
+    display:flex; align-items:center; gap:6px;
+    padding: 6px 14px 6px 10px;
+    border-radius: 999px;
+    font-family:'Poppins', sans-serif;
+    font-weight:700;
+    font-size:clamp(10px, 1.4vw, 12px);
+    letter-spacing:.01em;
+    white-space:nowrap;
+    color:#fff;
+    background: linear-gradient(180deg, var(--pin-color, #c79a2e), color-mix(in srgb, var(--pin-color, #c79a2e) 70%, #000));
+    border: 2px solid var(--gold);
+    box-shadow: 0 5px 12px rgba(0,0,0,.35);
+    transition: transform .2s ease;
+  }
+  .node .pin .ico{ font-size:16px; }
+  .node:hover .pin, .node:focus-visible .pin{ transform: scale(1.08) translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.45); }
+  .node:focus-visible{ outline: 2px solid var(--gold); outline-offset:4px; border-radius: 16px; }
+  .node.live .pin{ animation: liveglow 1.4s infinite; }
+  @keyframes liveglow{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(255,107,94,.7), 0 5px 12px rgba(0,0,0,.35); }
+    50%{ box-shadow: 0 0 0 8px rgba(255,107,94,0), 0 5px 12px rgba(0,0,0,.35); }
+  }
+  .node .check{
+    position:absolute; top:-6px; right:-6px;
+    width:16px; height:16px; border-radius:50%;
+    background:#2f9e52; color:#fff; font-size:10px;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid #fff;
+  }
+  @keyframes pop{ from{ opacity:0; transform: translate(-50%,-30%) scale(.5);} to{ opacity:1; transform: translate(-50%,-50%) scale(1);} }
+
+  .node-hub .pin{ font-size:14px; padding:9px 18px; }
+
+  .legend{
+    max-width: 1100px;
+    margin: 18px auto 10px;
+    padding: 0 20px;
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:10px;
+  }
+  .legend-item{
+    display:flex; align-items:center; gap:7px;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(243,210,122,.2);
+    border-radius: 999px;
+    padding: 7px 14px 7px 7px;
+    font-size: clamp(11px, 1.6vw, 13px);
+    font-weight: 700;
+    font-family: 'Poppins', sans-serif;
+    color: var(--cream);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (max-width: 900px){
+    .legend{ grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px){
+    .legend{ grid-template-columns: repeat(1, 1fr); }
+  }
+  .legend-dot{
+    width:15px; height:15px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px;
+    flex-shrink:0;
+    border: 1px solid rgba(255,255,255,.4);
+  }
+
+  .overlay{
+    position: fixed; inset:0; background: rgba(5,6,18,.7);
+    backdrop-filter: blur(3px);
+    opacity:0; pointer-events:none;
+    transition: opacity .25s ease;
+    z-index: 150;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+
+  .ticket{
+    position: fixed;
+    right:0; top:0; bottom:0;
+    width: min(420px, 100%);
+    background: linear-gradient(180deg, var(--card-hi), var(--card));
+    box-shadow: -20px 0 50px rgba(0,0,0,.5);
+    border-left: 1px solid rgba(243,210,122,.3);
+    transform: translateX(100%);
+    transition: transform .35s cubic-bezier(.2,.9,.25,1);
+    z-index: 155;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 28px 26px 0;
+    color: var(--cream);
+  }
+  .ticket.open{ transform: translateX(0); }
+  .ticket .top-bar{
+    height: 10px; margin: -28px -26px 20px; background: var(--bar-color, #c79a2e);
+  }
+  .ticket .close{
+    background: rgba(255,255,255,.08); border: 1px solid rgba(243,210,122,.3); color: var(--cream);
+    width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+    float:right;
+  }
+  .ticket .close:hover{ background: rgba(255,255,255,.15); }
+  .ticket .attraction-name{
+    font-family:'Space Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing:.15em;
+    font-size:12px;
+    color: var(--gold);
+    padding: 8px 44px 0 0;
+    font-weight: 700;
+  }
+  .ticket .theme-title{
+    font-family:'Bebas Neue', sans-serif;
+    font-weight: 400;
+    font-size: 34px;
+    letter-spacing:.03em;
+    margin: 6px 0 14px;
+    color: var(--gold-bright);
+    line-height:1.1;
+    text-shadow: 0 2px 8px rgba(0,0,0,.4);
+  }
+  .ticket-actions{ display:flex; gap:8px; margin-bottom: 16px; flex-wrap:wrap; }
+  .ticket-actions button, .ticket-actions a{
+    border: 1px solid rgba(243,210,122,.3); cursor:pointer; font-family:'Poppins',sans-serif; font-weight:600; font-size:12.5px;
+    padding:8px 14px; border-radius:999px; background: rgba(255,255,255,.06); color: var(--cream); text-decoration:none;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .ticket-actions button.active{ background: rgba(255,107,94,.2); color:#ff8a7d; border-color: rgba(255,107,94,.4); }
+  .ticket-actions a.vote{ background: rgba(47,158,82,.18); color:#6bd68f; border-color: rgba(47,158,82,.4); }
+  .perforation{ border-top: 1.5px dashed rgba(243,210,122,.25); margin: 18px 0; }
+  .cast-label{
+    font-family:'Space Mono', monospace;
+    font-size:11px; letter-spacing:.2em; text-transform:uppercase; opacity:.6; margin-bottom:12px;
+    font-weight:700; color: var(--gold);
+  }
+  /* Dos columnas: con una, 8 nombres ya no caben en una pantalla normal y el
+     último queda partido en el borde (se veía como un reparto cortado). */
+  .cast{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px; }
+  .cast-item{
+    display:flex; align-items:center; gap:8px; min-width:0;
+    background: rgba(255,255,255,.05); border-radius: 12px; padding: 6px 8px;
+  }
+  .cast-item:only-child{ grid-column: 1 / -1; }
+  .cast-vacio{ grid-column: 1 / -1; margin:0; font-size:13.5px; opacity:.8; }
+  .mas-abajo{
+    position: sticky; bottom: 0; margin: 8px -26px 0; padding: 22px 0 calc(14px + env(safe-area-inset-bottom));
+    text-align:center; font-size:12px; font-weight:700; color: var(--gold);
+    background: linear-gradient(180deg, transparent, var(--card) 55%);
+    opacity:0; pointer-events:none; transition: opacity .2s ease;
+  }
+  .mas-abajo.visible{ opacity:1; }
+  .avatar{
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono', monospace; font-weight:700; font-size:11px;
+    color: var(--night-deep); flex-shrink:0;
+    background: var(--bar-color, #c79a2e);
+  }
+  .cast-item .name{ font-size:13px; font-weight:500; line-height:1.25; min-width:0; overflow-wrap:anywhere; }
+
+  .modal{
+    position: fixed; left:50%; top:50%; transform: translate(-50%,-50%) scale(.94);
+    background: linear-gradient(180deg, var(--card-hi), var(--card));
+    border: 1px solid rgba(243,210,122,.35);
+    border-radius: 22px; width: min(400px, 90vw);
+    padding: 28px 26px; box-shadow: 0 30px 70px rgba(0,0,0,.6);
+    z-index: 160; opacity:0; pointer-events:none; transition: all .25s ease;
+    color: var(--cream);
+  }
+  .modal.open{ opacity:1; pointer-events:auto; transform: translate(-50%,-50%) scale(1); }
+  .modal h2{
+    font-family:'Bebas Neue', sans-serif; font-weight:400; letter-spacing:.03em;
+    font-size:30px; margin:0 0 8px; color: var(--gold);
+  }
+  .modal p{ font-size:13.5px; opacity:.75; margin:0 0 16px; line-height:1.5; }
+  .modal select{
+    width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid rgba(243,210,122,.3);
+    font-family:'Poppins',sans-serif; font-size:14px; margin-bottom:16px; background: rgba(255,255,255,.06); color: var(--cream);
+  }
+  .modal select option{ background: var(--card); color: var(--cream); }
+  .modal-actions{ display:flex; gap:10px; }
+  .modal-actions button{
+    flex:1; border:none; border-radius:12px; padding:12px; font-weight:700; cursor:pointer;
+    font-family:'Poppins',sans-serif; font-size:13.5px;
+  }
+  .modal-actions .save{ background: linear-gradient(90deg,var(--gold-deep),var(--gold)); color:#241a05; }
+  .modal-actions .skip{ background: rgba(255,255,255,.08); color: var(--cream); }
+
+  .confetti-piece{
+    position:fixed; width:8px; height:8px; border-radius:2px; pointer-events:none; z-index:200;
+    animation: confetti-fly .8s ease-out forwards;
+  }
+  @keyframes confetti-fly{
+    from{ transform:translate(0,0) rotate(0deg); opacity:1; }
+    to{ transform:translate(var(--dx), var(--dy)) rotate(360deg); opacity:0; }
+  }
+
+  footer{
+    text-align:center; font-size:12px; opacity:.5; padding: 18px 20px 40px;
+    font-family:'Space Mono', monospace;
+  }
+
+  .wa-fab{
+    position: fixed; right:18px; bottom:18px; z-index: 130;
+    background:#25D366; color:#fff; border:none; border-radius:999px;
+    padding: 13px 18px; font-family:'Poppins',sans-serif; font-weight:700; font-size:13px;
+    display:flex; align-items:center; gap:8px; cursor:pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,.4);
+    transition: transform .15s ease;
+  }
+  .wa-fab:hover{ transform: translateY(-2px) scale(1.03); }
+  .wa-fab .ico{ font-size:17px; }
+
+  .photo-fab{
+    position: fixed; left:18px; bottom:18px; z-index: 130;
+    background: linear-gradient(135deg,var(--gold-deep),var(--gold)); color:#241a05; border:none; border-radius:999px;
+    padding: 13px 18px; font-family:'Poppins',sans-serif; font-weight:700; font-size:13px;
+    display:flex; align-items:center; gap:8px; cursor:pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,.4);
+    transition: transform .15s ease;
+  }
+  .photo-fab:hover{ transform: translateY(-2px) scale(1.03); }
+
+  .photo-modal{
+    position: fixed; left:50%; top:50%; transform: translate(-50%,-50%) scale(.94);
+    background: linear-gradient(180deg, var(--card-hi), var(--card));
+    border: 1px solid rgba(243,210,122,.35);
+    border-radius: 22px; width: min(440px, 92vw); max-height: 88vh; overflow-y:auto;
+    padding: 22px; box-shadow: 0 30px 70px rgba(0,0,0,.6);
+    z-index: 160; opacity:0; pointer-events:none; transition: all .25s ease;
+    color: var(--cream);
+  }
+  .photo-modal.open{ opacity:1; pointer-events:auto; transform: translate(-50%,-50%) scale(1); }
+  .photo-modal h2{
+    font-family:'Bebas Neue', sans-serif; font-weight:400; letter-spacing:.03em;
+    font-size:24px; margin:0 0 12px; color: var(--gold); text-align:center;
+  }
+  .photo-modal canvas{
+    width:100%; border-radius:14px; margin-bottom:16px; background:#000;
+  }
+  .photo-modal-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .photo-modal-actions button{
+    flex:1; min-width:120px; border:none; border-radius:12px; padding:12px; font-weight:700; cursor:pointer;
+    font-family:'Poppins',sans-serif; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .photo-modal-actions .share{ background: linear-gradient(90deg,var(--gold-deep),var(--gold)); color:#241a05; }
+  .photo-modal-actions .download{ background: rgba(255,255,255,.08); color: var(--cream); }
+  .photo-modal-actions .close2{ background: rgba(255,255,255,.08); color: var(--cream); flex:0 0 100%; margin-top:4px; }
+
+  @media (max-width:600px){
+    .ticket{ width:100%; }
+    .node .pin{
+      width:36px; height:36px; padding:0;
+      justify-content:center; border-radius:50%;
+      gap:0;
+    }
+    .node .pin .ico{ font-size:16px; }
+    .node .pin .pin-text{ display:none; }
+    .node .check{ width:14px; height:14px; font-size:8px; top:-4px; right:-4px; }
+    .status-bar{ flex-direction:column; align-items:flex-start; gap:4px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="status-bar">
+  <div class="status-live"><span class="live-dot"></span><span id="liveText">Cargando horario…</span></div>
+  <div class="status-follow" id="followBar">
+    <span id="followText">¿Qué baile venís a ver?</span>
+    <button id="followBtn">Elegir</button>
+  </div>
+</div>
+
+<header>
+  <div class="eyebrow">Move Dance Academy presenta</div>
+  <img class="logo" src="logo-dance-rollercoaster.webp" alt="The Dance Rollercoaster">
+  <p class="sub">Vive la adrenalina de una atracción en la danza. Tocá cada atracción del mapa para descubrir el grupo, el baile y el reparto de bailarinas.</p>
+  <div class="progress-pill">
+    <span id="progressText">0/21 recorridas</span>
+    <span class="progress-track"><span class="progress-fill" id="progressFill"></span></span>
+  </div>
+</header>
+
+<div class="map-wrap">
+  <div class="map-frame" id="mapFrame">
+    <img class="map-bg" src="park-map.webp" alt="Mapa del show The Dance Rollercoaster">
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<footer>hecho con 💛 para el show</footer>
+
+<button class="wa-fab" id="waFab"><span class="ico">📲</span>Compartir</button>
+<button class="photo-fab" id="photoFab"><span class="ico">📸</span>Foto con marco</button>
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+
+<div class="photo-modal" id="photoModal">
+  <h2>¡Sonrían! 🎢</h2>
+  <canvas id="photoCanvas"></canvas>
+  <div class="photo-modal-actions">
+    <button class="share" id="photoShareBtn">📲 Compartir</button>
+    <button class="download" id="photoDownloadBtn">⬇️ Descargar</button>
+    <button class="close2" id="photoCloseBtn">Cerrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<aside class="ticket" id="ticket">
+  <div class="top-bar" id="tBar"></div>
+  <button class="close" id="closeBtn" aria-label="Cerrar">✕</button>
+  <div class="attraction-name" id="tAttraction">Atracción</div>
+  <div class="theme-title" id="tTheme">Tema del baile</div>
+  <div class="ticket-actions">
+    <button id="favBtn">🤍 Favorito</button>
+    <button id="shareActBtn">📲 Compartir</button>
+    <a id="voteLink" class="vote" href="#" target="_blank" rel="noopener" style="display:none;">🗳️ Votar</a>
+  </div>
+  <div id="tReparto">
+    <div class="perforation"></div>
+    <div class="cast-label">Reparto</div>
+    <div class="cast" id="tCast"></div>
+  </div>
+  <div class="mas-abajo" id="masAbajo" aria-hidden="true">⌄ Bajá para ver más</div>
+</aside>
+
+<div class="modal" id="modal">
+  <h2>¡Que suba la adrenalina! 🎢</h2>
+  <p>Elegí a qué baile venís a ver especialmente y te mostramos cuánto falta para su turno.</p>
+  <select id="modalSelect"></select>
+  <div class="modal-actions">
+    <button class="save" id="modalSave">Guardar</button>
+    <button class="skip" id="modalSkip">Omitir</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CONFIGURACIÓN DEL SHOW — editá esto con tus datos reales
+   ========================================================= */
+const SHOW_CONFIG = {
+  startDateTime: "2026-11-15T18:00:00",
+  minutesPerAct: 4,
+  votingFormUrl: ""
+};
+
+/* =========================================================
+   DATOS DE CADA GRUPO (21 en total). El reparto viene de Recepción →
+   Alumnas Show por /show-reparto. Aquí nunca van nombres de alumnas:
+   este repo es público y quedarían en su historial. Solo Men in Black
+   (fijo: true) tiene texto propio porque no tiene baile.
+   Colores en tonos joya/dorado para que combinen con la
+   identidad "The Dance Rollercoaster"
+   ========================================================= */
+const GROUPS = [
+  // ---- OPENING · TURISTAS (templo/selva, lado izquierdo) ----
+  { attraction: "Jurassic Park", theme: "Blue · Elevé", color: "#4a7c59", icon: "🦖", x: 10, y: 32,
+    members: [] },
+  { attraction: "King Kong", theme: "Hip Hop Mini", color: "#7d2e46", icon: "🦍", x: 20, y: 28,
+    members: [] },
+  { attraction: "Hulk", theme: "Coreografía", color: "#2e7d4f", icon: "💪", x: 27, y: 38,
+    members: [] },
+  { attraction: "Capitán América", theme: "Teens", color: "#2e5f8a", icon: "🛡️", x: 25, y: 52,
+    members: [] },
+  { attraction: "Cat in the Hat", theme: "Primary Ballet", color: "#b8860b", icon: "🎩", x: 15, y: 58,
+    members: [] },
+  { attraction: "Spiderman", theme: "Acro 2", color: "#9b2c2c", icon: "🕷️", x: 8, y: 48,
+    members: [] },
+
+  // ---- MONSTRUOS DE MEDIANOCHE (castillo oscuro, arriba a la izquierda) ----
+  { attraction: "Dracula", theme: "Ballet Adultos", color: "#6a1b2b", icon: "🧛", x: 24, y: 12,
+    members: [] },
+  { attraction: "Werewolf", theme: "Elevé", color: "#2f2f4a", icon: "🐺", x: 34, y: 8,
+    members: [] },
+  { attraction: "Frankenstein", theme: "Teen Int", color: "#3c6e41", icon: "⚡", x: 40, y: 20,
+    members: [] },
+
+  // ---- AVENTURA ÉPICA (castillo dorado/cristal, arriba a la derecha) ----
+  { attraction: "Cómo Entrenar a tu Dragón", theme: "Grado 2 Ballet", color: "#355c7d", icon: "🐉", x: 58, y: 15,
+    members: [] },
+  { attraction: "Constelaciones", theme: "Carrusel de Epic · Grado 4 Ballet", color: "#6a3fa0", icon: "✨", x: 68, y: 8,
+    members: [] },
+  { attraction: "Peach", theme: "Mundo de Mario · Ballroom Elevé", color: "#c79a2e", icon: "🍄", x: 75, y: 22,
+    members: [] },
+
+  // ---- ACCIÓN SIN FRENO (ciudad futurista / pista, lado derecho) ----
+  { attraction: "Trolls", theme: "Mini Movers", color: "#a4508b", icon: "🌈", x: 75, y: 40,
+    members: [] },
+  { attraction: "Fast and Furious", theme: "Ballroom", color: "#9b2c2c", icon: "🏎️", x: 85, y: 35,
+    members: [] },
+  { attraction: "Kung Fu Panda", theme: "Acro Mini", color: "#2e7d4f", icon: "🐼", x: 93, y: 42,
+    members: [] },
+  { attraction: "Transformers", theme: "Coreografía", color: "#355c7d", icon: "🤖", x: 95, y: 55,
+    members: [] },
+  { attraction: "Minions", theme: "Little Movers", color: "#b8860b", icon: "🍌", x: 85, y: 62,
+    members: [] },
+  { attraction: "Sing", theme: "Movers Team (Ash)", color: "#6a3fa0", icon: "🎤", x: 76, y: 58,
+    members: [] },
+
+  // ---- GRAN FINALE (plaza dorada de la fuente, centro) ----
+  { attraction: "Men in Black", theme: "Maestras", color: "#2f2f4a", icon: "🕶️", x: 42, y: 60, fijo: true,
+    members: [{name:"Maestras de Move Dance Academy"}] },
+  { attraction: "Wicked", theme: "Duo Puntas Adultas (Glinda y Elphaba)", color: "#6a3fa0", icon: "🧙‍♀️", x: 50, y: 52,
+    members: [] },
+  { attraction: "Return of the Mummy", theme: "Contempo", color: "#8c6a2e", icon: "🧟", x: 58, y: 60,
+    members: [] },
+];
+
+/* =========================================================
+   LÓGICA — no hace falta tocar nada de acá para abajo
+   ========================================================= */
+const mapFrame = document.getElementById('mapFrame');
+const legend = document.getElementById('legend');
+const overlay = document.getElementById('overlay');
+const ticket = document.getElementById('ticket');
+const closeBtn = document.getElementById('closeBtn');
+const tBar = document.getElementById('tBar');
+const tAttraction = document.getElementById('tAttraction');
+const tTheme = document.getElementById('tTheme');
+const tCast = document.getElementById('tCast');
+const tReparto = document.getElementById('tReparto');
+const masAbajo = document.getElementById('masAbajo');
+const favBtn = document.getElementById('favBtn');
+const shareActBtn = document.getElementById('shareActBtn');
+const voteLink = document.getElementById('voteLink');
+const waFab = document.getElementById('waFab');
+const modal = document.getElementById('modal');
+const modalSelect = document.getElementById('modalSelect');
+const modalSave = document.getElementById('modalSave');
+const modalSkip = document.getElementById('modalSkip');
+const followBtn = document.getElementById('followBtn');
+const followText = document.getElementById('followText');
+const liveText = document.getElementById('liveText');
+const progressText = document.getElementById('progressText');
+const progressFill = document.getElementById('progressFill');
+
+let currentGroupIndex = null;
+let repartoListo = false;
+let visited = JSON.parse(localStorage.getItem('show_visitados') || '[]');
+let favoritos = JSON.parse(localStorage.getItem('show_favoritos') || '[]');
+let miBaile = localStorage.getItem('show_miBaile');
+miBaile = miBaile === null ? null : parseInt(miBaile, 10);
+
+function initials(name){
+  return name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+}
+
+function playChime(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [880, 660].forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      o.connect(g); g.connect(ctx.destination);
+      const t0 = ctx.currentTime + i*0.12;
+      g.gain.setValueAtTime(0.001, t0);
+      g.gain.exponentialRampToValueAtTime(0.18, t0+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t0+0.35);
+      o.start(t0); o.stop(t0+0.4);
+    });
+  }catch(e){}
+}
+
+function spawnConfetti(x, y, color){
+  const palette = [color, '#f3d27a', '#ffe9b0'];
+  for(let i=0;i<18;i++){
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const angle = Math.random()*2*Math.PI;
+    const dist = 40+Math.random()*70;
+    const dx = Math.cos(angle)*dist;
+    const dy = Math.sin(angle)*dist - 50;
+    p.style.setProperty('--dx', dx+'px');
+    p.style.setProperty('--dy', dy+'px');
+    p.style.left = x+'px'; p.style.top = y+'px';
+    p.style.background = palette[i % palette.length];
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(), 850);
+  }
+}
+
+function markVisited(i){
+  if(!visited.includes(i)){
+    visited.push(i);
+    localStorage.setItem('show_visitados', JSON.stringify(visited));
+    updateProgress();
+    const chk = document.querySelectorAll('.node')[i].querySelector('.check');
+    if(!chk){
+      const c = document.createElement('span');
+      c.className = 'check'; c.textContent = '✓';
+      document.querySelectorAll('.node')[i].querySelector('.pin').appendChild(c);
+    }
+  }
+}
+function updateProgress(){
+  progressText.textContent = `${visited.length}/${GROUPS.length} recorridas`;
+  progressFill.style.width = (visited.length/GROUPS.length*100) + '%';
+}
+
+// Con textContent: estos nombres ya no están en el código, se escriben en Recepción.
+function pintarReparto(group){
+  tCast.innerHTML = '';
+  // Sin lista todavía (primera vez sin señal) lo decimos; con lista, una
+  // atracción sin alumnas simplemente no lleva reparto (Werewolf).
+  const sinLista = !repartoListo && !group.fijo;
+  tReparto.style.display = group.members.length || sinLista ? '' : 'none';
+  if(sinLista){
+    const aviso = document.createElement('p');
+    aviso.className = 'cast-vacio';
+    aviso.textContent = 'El reparto se carga con conexión 🎢';
+    tCast.appendChild(aviso);
+  }
+  group.members.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'cast-item';
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = initials(m.name);
+    const nombre = document.createElement('div');
+    nombre.className = 'name';
+    nombre.textContent = m.name;
+    row.append(avatar, nombre);
+    tCast.appendChild(row);
+  });
+  revisarMasAbajo();
+}
+
+// En celulares y en Mac la barra de desplazamiento no se ve: sin este aviso,
+// una tarjeta más alta que la pantalla parece terminar donde se corta.
+function revisarMasAbajo(){
+  masAbajo.classList.toggle('visible', ticket.scrollHeight - ticket.scrollTop - ticket.clientHeight > 8);
+}
+ticket.addEventListener('scroll', revisarMasAbajo, { passive: true });
+window.addEventListener('resize', revisarMasAbajo);
+
+function openTicket(group, i){
+  currentGroupIndex = i;
+  tBar.style.setProperty('--bar-color', group.color);
+  ticket.style.setProperty('--bar-color', group.color);
+  tAttraction.textContent = group.attraction;
+  tTheme.textContent = group.theme;
+  // La tarjeta es la misma para todas: si no, abre a la altura en que se
+  // bajó la anterior y se ve sin el título ni los primeros nombres.
+  ticket.scrollTop = 0;
+  pintarReparto(group);
+  favBtn.classList.toggle('active', favoritos.includes(i));
+  favBtn.textContent = favoritos.includes(i) ? '❤️ Favorito' : '🤍 Favorito';
+  if(SHOW_CONFIG.votingFormUrl){
+    voteLink.style.display = 'inline-flex';
+    voteLink.href = SHOW_CONFIG.votingFormUrl;
+  } else {
+    voteLink.style.display = 'none';
+  }
+  overlay.classList.add('open');
+  ticket.classList.add('open');
+}
+function closeTicket(){
+  overlay.classList.remove('open');
+  ticket.classList.remove('open');
+  if(modal.classList.contains('open')) modal.classList.remove('open');
+  if(photoModal.classList.contains('open')) photoModal.classList.remove('open');
+}
+overlay.addEventListener('click', closeTicket);
+closeBtn.addEventListener('click', closeTicket);
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeTicket(); });
+
+function shareOnWhatsApp(text){
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
+waFab.addEventListener('click', () => {
+  shareOnWhatsApp(`🎢✨ Mirá el mapa interactivo de The Dance Rollercoaster, ¡tocá cada atracción para ver a las bailarinas! ${window.location.href}`);
+});
+shareActBtn.addEventListener('click', () => {
+  if(currentGroupIndex === null) return;
+  const g = GROUPS[currentGroupIndex];
+  shareOnWhatsApp(`💃 ¡Ya casi llega "${g.attraction}" (${g.theme})! Seguilo en vivo acá: ${window.location.href}`);
+});
+
+/* ---------- foto con marco (logo del show) ---------- */
+const photoFab = document.getElementById('photoFab');
+const cameraInput = document.getElementById('cameraInput');
+const photoModal = document.getElementById('photoModal');
+const photoCanvas = document.getElementById('photoCanvas');
+const photoShareBtn = document.getElementById('photoShareBtn');
+const photoDownloadBtn = document.getElementById('photoDownloadBtn');
+const photoCloseBtn = document.getElementById('photoCloseBtn');
+
+function loadImg(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+photoFab.addEventListener('click', () => cameraInput.click());
+
+cameraInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const url = URL.createObjectURL(file);
+  try{
+    const photo = await loadImg(url);
+    const logo = await loadImg('logo-dance-rollercoaster.webp');
+    const academyLogo = await loadImg('logo-academia-move.png');
+
+    photoCanvas.width = photo.width;
+    photoCanvas.height = photo.height;
+    const ctx = photoCanvas.getContext('2d');
+    ctx.drawImage(photo, 0, 0);
+
+    // tamaños de cada logo, manteniendo su proporción
+    const showLogoW = photo.width * 0.34;
+    const showLogoH = showLogoW * (logo.height / logo.width);
+    const academyLogoW = photo.width * 0.20;
+    const academyLogoH = academyLogoW * (academyLogo.height / academyLogo.width);
+    const gap = photo.width * 0.03;
+    const pad = photo.width * 0.025;
+
+    const barH = Math.max(showLogoH, academyLogoH) + pad * 2;
+    ctx.fillStyle = 'rgba(10,11,31,0.65)';
+    ctx.fillRect(0, photo.height - barH, photo.width, barH);
+
+    // fondo blanco suave detrás del logo de la academia para que se lea bien (tiene texto rosa fino)
+    const totalW = academyLogoW + gap + showLogoW;
+    const startX = (photo.width - totalW) / 2;
+
+    const academyY = photo.height - barH/2 - academyLogoH/2;
+    const showY = photo.height - barH/2 - showLogoH/2;
+
+    ctx.drawImage(academyLogo, startX, academyY, academyLogoW, academyLogoH);
+    ctx.drawImage(logo, startX + academyLogoW + gap, showY, showLogoW, showLogoH);
+
+    photoModal.classList.add('open');
+    overlay.classList.add('open');
+  }catch(err){
+    console.error(err);
+  }
+  cameraInput.value = '';
+});
+
+function closePhotoModal(){
+  photoModal.classList.remove('open');
+  overlay.classList.remove('open');
+}
+photoCloseBtn.addEventListener('click', closePhotoModal);
+
+photoDownloadBtn.addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.href = photoCanvas.toDataURL('image/png');
+  link.download = 'the-dance-rollercoaster.png';
+  link.click();
+});
+
+photoShareBtn.addEventListener('click', () => {
+  photoCanvas.toBlob(async (blob) => {
+    const file = new File([blob], 'the-dance-rollercoaster.png', { type: 'image/png' });
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      try{
+        await navigator.share({
+          files: [file],
+          title: 'The Dance Rollercoaster',
+          text: '¡Mirá esta foto de nuestro show! 🎢✨'
+        });
+      }catch(err){ /* cancelado por el usuario, no hacer nada */ }
+    } else {
+      const link = document.createElement('a');
+      link.href = photoCanvas.toDataURL('image/png');
+      link.download = 'the-dance-rollercoaster.png';
+      link.click();
+      alert('Tu navegador no permite compartir directo. La foto se descargó — subila manualmente a Instagram desde tu galería.');
+    }
+  }, 'image/png');
+});
+
+favBtn.addEventListener('click', () => {
+  if(currentGroupIndex === null) return;
+  const idx = favoritos.indexOf(currentGroupIndex);
+  if(idx === -1){ favoritos.push(currentGroupIndex); }
+  else { favoritos.splice(idx,1); }
+  localStorage.setItem('show_favoritos', JSON.stringify(favoritos));
+  favBtn.classList.toggle('active', favoritos.includes(currentGroupIndex));
+  favBtn.textContent = favoritos.includes(currentGroupIndex) ? '❤️ Favorito' : '🤍 Favorito';
+});
+
+GROUPS.forEach((group, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'node' + (group.hub ? ' node-hub' : '');
+  btn.style.left = group.x + '%';
+  btn.style.top = group.y + '%';
+  btn.style.animationDelay = (i * 0.045) + 's';
+  btn.setAttribute('aria-label', `${group.attraction}: ${group.theme}`);
+  btn.innerHTML = `
+    <span class="pin" style="--pin-color:${group.color}"><span class="ico">${group.icon}</span><span class="pin-text">${group.attraction}</span></span>
+  `;
+  if(visited.includes(i)){
+    btn.querySelector('.pin').insertAdjacentHTML('beforeend', '<span class="check">✓</span>');
+  }
+  btn.addEventListener('click', (e) => {
+    playChime();
+    spawnConfetti(e.clientX, e.clientY, group.color);
+    markVisited(i);
+    openTicket(group, i);
+  });
+  mapFrame.appendChild(btn);
+
+  const li = document.createElement('div');
+  li.className = 'legend-item';
+  li.innerHTML = `<span class="legend-dot" style="background:${group.color}">${group.icon}</span>${group.attraction}`;
+  legend.appendChild(li);
+
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = `${group.attraction} — ${group.theme}`;
+  modalSelect.appendChild(opt);
+});
+updateProgress();
+
+function getSchedule(){
+  const start = new Date(SHOW_CONFIG.startDateTime);
+  return GROUPS.map((g, i) => {
+    const s = new Date(start.getTime() + i*SHOW_CONFIG.minutesPerAct*60000);
+    const e = new Date(start.getTime() + (i+1)*SHOW_CONFIG.minutesPerAct*60000);
+    return { start: s, end: e };
+  });
+}
+function updateLiveStatus(){
+  const schedule = getSchedule();
+  const now = new Date();
+  let liveIndex = null;
+  for(let i=0;i<schedule.length;i++){
+    if(now >= schedule[i].start && now < schedule[i].end){ liveIndex = i; break; }
+  }
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('live'));
+  if(liveIndex !== null){
+    const g = GROUPS[liveIndex];
+    liveText.textContent = `Ahora en escena: ${g.attraction} — ${g.theme}`;
+    const nodes = document.querySelectorAll('.node');
+    if(nodes[liveIndex]) nodes[liveIndex].classList.add('live');
+  } else if(now < schedule[0].start){
+    const mins = Math.round((schedule[0].start - now)/60000);
+    liveText.textContent = mins > 0 ? `El show empieza en ~${mins} min` : 'El show está por comenzar';
+  } else if(now >= schedule[schedule.length-1].end){
+    liveText.textContent = '✨ ¡Show finalizado! Gracias por venir';
+  }
+
+  if(miBaile !== null){
+    const g = GROUPS[miBaile];
+    if(liveIndex === miBaile){
+      followText.textContent = `🎉 ¡Es ahora! ${g.attraction}`;
+    } else if(now < schedule[miBaile].start){
+      const mins = Math.max(0, Math.round((schedule[miBaile].start - now)/60000));
+      followText.textContent = `${g.attraction}: faltan ~${mins} min`;
+    } else {
+      followText.textContent = `✅ ${g.attraction} ya se presentó`;
+    }
+    followBtn.textContent = 'Cambiar';
+  } else {
+    followText.textContent = '¿Qué baile venís a ver?';
+    followBtn.textContent = 'Elegir';
+  }
+}
+setInterval(updateLiveStatus, 15000);
+updateLiveStatus();
+
+function openModal(){ modal.classList.add('open'); overlay.classList.add('open'); }
+function closeModal(){ modal.classList.remove('open'); overlay.classList.remove('open'); }
+followBtn.addEventListener('click', openModal);
+modalSkip.addEventListener('click', () => { closeModal(); });
+modalSave.addEventListener('click', () => {
+  miBaile = parseInt(modalSelect.value, 10);
+  localStorage.setItem('show_miBaile', miBaile);
+  closeModal();
+  updateLiveStatus();
+});
+if(miBaile !== null){ modalSelect.value = miBaile; }
+if(!localStorage.getItem('show_miBaile') && !sessionStorage.getItem('show_bienvenida')){
+  sessionStorage.setItem('show_bienvenida', '1');
+  setTimeout(openModal, 500);
+}
+
+/* ---------- reparto en vivo ---------- */
+// Se pinta de una vez lo que haya (no se espera a la red: en el teatro la
+// señal es mala) y se reemplaza si llega algo nuevo. Va directo al Worker, sin
+// pasar por sw.js: la copia para cuando falla es la de show_reparto.
+// ?worker=… solo sirve desde localhost, para probar con un Worker local (como la ruleta).
+const WORKER_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname)
+  ? (new URLSearchParams(location.search).get('worker') || 'http://localhost:8787')
+  : null;
+const URL_REPARTO = (WORKER_LOCAL || 'https://portalalumnas.movedancea.workers.dev') + '/show-reparto';
+const ESPERA_REPARTO_MS = 6000;
+
+function repartoValido(a){
+  return !!a && typeof a === 'object' && !Array.isArray(a) &&
+    Object.values(a).every(l => Array.isArray(l) && l.every(n => typeof n === 'string' && n.trim()));
+}
+function aplicarReparto(atracciones){
+  GROUPS.forEach(g => {
+    if(!g.fijo) g.members = (atracciones[g.attraction] || []).map(name => ({ name }));
+  });
+  repartoListo = true;
+  if(currentGroupIndex !== null) pintarReparto(GROUPS[currentGroupIndex]);
+}
+async function cargarReparto(){
+  try{
+    const guardado = JSON.parse(localStorage.getItem('show_reparto') || 'null');
+    if(repartoValido(guardado)) aplicarReparto(guardado);
+  }catch(e){}
+  const control = new AbortController();
+  const reloj = setTimeout(() => control.abort(), ESPERA_REPARTO_MS);
+  try{
+    const r = await fetch(URL_REPARTO, { cache: 'no-store', signal: control.signal });
+    if(!r.ok) return;
+    const { atracciones } = await r.json();
+    if(!repartoValido(atracciones)) return;
+    aplicarReparto(atracciones);
+    try{ localStorage.setItem('show_reparto', JSON.stringify(atracciones)); }catch(e){}
+  }catch(e){
+    // Sin señal o error: se queda lo que ya está en pantalla.
+  }finally{
+    clearTimeout(reloj);
+  }
+}
+cargarReparto();
+
+// Su carpeta y su scope lo limitan a /show/: el sw.js del portal, sus push
+// y sus llaves VAPID no se enteran de que existe.
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/show/sw.js', { scope: '/show/' }).catch(() => {});
+}
+</script>
+
+</body>
+</html>

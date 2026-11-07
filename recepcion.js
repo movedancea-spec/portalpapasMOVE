@@ -3334,6 +3334,7 @@ async function recargarDatosShow() {
     return;
   }
   renderSelectGruposBaile();
+  renderSelectAtraccionBaile();
   renderCatalogoShow();
   renderResumenShow();
   renderTrajePortal();
@@ -3362,6 +3363,25 @@ function renderSelectGruposBaile() {
 }
 
 // Bailes agrupados por Grupo MOVE, en el orden que ya manda el Worker.
+// Las atracciones de otro baile salen deshabilitadas: cada una es de un solo
+// baile (el Worker también lo revisa).
+function renderSelectAtraccionBaile() {
+  const select = el("selectShowAtraccionBaile");
+  const elegida = select.value;
+  select.innerHTML = "";
+  const vacia = crearEl("option", "", "Sin atracción");
+  vacia.value = "";
+  select.appendChild(vacia);
+  (showDatos.atraccionesMapa || []).forEach((atraccion) => {
+    const duena = showDatos.bailes.find((b) => b.atraccion === atraccion && b.id !== showBaileEditandoId);
+    const opcion = crearEl("option", "", duena ? `${atraccion} (ya es de ${duena.nombre})` : atraccion);
+    opcion.value = atraccion;
+    opcion.disabled = Boolean(duena);
+    select.appendChild(opcion);
+  });
+  select.value = elegida;
+}
+
 function bailesPorGrupoShow() {
   const grupos = new Map();
   showDatos.bailes.forEach((b) => {
@@ -3393,6 +3413,7 @@ function renderCatalogoShow() {
           `Modista ${formatoQuetzales(b.precio)} · Venta ${formatoQuetzales(b.precioVenta)} · ${b.alumnas.length} alumna${b.alumnas.length === 1 ? "" : "s"}`
         )
       );
+      tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", b.atraccion ? `🗺️ ${b.atraccion}` : "🗺️ Sin atracción (no sale en el mapa)"));
 
       const acciones = crearEl("div", "show-acciones");
       const btnEditar = crearEl("button", "btn-secundario btn-chico", "✏️ Editar");
@@ -3418,6 +3439,8 @@ function editarBaileShow(baile) {
   el("inputShowNombreBaile").value = baile.nombre;
   el("inputShowPrecioBaile").value = typeof baile.precio === "number" ? baile.precio : "";
   el("inputShowPrecioVentaBaile").value = typeof baile.precioVenta === "number" ? baile.precioVenta : "";
+  renderSelectAtraccionBaile();
+  el("selectShowAtraccionBaile").value = baile.atraccion || "";
   el("btnGuardarBaile").textContent = "Guardar cambios";
   el("btnCancelarEdicionBaile").hidden = false;
   mensajeShow("mensajeFormBaile", "");
@@ -3430,6 +3453,8 @@ function limpiarFormularioBaile() {
   el("inputShowNombreBaile").value = "";
   el("inputShowPrecioBaile").value = "";
   el("inputShowPrecioVentaBaile").value = "";
+  el("selectShowAtraccionBaile").value = "";
+  if (showDatos) renderSelectAtraccionBaile();
   el("btnGuardarBaile").textContent = "Agregar baile";
   el("btnCancelarEdicionBaile").hidden = true;
 }
@@ -3468,6 +3493,7 @@ el("btnGuardarBaile").addEventListener("click", async () => {
       precio: Number(precio),
       // Vacío = "Sin precio" (el Worker lo borra en Airtable).
       precioVenta: precioVenta === "" ? "" : Number(precioVenta),
+      atraccion: el("selectShowAtraccionBaile").value,
     });
     limpiarFormularioBaile();
     mensajeShow("mensajeFormBaile", editando ? "✅ Cambios guardados." : "✅ Baile agregado.", "ok");
@@ -3635,9 +3661,29 @@ function elegirAlumnaShow(alumna) {
   el("cajaShowBuscarAlumna").hidden = true;
   el("cajaShowAlumna").hidden = false;
   mensajeShow("mensajeAsignarShow", "");
+  mensajeShow("mensajeNombreMapa", "");
+  el("inputShowNombreMapa").value = alumna.nombreShow || "";
+  el("inputShowNombreMapa").placeholder = alumna.nombreShowAuto || "";
   renderSelectGrupoAlumna();
   renderAlumnaShow();
 }
+
+el("btnGuardarNombreMapa").addEventListener("click", async () => {
+  const alumna = showAlumnaElegida;
+  if (!alumna) return;
+  const boton = el("btnGuardarNombreMapa");
+  boton.disabled = true;
+  try {
+    const r = await llamarWorker({ accion: "showGuardarNombreShow", clave: claveRecepcion, alumnaId: alumna.id, nombreShow: el("inputShowNombreMapa").value });
+    alumna.nombreShow = r.nombreShow;
+    el("inputShowNombreMapa").value = r.nombreShow;
+    mensajeShow("mensajeNombreMapa", "✅ Guardado. El mapa se actualiza en máximo 5 minutos.", "ok");
+  } catch (e) {
+    mensajeShow("mensajeNombreMapa", e.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
 
 el("btnShowCambiarAlumna").addEventListener("click", () => {
   showAlumnaElegida = null;
