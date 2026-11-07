@@ -1030,12 +1030,17 @@ function revisarMasAbajo(){
 ticket.addEventListener('scroll', revisarMasAbajo, { passive: true });
 window.addEventListener('resize', revisarMasAbajo);
 
+// Una atracción agregada en Recepción puede no tener tema: el nombre pasa a
+// ser el título grande, si no la tarjeta quedaría sin título.
+function pintarTitulosTarjeta(g){
+  tAttraction.textContent = g.theme ? g.attraction : '';
+  tTheme.textContent = g.theme || g.attraction;
+}
 function openTicket(group, i){
   currentGroupIndex = i;
   tBar.style.setProperty('--bar-color', group.color);
   ticket.style.setProperty('--bar-color', group.color);
-  tAttraction.textContent = group.attraction;
-  tTheme.textContent = group.theme;
+  pintarTitulosTarjeta(group);
   // La tarjeta es la misma para todas: si no, abre a la altura en que se
   // bajó la anterior y se ve sin el título ni los primeros nombres.
   ticket.scrollTop = 0;
@@ -1435,8 +1440,7 @@ function aplicarEstado(e, { guardado = false } = {}){
   else if(rankingModal.classList.contains('open')) pintarRanking();
   if(currentGroupIndex !== null){
     const g = GROUPS[currentGroupIndex];
-    tAttraction.textContent = g.attraction;
-    tTheme.textContent = g.theme;
+    pintarTitulosTarjeta(g);
     tBar.style.setProperty('--bar-color', g.color);
     ticket.style.setProperty('--bar-color', g.color);
     pintarInteraccion();

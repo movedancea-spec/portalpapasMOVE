@@ -241,6 +241,8 @@ function abrirNuevoBaile(grupo) {
 async function abrirBaile(baileId) {
   grupoNuevoBaile = null;
   formacionActual = 0;
+  // El grupo elegido se conserva al guardar, no al cambiar de baile.
+  el("filtroGrupo").value = "";
   mostrarPantalla("pantallaBaile");
   el("avisoBaile").hidden = true;
   el("tituloBaile").textContent = "Cargando...";
@@ -345,8 +347,50 @@ el("buscarAlumna").addEventListener("input", renderAlumnas);
 el("filtroGrupo").addEventListener("change", renderAlumnas);
 el("filtroSoloSeleccion").addEventListener("change", renderAlumnas);
 
+// Solo Opening/Closing, con un grupo elegido. Solo las ACTIVAS de ese grupo
+// (estado vacío): las no activas que ya están en el baile no se tocan.
+function activasDelGrupo() {
+  const grupo = el("filtroGrupo").hidden ? "" : el("filtroGrupo").value;
+  return grupo ? det.alumnas.filter((a) => !a.estado && (a.grupos || []).includes(grupo)) : [];
+}
+function pintarBotonesGrupo() {
+  if (!el("btnMarcarGrupo")) return;
+  const grupo = el("filtroGrupo").hidden ? "" : el("filtroGrupo").value;
+  const activas = activasDelGrupo();
+  const porMarcar = activas.filter((a) => !seleccion.has(a.c)).length;
+  const porDesmarcar = activas.filter((a) => seleccion.has(a.c)).length;
+  el("btnMarcarGrupo").hidden = !grupo;
+  el("btnDesmarcarGrupo").hidden = !grupo;
+  el("btnMarcarGrupo").disabled = !porMarcar;
+  el("btnDesmarcarGrupo").disabled = !porDesmarcar;
+  el("btnMarcarGrupo").textContent = `✅ Marcar a todo el grupo${porMarcar ? ` (${porMarcar})` : ""}`;
+  el("btnDesmarcarGrupo").textContent = `✖️ Desmarcar a todo el grupo${porDesmarcar ? ` (${porDesmarcar})` : ""}`;
+}
+// Pide confirmación y guarda de una vez: así nadie cree que ya quedó y se va
+// sin tocar «Guardar baile».
+function cambiarGrupoCompleto(marcar) {
+  const grupo = el("filtroGrupo").value;
+  const cambian = activasDelGrupo().filter((a) => seleccion.has(a.c) !== marcar);
+  if (!cambian.length) return;
+  const n = cambian.length;
+  const texto = marcar
+    ? `¿Marcar a ${n} ${n === 1 ? "alumna activa" : "alumnas activas"} de «${grupo}» en ${det.baile.nombre} y guardar?`
+    : `¿Quitar a ${n} ${n === 1 ? "alumna" : "alumnas"} de «${grupo}» de ${det.baile.nombre} y guardar?`;
+  if (!confirm(texto + (sucioDatos ? "\n\nTambién se guardan los demás cambios de esta pantalla." : ""))) return;
+  cambian.forEach((a) => (marcar ? seleccion.add(a.c) : seleccion.delete(a.c)));
+  sucioDatos = true;
+  renderAlumnas();
+  guardarDatos(false);
+}
+// Con «?.»: un HTML viejo en caché (hasta 10 min) no tiene estos botones.
+el("btnMarcarGrupo")?.addEventListener("click", () => cambiarGrupoCompleto(true));
+el("btnDesmarcarGrupo")?.addEventListener("click", () => cambiarGrupoCompleto(false));
+
 function prepararFiltroGrupos() {
   const select = el("filtroGrupo");
+  // Después de guardar se vuelve a armar: el grupo elegido se conserva para
+  // poder seguir con «Marcar a todo el grupo» sin volver a buscarlo.
+  const anterior = select.value;
   const general = det && det.baile.tipo !== "Grupo";
   select.hidden = !general;
   select.replaceChildren();
@@ -360,6 +404,7 @@ function prepararFiltroGrupos() {
     opcion.value = g;
     select.appendChild(opcion);
   });
+  if (grupos.includes(anterior)) select.value = anterior;
 }
 
 function renderAlumnas() {
@@ -399,6 +444,7 @@ function renderAlumnas() {
 
 function actualizarContadorSeleccion() {
   el("contadorSeleccion").textContent = String(seleccion.size);
+  pintarBotonesGrupo();
 }
 
 el("btnGuardarDatos").addEventListener("click", () => guardarDatos(false));

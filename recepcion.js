@@ -4112,7 +4112,9 @@ function pintarStaffAtraccion() {
 }
 
 function pintarFotoAtraccion() {
-  const guardadaDeStaff = atrEdicion && atrEdicion.id && atrEdicion.origen === "Staff" && el("atrOrigen").value === "Staff";
+  // Todo lo que no es "Alumnas" guarda su foto grupal aquí (la de alumnas va
+  // con su baile en Alumnas Show → Fotos).
+  const guardadaDeStaff = atrEdicion && atrEdicion.id && atrEdicion.origen && atrEdicion.origen !== "Alumnas" && el("atrOrigen").value === atrEdicion.origen;
   el("atrFotoCaja").hidden = !guardadaDeStaff;
   el("btnAtrFotoQuitar").hidden = !(guardadaDeStaff && atrEdicion.foto);
   el("btnAtrFoto").textContent = guardadaDeStaff && atrEdicion.foto ? "📸 Reemplazar foto grupal" : "📸 Subir foto grupal";
