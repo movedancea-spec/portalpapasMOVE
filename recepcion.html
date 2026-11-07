@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=mapa-staff-v1" />
+<link rel="stylesheet" href="recepcion.css?v=mapa-staff-v2" />
 </head>
 <body>
 
@@ -779,6 +779,11 @@
             <option value="Alumnas">Alumnas (se elige en Alumnas Show → Bailes)</option>
             <option value="Staff">Staff (se elige aquí abajo)</option>
           </select>
+          <div id="atrStaffCaja" hidden>
+            <p class="etiqueta-campo">¿Quién baila aquí?</p>
+            <div id="atrStaffLista" class="mapa-staff-opciones"></div>
+            <p class="pista-campo">Están todas las personas del staff, también las que tienen «Mapa» apagado: salen en este baile aunque no salgan en Nuestro equipo.</p>
+          </div>
           <div id="atrFotoCaja" hidden>
             <p class="etiqueta-campo">Foto grupal</p>
             <button class="btn-secundario btn-chico" id="btnAtrFoto" type="button">📸 Subir foto grupal</button>
@@ -1583,7 +1588,7 @@
 
 </div>
 
-<script src="recepcion.js?v=mapa-staff-v1"></script>
+<script src="recepcion.js?v=mapa-staff-v2"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

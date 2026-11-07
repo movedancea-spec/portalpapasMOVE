@@ -4102,7 +4102,13 @@ function abrirFormAtraccion(a) {
   borrar.hidden = !a.id;
   borrar.textContent = "🗑️ Borrar atracción";
   pintarFotoAtraccion();
+  pintarCasillasStaff(el("atrStaffLista"), a.id ? catalogoMapaDatos.staff.filter((p) => p.atracciones.includes(a.id)) : []);
+  pintarStaffAtraccion();
   pintarEditorMapa();
+}
+
+function pintarStaffAtraccion() {
+  el("atrStaffCaja").hidden = el("atrOrigen").value !== "Staff";
 }
 
 function pintarFotoAtraccion() {
@@ -4125,7 +4131,10 @@ el("btnMapaAgregarAtraccion")?.addEventListener("click", () => {
   el("mapaEditor").scrollIntoView({ block: "center", behavior: "smooth" });
 });
 el("btnAtrCancelar")?.addEventListener("click", cerrarFormAtraccion);
-el("atrOrigen")?.addEventListener("change", pintarFotoAtraccion);
+el("atrOrigen")?.addEventListener("change", () => {
+  pintarFotoAtraccion();
+  pintarStaffAtraccion();
+});
 ["atrEmoji", "atrColor"].forEach((id) => el(id)?.addEventListener("input", pintarEditorMapa));
 
 el("btnAtrGuardar")?.addEventListener("click", async (e) => {
@@ -4143,8 +4152,16 @@ el("btnAtrGuardar")?.addEventListener("click", async (e) => {
     y: atrEdicion.y,
     origen: el("atrOrigen").value,
   };
-  const r = await accionCatalogo(e.currentTarget, "mapaShowAtraccionGuardar", { atraccion }, "✅ Atracción guardada. Se ve en el mapa en unos 20 segundos.");
-  if (r) cerrarFormAtraccion();
+  const boton = e.currentTarget;
+  // Se lee antes de guardar: guardar repinta el catálogo.
+  const staffIds = atraccion.origen === "Staff" ? [...document.querySelectorAll("#atrStaffLista input:checked")].map((c) => c.value) : null;
+  const aviso = "✅ Atracción guardada. Se ve en el mapa en unos 20 segundos.";
+  const r = await accionCatalogo(boton, "mapaShowAtraccionGuardar", { atraccion }, aviso);
+  if (!r) return;
+  // Si lo del staff falla y se reintenta, no debe crear otra atracción igual.
+  atrEdicion.id = atraccion.id || r.id;
+  if (staffIds && !(await accionCatalogo(boton, "mapaShowStaffAsignar", { atraccion: atrEdicion.id, staffIds }, aviso))) return;
+  cerrarFormAtraccion();
 });
 
 // Dos toques, sin confirm(): el primero dice qué se pierde.
@@ -4231,7 +4248,7 @@ function pintarListaAtracciones() {
       });
       acciones.appendChild(editar);
     }
-    const elegir = crearEl("button", "", "👩‍🏫");
+    const elegir = crearEl("button", "mapa-btn-staff", "👩‍🏫 Elegir staff");
     elegir.type = "button";
     elegir.setAttribute("aria-label", `Elegir staff de ${a.nombre}`);
     elegir.addEventListener("click", () => {
@@ -4242,15 +4259,19 @@ function pintarListaAtracciones() {
     tarjeta.append(texto, acciones);
     if (staffAbiertaAtraccion === a.id) tarjeta.appendChild(crearElegirStaff(a, suyos));
     cont.appendChild(tarjeta);
+    // Sin esto, en las últimas tarjetas la lista abre debajo de la pantalla y
+    // parece que el botón no hizo nada.
+    if (staffAbiertaAtraccion === a.id) tarjeta.scrollIntoView({ block: "nearest" });
   });
 }
 
-function crearElegirStaff(a, suyos) {
-  const caja = crearEl("div", "mapa-staff-opciones");
+// Todas las personas, también las que tienen «Mapa» apagado.
+function pintarCasillasStaff(caja, suyos) {
+  caja.innerHTML = "";
   const { staff } = catalogoMapaDatos;
   if (!staff.length) {
     caja.appendChild(crearEl("p", "pista-campo", "Primero agrega personas en la pestaña Staff."));
-    return caja;
+    return;
   }
   staff.forEach((p) => {
     const fila = crearEl("label", "mapa-interruptor");
@@ -4258,9 +4279,15 @@ function crearElegirStaff(a, suyos) {
     casilla.type = "checkbox";
     casilla.value = p.id;
     casilla.checked = suyos.includes(p);
-    fila.append(casilla, crearEl("span", "", p.nombre));
+    fila.append(casilla, crearEl("span", "", p.mostrar ? p.nombre : `${p.nombre} (Mapa apagado)`));
     caja.appendChild(fila);
   });
+}
+
+function crearElegirStaff(a, suyos) {
+  const caja = crearEl("div", "mapa-staff-opciones");
+  pintarCasillasStaff(caja, suyos);
+  if (!catalogoMapaDatos.staff.length) return caja;
   const guardar = crearEl("button", "btn-secundario btn-chico", "Guardar staff");
   guardar.type = "button";
   guardar.addEventListener("click", async () => {
