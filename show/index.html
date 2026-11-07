@@ -412,6 +412,8 @@
   }
   .ranking-puesto{ font-family:'Space Mono',monospace; font-weight:700; color: var(--gold); }
   .ranking-votos{ font-weight:700; color: var(--gold-bright); }
+  .ranking-reacciones{ grid-column:2 / -1; font-size:12px; font-weight:400; opacity:.9; display:flex; flex-wrap:wrap; gap:2px 8px; }
+  .ranking-titulo{ margin:10px 0 2px; font-size:15px; color: var(--gold); }
   .aviso-toque{
     position:fixed; left:50%; bottom:78px; transform:translateX(-50%); z-index:210;
     background:#0a0b1f; color:var(--cream); border:1px solid var(--gold-deep);
@@ -453,6 +455,7 @@
   #ayudaReaccion{ margin:6px 0 4px; }
   .ayuda-tarjeta[hidden]{ display:none; }
   .pasos-marco{ margin:0 0 14px; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; font-size:13.5px; }
+  .pasos-marco .nota{ font-size:12px; opacity:.8; }
   /* Capa propia, encima de todos los pines: si no, el pin vecino tapa los emojis. */
   .pin-emojis{
     position:absolute; z-index:30; transform:translate(-50%,16px); white-space:nowrap; pointer-events:none;
@@ -661,7 +664,7 @@
     <p id="explicaVoto"><b>🏆 Mejor Baile del Show:</b> podés votar por varios bailes, pero solo una vez por cada baile. Tocá otra vez para quitar tu voto.</p>
     <p id="explicaReaccion"><b>😍 Reacciones:</b> tocá los emojis de cada baile para reaccionar; tocá otra vez para quitarlo.</p>
     <p id="explicaResultados"><b>📊 Resultados:</b> cuando estén visibles, aquí ves el ranking en vivo.</p>
-    <p><b>📸 Foto con marco:</b> tomate una foto o elegí una de tu galería y te la devolvemos con el marco de The Dance Rollercoaster, lista para guardar o compartir por WhatsApp.</p>
+    <p><b>📸 Foto con marco:</b> tomate una foto o elegí una de tu galería y te la devolvemos con el marco de The Dance Rollercoaster, lista para guardar o compartir por WhatsApp e Instagram 📲</p>
   </div>
   <div class="modal-actions"><button class="save" id="comoFuncionaListo" type="button">¡Listo!</button></div>
 </div>
@@ -670,7 +673,8 @@
   <ol class="pasos-marco">
     <li>1️⃣ Tomate una foto o elegí una de tu galería.</li>
     <li>2️⃣ Mirá cómo queda con el marco del show.</li>
-    <li>3️⃣ Guardala o compartila por WhatsApp.</li>
+    <li>3️⃣ Guardala o compartila por WhatsApp e Instagram 📲</li>
+    <li class="nota">Si no ves Instagram, guardá la foto y subila desde la app.</li>
   </ol>
   <div class="modal-actions"><button class="save" id="pasosMarcoListo" type="button">Elegir foto</button></div>
 </div>
@@ -1143,7 +1147,9 @@ photoShareBtn.addEventListener('click', async () => {
   const file = new File([blob], 'the-dance-rollercoaster.jpg', { type: 'image/jpeg' });
   if(navigator.canShare && navigator.canShare({ files: [file] })){
     try{
-      await navigator.share({ files: [file], title: 'The Dance Rollercoaster', text: '¡Mirá esta foto de nuestro show! 🎢✨' });
+      // Solo el archivo, sin texto: en iPhone mandar los dos juntos hace que algunas
+      // apps reciban solo el texto, y sin foto Instagram no sirve.
+      await navigator.share({ files: [file] });
     }catch(err){ /* cancelado por el usuario, no hacer nada */ }
   } else {
     bajarFotoMarco(blob);
@@ -1454,7 +1460,11 @@ function pintarEmojisMapa(){
   });
   reaccionesPrevias = mostrar ? JSON.parse(JSON.stringify(estado.reacciones || {})) : null;
 }
-CELULAR.addEventListener('change', () => { if(estado) pintarEmojisMapa(); });
+CELULAR.addEventListener('change', () => {
+  if(!estado) return;
+  pintarEmojisMapa();
+  if(rankingModal.classList.contains('open')) pintarRanking();
+});
 
 /* ---------- avisos en vivo, dentro del mapa ---------- */
 // Comparten el mismo espacio en pantalla: máximo uno cada 30 s entre todos.
@@ -1642,14 +1652,64 @@ voteBtn.addEventListener('click', () => {
   mandarToques();
 });
 
+const REACCIONES_EN_CELULAR = 3;
+function reaccionesDe(id){
+  return EMOJIS.map(emoji => ({ emoji, n: conteoReaccion(id, emoji) }))
+    .filter(r => r.n > 0)
+    .sort((a, b) => b.n - a.n); // sort estable: en empate manda el orden de EMOJIS
+}
+function textoReacciones(id){
+  const lista = reaccionesDe(id);
+  const caben = CELULAR.matches ? lista.slice(0, REACCIONES_EN_CELULAR) : lista;
+  const partes = caben.map(r => `${r.emoji} ${r.n}`);
+  if(lista.length > caben.length) partes.push(`+${lista.length - caben.length}`);
+  return partes;
+}
+function nombreEnRanking(id){
+  const g = grupoDe(id);
+  return g ? `${g.nodos.punto.textContent} ${g.attraction}` : id;
+}
+function pintarMasAplaudidos(){
+  const filas = Object.keys((estado && estado.reacciones) || {})
+    .map(id => { const lista = reaccionesDe(id); return { id, lista, total: lista.reduce((a, r) => a + r.n, 0) }; })
+    .filter(f => f.total > 0)
+    .sort((a, b) => b.total - a.total || a.id.localeCompare(b.id, 'es'));
+  if(!filas.length) return;
+  const titulo = document.createElement('h3');
+  titulo.className = 'ranking-titulo';
+  titulo.textContent = '😍 Los más aplaudidos';
+  rankingLista.appendChild(titulo);
+  filas.forEach((f, i) => {
+    const fila = document.createElement('div');
+    fila.className = 'ranking-fila';
+    const puesto = document.createElement('span');
+    puesto.className = 'ranking-puesto';
+    puesto.textContent = i + 1;
+    const nombre = document.createElement('span');
+    nombre.textContent = nombreEnRanking(f.id);
+    // En una sola línea aparte: junto al nombre se parte en celulares angostos.
+    nombre.style.gridColumn = '2 / -1';
+    const linea = document.createElement('span');
+    linea.className = 'ranking-reacciones';
+    const total = document.createElement('span');
+    total.className = 'ranking-votos';
+    total.textContent = `${f.total} ${f.total === 1 ? 'reacción' : 'reacciones'}`;
+    const favorito = document.createElement('span');
+    favorito.textContent = `Favorito: ${f.lista[0].emoji}`;
+    linea.append(total, favorito);
+    fila.append(puesto, nombre, linea);
+    rankingLista.appendChild(fila);
+  });
+}
 function pintarRanking(){
+  // Se repinta con cada refresco: sin esto la lista saltaría arriba mientras la leen.
+  const scroll = rankingLista.scrollTop;
   rankingLista.innerHTML = '';
   const lista = (estado && estado.ranking) || [];
   if(!lista.length){
     const p = document.createElement('p');
     p.textContent = 'Todavía no hay votos. ¡Sé la primera persona en votar!';
     rankingLista.appendChild(p);
-    return;
   }
   lista.forEach((f, i) => {
     const fila = document.createElement('div');
@@ -1658,14 +1718,22 @@ function pintarRanking(){
     puesto.className = 'ranking-puesto';
     puesto.textContent = ['🥇','🥈','🥉'][i] || i + 1;
     const nombre = document.createElement('span');
-    const g = grupoDe(f.id);
-    nombre.textContent = g ? `${g.nodos.punto.textContent} ${g.attraction}` : f.id;
+    nombre.textContent = nombreEnRanking(f.id);
     const votos = document.createElement('span');
     votos.className = 'ranking-votos';
     votos.textContent = `${f.votos} ${f.votos === 1 ? 'voto' : 'votos'}`;
     fila.append(puesto, nombre, votos);
+    const reacciones = textoReacciones(f.id);
+    if(reacciones.length){
+      const linea = document.createElement('span');
+      linea.className = 'ranking-reacciones';
+      reacciones.forEach(t => { const r = document.createElement('span'); r.textContent = t; linea.appendChild(r); });
+      fila.appendChild(linea);
+    }
     rankingLista.appendChild(fila);
   });
+  pintarMasAplaudidos();
+  rankingLista.scrollTop = scroll;
 }
 rankingBtn.addEventListener('click', () => {
   pintarRanking();
