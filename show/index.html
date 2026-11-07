@@ -72,18 +72,6 @@
     flex-wrap: wrap;
     color: var(--cream);
   }
-  .status-live{ display:flex; align-items:center; gap:8px; }
-  .live-dot{
-    width:9px; height:9px; border-radius:50%; background:#ff6b5e;
-    box-shadow: 0 0 0 0 rgba(255,107,94,.6);
-    animation: livepulse 1.6s infinite;
-    flex-shrink:0;
-  }
-  @keyframes livepulse{
-    0%{ box-shadow: 0 0 0 0 rgba(255,107,94,.55);}
-    70%{ box-shadow: 0 0 0 8px rgba(255,107,94,0);}
-    100%{ box-shadow: 0 0 0 0 rgba(255,107,94,0);}
-  }
   .status-follow{ display:flex; align-items:center; gap:8px; color: var(--gold); }
   .status-follow button{
     border: 1px solid var(--gold-deep); background: rgba(243,210,122,.12); color: var(--gold);
@@ -192,18 +180,21 @@
   .node .pin .ico{ font-size:16px; }
   .node:hover .pin, .node:focus-visible .pin{ transform: scale(1.08) translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.45); }
   .node:focus-visible{ outline: 2px solid var(--gold); outline-offset:4px; border-radius: 16px; }
-  .node.live .pin{ animation: liveglow 1.4s infinite; }
-  @keyframes liveglow{
-    0%,100%{ box-shadow: 0 0 0 0 rgba(255,107,94,.7), 0 5px 12px rgba(0,0,0,.35); }
-    50%{ box-shadow: 0 0 0 8px rgba(255,107,94,0), 0 5px 12px rgba(0,0,0,.35); }
-  }
+  .node.mio .pin{ box-shadow: 0 0 0 3px var(--gold-bright), 0 0 16px 3px rgba(243,210,122,.75); }
+  .node.mio .pin::before{ content:'⭐'; position:absolute; top:-9px; left:-7px; font-size:13px; }
   .node .check{
+    animation: sello .35s ease;
     position:absolute; top:-6px; right:-6px;
     width:16px; height:16px; border-radius:50%;
     background:#2f9e52; color:#fff; font-size:10px;
     display:flex; align-items:center; justify-content:center;
     border:2px solid #fff;
   }
+  .node .check.saliendo{ animation: selloFuera .22s ease forwards; }
+  @keyframes sello{ from{ transform: scale(2.2) rotate(-18deg); opacity:0; } to{ transform:none; opacity:1; } }
+  @keyframes selloFuera{ to{ transform: scale(0); opacity:0; } }
+  .progress-pill.pulso, .ticket-actions button.pulso{ animation: pulso .32s ease; }
+  @keyframes pulso{ 45%{ transform: scale(1.1); } }
   @keyframes pop{ from{ opacity:0; transform: translate(-50%,-30%) scale(.5);} to{ opacity:1; transform: translate(-50%,-50%) scale(1);} }
 
   .node-hub .pin{ font-size:14px; padding:9px 18px; }
@@ -305,6 +296,7 @@
   }
   .ticket-actions button.active{ background: rgba(255,107,94,.2); color:#ff8a7d; border-color: rgba(255,107,94,.4); }
   .ticket-actions a.vote{ background: rgba(47,158,82,.18); color:#6bd68f; border-color: rgba(47,158,82,.4); }
+  .ticket-actions button.recorrida{ background: rgba(47,158,82,.22); color:#8fe6ad; border-color: rgba(47,158,82,.5); }
   .ticket-actions button.votado{ background: rgba(47,158,82,.22); color:#8fe6ad; border-color: rgba(47,158,82,.5); }
   .reacciones{ display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; margin-bottom: 4px; }
   .reaccion{
@@ -323,13 +315,13 @@
     font-size:11px; letter-spacing:.2em; text-transform:uppercase; opacity:.6; margin-bottom:12px;
     font-weight:700; color: var(--gold);
   }
-  /* Dos columnas: con una, 8 nombres ya no caben en una pantalla normal y el
-     último queda partido en el borde (se veía como un reparto cortado). */
-  .cast{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px; }
+  /* Fotos redondas de tres en tres, con el nombre debajo. */
+  .cast{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:12px 8px; }
   .cast-item{
-    display:flex; align-items:center; gap:8px; min-width:0;
-    background: rgba(255,255,255,.05); border-radius: 12px; padding: 6px 8px;
+    display:flex; flex-direction:column; align-items:center; gap:5px; min-width:0;
+    background:none; border:none; padding:0; color: var(--cream); font-family:'Poppins',sans-serif;
   }
+  .cast-item.con-foto{ cursor:pointer; }
   .cast-item:only-child{ grid-column: 1 / -1; }
   .cast-vacio{ grid-column: 1 / -1; margin:0; font-size:13.5px; opacity:.8; }
   .mas-abajo{
@@ -339,14 +331,32 @@
     opacity:0; pointer-events:none; transition: opacity .2s ease;
   }
   .mas-abajo.visible{ opacity:1; }
+  .foto-protegida{ -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; -webkit-user-drag:none; }
+  .foto-alumna{
+    width:68px; height:68px; border-radius:50%; object-fit:cover; display:block;
+    border:2px solid var(--bar-color, #c79a2e); background: rgba(255,255,255,.08);
+  }
+  .foto-baile{ display:block; width:calc(100% + 52px); margin:-20px -26px 12px; max-height:200px; object-fit:cover; cursor:pointer; }
+  .foto-baile[hidden]{ display:none; }
+  .foto-grande{
+    position:fixed; inset:0; z-index:190; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:12px; padding:20px; background: rgba(5,6,18,.92); opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .foto-grande.open{ opacity:1; pointer-events:auto; }
+  .foto-grande img{ max-width:100%; max-height:75vh; border-radius:16px; }
+  .foto-grande p{ margin:0; font-weight:600; color: var(--gold-bright); text-align:center; }
+  .foto-grande button{
+    border:1px solid rgba(243,210,122,.4); border-radius:999px; padding:9px 22px; cursor:pointer;
+    background: rgba(255,255,255,.08); color: var(--cream); font-family:'Poppins',sans-serif; font-weight:600;
+  }
   .avatar{
-    width:32px; height:32px; border-radius:50%;
+    width:68px; height:68px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
-    font-family:'Space Mono', monospace; font-weight:700; font-size:11px;
+    font-family:'Space Mono', monospace; font-weight:700; font-size:18px;
     color: var(--night-deep); flex-shrink:0;
     background: var(--bar-color, #c79a2e);
   }
-  .cast-item .name{ font-size:13px; font-weight:500; line-height:1.25; min-width:0; overflow-wrap:anywhere; }
+  .cast-item .name{ font-size:12px; font-weight:500; line-height:1.2; text-align:center; max-width:100%; overflow-wrap:anywhere; }
 
   .modal{
     position: fixed; left:50%; top:50%; transform: translate(-50%,-50%) scale(.94);
@@ -363,11 +373,24 @@
     font-size:30px; margin:0 0 8px; color: var(--gold);
   }
   .modal p{ font-size:13.5px; opacity:.75; margin:0 0 16px; line-height:1.5; }
-  .modal select{
-    width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid rgba(243,210,122,.3);
-    font-family:'Poppins',sans-serif; font-size:14px; margin-bottom:16px; background: rgba(255,255,255,.06); color: var(--cream);
+  .bailes-lista{ max-height:50vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .bailes-opcion{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px;
+    background: rgba(255,255,255,.05); font-size:13px; cursor:pointer;
   }
-  .modal select option{ background: var(--card); color: var(--cream); }
+  .bailes-opcion input{ width:18px; height:18px; flex-shrink:0; accent-color: var(--gold-deep); }
+  .mis-bailes{ max-width:1100px; margin:14px auto 0; padding:0 16px; }
+  .mis-bailes[hidden]{ display:none; }
+  .mis-bailes h2{
+    font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.03em; font-size:22px;
+    margin:0 0 8px; color: var(--gold);
+  }
+  .mis-bailes-lista{ display:flex; flex-wrap:wrap; gap:8px; }
+  .mi-baile{
+    border:1px solid var(--gold-deep); border-radius:999px; padding:7px 13px; cursor:pointer;
+    background: rgba(243,210,122,.12); color: var(--cream);
+    font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:600;
+  }
   .modal-actions{ display:flex; gap:10px; }
   .modal-actions button{
     flex:1; border:none; border-radius:12px; padding:12px; font-weight:700; cursor:pointer;
@@ -491,17 +514,16 @@
 </div>
 
 <div class="status-bar">
-  <div class="status-live"><span class="live-dot"></span><span id="liveText">Cargando horario…</span></div>
   <div class="status-follow" id="followBar">
-    <span id="followText">¿Qué baile venís a ver?</span>
-    <button id="followBtn">Elegir</button>
+    <span id="followText">¿Qué bailes venís a ver?</span>
+    <button id="followBtn" type="button">Elegir</button>
   </div>
 </div>
 
 <header>
   <div class="eyebrow">Move Dance Academy presenta</div>
   <img class="logo" src="logo-dance-rollercoaster.webp" alt="The Dance Rollercoaster">
-  <p class="sub">Vive la adrenalina de una atracción en la danza. Tocá cada atracción del mapa para descubrir el grupo, el baile y el reparto de bailarinas.</p>
+  <p class="sub">Vive la adrenalina de una atracción en la danza. Tocá cada atracción del mapa para descubrir el grupo, el baile y el reparto de bailarinas, y marcala como recorrida en tu pasaporte.</p>
   <div class="progress-pill">
     <span id="progressText">0/21 recorridas</span>
     <span class="progress-track"><span class="progress-fill" id="progressFill"></span></span>
@@ -514,6 +536,11 @@
     <img class="map-bg" src="park-map.webp" alt="Mapa del show The Dance Rollercoaster">
   </div>
 </div>
+
+<section class="mis-bailes" id="misBailes" hidden>
+  <h2>⭐ Mis bailes</h2>
+  <div class="mis-bailes-lista" id="misBailesLista"></div>
+</section>
 
 <div class="legend" id="legend"></div>
 
@@ -537,10 +564,12 @@
 
 <aside class="ticket" id="ticket">
   <div class="top-bar" id="tBar"></div>
+  <img class="foto-baile foto-protegida" id="tFotoBaile" alt="" loading="lazy" draggable="false" hidden>
   <button class="close" id="closeBtn" aria-label="Cerrar">✕</button>
   <div class="attraction-name" id="tAttraction">Atracción</div>
   <div class="theme-title" id="tTheme">Tema del baile</div>
   <div class="ticket-actions">
+    <button id="recorridaBtn" type="button">✅ Marcar como recorrida</button>
     <button id="favBtn">🤍 Favorito</button>
     <button id="shareActBtn">📲 Compartir</button>
     <button id="voteBtn" type="button" hidden>🗳️ Votar</button>
@@ -555,12 +584,11 @@
 </aside>
 
 <div class="modal" id="modal">
-  <h2>¡Que suba la adrenalina! 🎢</h2>
-  <p>Elegí a qué baile venís a ver especialmente y te mostramos cuánto falta para su turno.</p>
-  <select id="modalSelect"></select>
+  <h2>¿Qué bailes venís a ver? 🎢</h2>
+  <p>Elegí uno o varios. Los destacamos en tu mapa y quedan en “Mis bailes”.</p>
+  <div class="bailes-lista" id="bailesLista"></div>
   <div class="modal-actions">
-    <button class="save" id="modalSave">Guardar</button>
-    <button class="skip" id="modalSkip">Omitir</button>
+    <button class="save" id="modalSave" type="button">Listo</button>
   </div>
 </div>
 
@@ -569,19 +597,14 @@
   <div class="ranking-lista" id="rankingLista"></div>
   <div class="modal-actions"><button class="skip" id="rankingCerrar" type="button">Cerrar</button></div>
 </div>
+<div class="foto-grande" id="fotoGrande" role="dialog" aria-modal="true">
+  <img class="foto-protegida" id="fotoGrandeImg" alt="" draggable="false">
+  <p id="fotoGrandeNombre"></p>
+  <button id="fotoGrandeCerrar" type="button">Cerrar</button>
+</div>
 <div class="aviso-toque" id="avisoToque" role="status"></div>
 
 <script>
-/* =========================================================
-   VALORES DE RESPALDO. El horario, los textos y los interruptores
-   reales se manejan en Recepción → Mapa del Show; esto solo se usa
-   si la página nunca logró hablar con el Worker.
-   ========================================================= */
-const SHOW_CONFIG = {
-  startDateTime: "2026-11-15T18:00:00",
-  minutesPerAct: 4
-};
-
 /* =========================================================
    DATOS DE CADA GRUPO (21 en total). El reparto viene de Recepción →
    Alumnas Show por /show-reparto. Aquí nunca van nombres de alumnas:
@@ -661,6 +684,8 @@ const masAbajo = document.getElementById('masAbajo');
 const favBtn = document.getElementById('favBtn');
 const shareActBtn = document.getElementById('shareActBtn');
 const voteBtn = document.getElementById('voteBtn');
+const recorridaBtn = document.getElementById('recorridaBtn');
+const progressPill = document.querySelector('.progress-pill');
 const tReacciones = document.getElementById('tReacciones');
 const rankingBtn = document.getElementById('rankingBtn');
 const rankingModal = document.getElementById('rankingModal');
@@ -668,12 +693,16 @@ const rankingLista = document.getElementById('rankingLista');
 const avisoToque = document.getElementById('avisoToque');
 const waFab = document.getElementById('waFab');
 const modal = document.getElementById('modal');
-const modalSelect = document.getElementById('modalSelect');
+const bailesLista = document.getElementById('bailesLista');
+const misBailesSeccion = document.getElementById('misBailes');
+const misBailesLista = document.getElementById('misBailesLista');
+const tFotoBaile = document.getElementById('tFotoBaile');
+const fotoGrande = document.getElementById('fotoGrande');
+const fotoGrandeImg = document.getElementById('fotoGrandeImg');
+const fotoGrandeNombre = document.getElementById('fotoGrandeNombre');
 const modalSave = document.getElementById('modalSave');
-const modalSkip = document.getElementById('modalSkip');
 const followBtn = document.getElementById('followBtn');
 const followText = document.getElementById('followText');
-const liveText = document.getElementById('liveText');
 const progressText = document.getElementById('progressText');
 const progressFill = document.getElementById('progressFill');
 
@@ -685,9 +714,15 @@ GROUPS.forEach(g => { g.id = g.attraction; g.base = { attraction: g.attraction, 
 let visited = JSON.parse(localStorage.getItem('show_visitados') || '[]');
 let favoritos = JSON.parse(localStorage.getItem('show_favoritos') || '[]');
 let estado = null;
-let desfaseReloj = 0;
-let miBaile = localStorage.getItem('show_miBaile');
-miBaile = miBaile === null ? null : parseInt(miBaile, 10);
+let misBailes = JSON.parse(localStorage.getItem('show_mis_bailes') || 'null');
+let repartoVersion = null;
+let fotosBaile = {};
+// Antes se elegía un solo baile y se guardaba su posición.
+if(!Array.isArray(misBailes)){
+  const viejo = parseInt(localStorage.getItem('show_miBaile'), 10);
+  misBailes = GROUPS[viejo] ? [GROUPS[viejo].id] : [];
+  localStorage.removeItem('show_miBaile');
+}
 
 function initials(name){
   return name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
@@ -728,18 +763,55 @@ function spawnConfetti(x, y, color){
   }
 }
 
-function markVisited(i){
-  if(!visited.includes(i)){
-    visited.push(i);
-    localStorage.setItem('show_visitados', JSON.stringify(visited));
-    updateProgress();
-    const chk = document.querySelectorAll('.node')[i].querySelector('.check');
-    if(!chk){
-      const c = document.createElement('span');
-      c.className = 'check'; c.textContent = '✓';
-      document.querySelectorAll('.node')[i].querySelector('.pin').appendChild(c);
+function pulsar(elemento){
+  elemento.classList.remove('pulso');
+  void elemento.offsetWidth;
+  elemento.classList.add('pulso');
+}
+function pintarRecorrida(){
+  if(currentGroupIndex === null) return;
+  const hecha = visited.includes(currentGroupIndex);
+  recorridaBtn.classList.toggle('recorrida', hecha);
+  recorridaBtn.textContent = hecha ? '✅ Recorrida' : '✅ Marcar como recorrida';
+}
+// Abrir una tarjeta ya no sella el pasaporte: se marca y se desmarca a propósito.
+function alternarRecorrida(){
+  const i = currentGroupIndex;
+  if(i === null) return;
+  const pin = GROUPS[i].nodos.pin;
+  if(visited.includes(i)){
+    visited = visited.filter(x => x !== i);
+    const sello = pin.querySelector('.check');
+    if(sello){
+      sello.classList.add('saliendo');
+      setTimeout(() => sello.remove(), 220);
     }
+  } else {
+    visited.push(i);
+    const previo = pin.querySelector('.check');
+    if(previo) previo.remove();
+    const sello = document.createElement('span');
+    sello.className = 'check';
+    sello.textContent = '✓';
+    pin.appendChild(sello);
+    const r = recorridaBtn.getBoundingClientRect();
+    spawnConfetti(r.left + r.width / 2, r.top, GROUPS[i].color);
+    festejarPasaporte();
   }
+  localStorage.setItem('show_visitados', JSON.stringify(visited));
+  updateProgress();
+  pulsar(progressPill);
+  pulsar(recorridaBtn);
+  pintarRecorrida();
+}
+// Una sola vez por celular, aunque desmarquen y vuelvan a marcar la última.
+function festejarPasaporte(){
+  if(visited.length < GROUPS.length || localStorage.getItem('show_pasaporte_completo')) return;
+  localStorage.setItem('show_pasaporte_completo', '1');
+  [0.2, 0.5, 0.8].forEach((x, n) => setTimeout(() => {
+    for(let i = 0; i < 3; i++) spawnConfetti(innerWidth * x, innerHeight * (0.3 + i * 0.15), GROUPS[(n + i) % GROUPS.length].color);
+  }, n * 180));
+  avisar('🎉 ¡Completaste tu pasaporte! 🎢');
 }
 function updateProgress(){
   progressText.textContent = `${visited.length}/${GROUPS.length} recorridas`;
@@ -768,11 +840,44 @@ function pintarReparto(group){
     const nombre = document.createElement('div');
     nombre.className = 'name';
     nombre.textContent = m.name;
-    row.append(avatar, nombre);
+    if(m.foto){
+      const img = document.createElement('img');
+      img.className = 'foto-alumna foto-protegida';
+      img.alt = m.name;
+      img.loading = 'lazy';
+      img.draggable = false;
+      img.src = URL_FOTO + m.foto;
+      // Si se ocultó o falló la carga, quedan las iniciales.
+      img.addEventListener('error', () => { img.replaceWith(avatar); row.classList.remove('con-foto'); });
+      row.classList.add('con-foto');
+      row.addEventListener('click', () => { if(row.classList.contains('con-foto')) abrirFotoGrande(img.src, m.name); });
+      row.append(img, nombre);
+    } else {
+      row.append(avatar, nombre);
+    }
     tCast.appendChild(row);
   });
+  const fotoGrupo = fotosBaile[group.id];
+  tFotoBaile.hidden = !fotoGrupo;
+  if(fotoGrupo){ tFotoBaile.src = URL_FOTO + fotoGrupo; tFotoBaile.alt = group.attraction; }
+  else tFotoBaile.removeAttribute('src');
   revisarMasAbajo();
 }
+
+function abrirFotoGrande(src, nombre){
+  fotoGrandeImg.src = src;
+  fotoGrandeImg.alt = nombre;
+  fotoGrandeNombre.textContent = nombre;
+  fotoGrande.classList.add('open');
+}
+function cerrarFotoGrande(){ fotoGrande.classList.remove('open'); fotoGrandeImg.removeAttribute('src'); }
+document.getElementById('fotoGrandeCerrar').addEventListener('click', cerrarFotoGrande);
+fotoGrande.addEventListener('click', (e) => { if(e.target === fotoGrande) cerrarFotoGrande(); });
+tFotoBaile.addEventListener('click', () => abrirFotoGrande(tFotoBaile.src, tFotoBaile.alt));
+tFotoBaile.addEventListener('error', () => { tFotoBaile.hidden = true; });
+// Dificulta guardarla, nada más: una captura de pantalla no se puede evitar.
+document.addEventListener('contextmenu', (e) => { if(e.target.closest && e.target.closest('.foto-protegida')) e.preventDefault(); });
+document.addEventListener('dragstart', (e) => { if(e.target.closest && e.target.closest('.foto-protegida')) e.preventDefault(); });
 
 // En celulares y en Mac la barra de desplazamiento no se ve: sin este aviso,
 // una tarjeta más alta que la pantalla parece terminar donde se corta.
@@ -794,6 +899,7 @@ function openTicket(group, i){
   pintarReparto(group);
   favBtn.classList.toggle('active', favoritos.includes(i));
   favBtn.textContent = favoritos.includes(i) ? '❤️ Favorito' : '🤍 Favorito';
+  pintarRecorrida();
   pintarInteraccion();
   overlay.classList.add('open');
   ticket.classList.add('open');
@@ -809,7 +915,7 @@ function closeTicket(){
 }
 overlay.addEventListener('click', closeTicket);
 closeBtn.addEventListener('click', closeTicket);
-document.addEventListener('keydown', e => { if(e.key === 'Escape') closeTicket(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape'){ cerrarFotoGrande(); closeTicket(); } });
 
 function shareOnWhatsApp(text){
   const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -821,7 +927,7 @@ waFab.addEventListener('click', () => {
 shareActBtn.addEventListener('click', () => {
   if(currentGroupIndex === null) return;
   const g = GROUPS[currentGroupIndex];
-  shareOnWhatsApp(`💃 ¡Ya casi llega "${g.attraction}" (${g.theme})! Seguilo en vivo acá: ${window.location.href}`);
+  shareOnWhatsApp(`💃 Mirá "${g.attraction}" (${g.theme}) en el mapa de The Dance Rollercoaster: ${window.location.href}`);
 });
 
 /* ---------- foto con marco (logo del show) ---------- */
@@ -930,7 +1036,9 @@ favBtn.addEventListener('click', () => {
   localStorage.setItem('show_favoritos', JSON.stringify(favoritos));
   favBtn.classList.toggle('active', favoritos.includes(currentGroupIndex));
   favBtn.textContent = favoritos.includes(currentGroupIndex) ? '❤️ Favorito' : '🤍 Favorito';
+  pulsar(favBtn);
 });
+recorridaBtn.addEventListener('click', alternarRecorrida);
 
 GROUPS.forEach((group, i) => {
   const btn = document.createElement('button');
@@ -948,12 +1056,13 @@ GROUPS.forEach((group, i) => {
   pin.append(ico, texto);
   btn.append(pin);
   if(visited.includes(i)){
-    btn.querySelector('.pin').insertAdjacentHTML('beforeend', '<span class="check">✓</span>');
+    const sello = document.createElement('span');
+    sello.className = 'check';
+    sello.textContent = '✓';
+    pin.appendChild(sello);
   }
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', () => {
     playChime();
-    spawnConfetti(e.clientX, e.clientY, group.color);
-    markVisited(i);
     openTicket(group, i);
   });
   mapFrame.appendChild(btn);
@@ -966,10 +1075,15 @@ GROUPS.forEach((group, i) => {
   li.append(punto, document.createTextNode(''));
   legend.appendChild(li);
 
-  const opt = document.createElement('option');
-  opt.value = i;
-  modalSelect.appendChild(opt);
-  group.nodos = { btn, pin, texto, li, punto, opt };
+  const opcion = document.createElement('label');
+  opcion.className = 'bailes-opcion';
+  const casilla = document.createElement('input');
+  casilla.type = 'checkbox';
+  casilla.checked = misBailes.includes(group.id);
+  casilla.addEventListener('change', () => marcarMiBaile(group.id, casilla.checked));
+  opcion.append(casilla, document.createElement('span'));
+  bailesLista.appendChild(opcion);
+  group.nodos = { btn, pin, texto, li, punto, opcion };
   pintarGrupo(group);
 });
 updateProgress();
@@ -982,79 +1096,39 @@ function pintarGrupo(g){
   n.texto.textContent = g.attraction;
   n.li.lastChild.textContent = g.attraction;
   n.punto.style.background = g.color;
-  n.opt.textContent = `${g.attraction} — ${g.theme}`;
+  n.opcion.lastChild.textContent = `${g.attraction} — ${g.theme}`;
 }
 
-// El Worker calcula el horario; sin él, el de respaldo de SHOW_CONFIG.
-function programaActual(){
-  if(estado && estado.programa) return estado.programa;
-  const inicio = new Date(SHOW_CONFIG.startDateTime).getTime();
-  const ms = SHOW_CONFIG.minutesPerAct * 60000;
-  return GROUPS.map((g, i) => ({ tipo:'acto', id:g.id, inicio: inicio + i*ms, fin: inicio + (i+1)*ms }));
-}
 const grupoDe = (id) => GROUPS.find(g => g.id === id);
 
-function updateLiveStatus(){
-  const prog = programaActual();
-  const now = Date.now() + desfaseReloj;
-  const enVivo = !!(estado && estado.enVivo);
-  let actual = enVivo ? estado.actual : prog.findIndex(p => p.inicio !== null && now >= p.inicio && now < p.fin);
-  if(actual === null || actual < 0) actual = null;
-  const ultimo = prog[prog.length-1];
-  const terminado = enVivo ? estado.terminado : (ultimo.fin !== null && now >= ultimo.fin);
-
-  document.querySelectorAll('.node').forEach(n => n.classList.remove('live'));
-  if(actual !== null){
-    const p = prog[actual];
-    if(p.tipo === 'intermedio'){
-      liveText.textContent = '🍿 Intermedio';
-    } else {
-      const g = grupoDe(p.id);
-      liveText.textContent = `Ahora en escena: ${g.attraction} — ${g.theme}`;
-      g.nodos.btn.classList.add('live');
-    }
-  } else if(terminado){
-    liveText.textContent = '✨ ¡Show finalizado! Gracias por venir';
-  } else if(prog[0].inicio === null){
-    liveText.textContent = 'Pronto el horario del show';
-  } else {
-    const mins = Math.round((prog[0].inicio - now)/60000);
-    liveText.textContent = mins > 0 ? `El show empieza en ~${mins} min` : 'El show está por comenzar';
-  }
-
-  if(miBaile !== null){
-    const g = GROUPS[miBaile];
-    const i = prog.findIndex(p => p.id === g.id);
-    const p = prog[i];
-    if(i === actual){
-      followText.textContent = `🎉 ¡Es ahora! ${g.attraction}`;
-    } else if(terminado || (p && (p.pasado || (p.fin !== null && !enVivo && now >= p.fin)))){
-      followText.textContent = `✅ ${g.attraction} ya se presentó`;
-    } else if(p && p.inicio !== null){
-      followText.textContent = `${g.attraction}: faltan ~${Math.max(0, Math.round((p.inicio - now)/60000))} min`;
-    } else {
-      followText.textContent = g.attraction;
-    }
-    followBtn.textContent = 'Cambiar';
-  } else {
-    followText.textContent = '¿Qué baile venís a ver?';
-    followBtn.textContent = 'Elegir';
-  }
+function marcarMiBaile(id, marcado){
+  misBailes = misBailes.filter(x => x !== id);
+  if(marcado) misBailes.push(id);
+  try{ localStorage.setItem('show_mis_bailes', JSON.stringify(misBailes)); }catch(e){}
+  pintarMisBailes();
 }
-setInterval(updateLiveStatus, 15000);
+function pintarMisBailes(){
+  GROUPS.forEach(g => g.nodos.btn.classList.toggle('mio', misBailes.includes(g.id)));
+  const elegidos = misBailes.map(grupoDe).filter(Boolean);
+  misBailesSeccion.hidden = !elegidos.length;
+  misBailesLista.innerHTML = '';
+  elegidos.forEach(g => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mi-baile';
+    b.textContent = `${g.nodos.punto.textContent} ${g.attraction}`;
+    b.addEventListener('click', () => openTicket(g, GROUPS.indexOf(g)));
+    misBailesLista.appendChild(b);
+  });
+  followText.textContent = !elegidos.length ? '¿Qué bailes venís a ver?' : elegidos.length === 1 ? `⭐ ${elegidos[0].attraction}` : `⭐ ${elegidos.length} bailes elegidos`;
+  followBtn.textContent = elegidos.length ? 'Cambiar' : 'Elegir';
+}
 
 function openModal(){ modal.classList.add('open'); overlay.classList.add('open'); }
 function closeModal(){ modal.classList.remove('open'); overlay.classList.remove('open'); }
 followBtn.addEventListener('click', openModal);
-modalSkip.addEventListener('click', () => { closeModal(); });
-modalSave.addEventListener('click', () => {
-  miBaile = parseInt(modalSelect.value, 10);
-  localStorage.setItem('show_miBaile', miBaile);
-  closeModal();
-  updateLiveStatus();
-});
-if(miBaile !== null){ modalSelect.value = miBaile; }
-if(!localStorage.getItem('show_miBaile') && !sessionStorage.getItem('show_bienvenida')){
+modalSave.addEventListener('click', closeModal);
+if(!misBailes.length && !localStorage.getItem('show_mis_bailes') && !sessionStorage.getItem('show_bienvenida')){
   sessionStorage.setItem('show_bienvenida', '1');
   setTimeout(openModal, 500);
 }
@@ -1068,33 +1142,41 @@ const WORKER_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname)
   ? (new URLSearchParams(location.search).get('worker') || 'http://localhost:8787')
   : null;
 const URL_REPARTO = (WORKER_LOCAL || 'https://portalalumnas.movedancea.workers.dev') + '/show-reparto';
+const URL_FOTO = URL_REPARTO.replace('/show-reparto', '/foto-show/');
+const ARCHIVO_FOTO = /^[0-9a-f]{32}\.(webp|jpg)$/;
 const ESPERA_REPARTO_MS = 6000;
 
 function repartoValido(a){
   return !!a && typeof a === 'object' && !Array.isArray(a) &&
     Object.values(a).every(l => Array.isArray(l) && l.every(n => typeof n === 'string' && n.trim()));
 }
-function aplicarReparto(atracciones){
+function aplicarReparto(atracciones, fotos = {}, deBailes = {}){
   GROUPS.forEach(g => {
-    if(!g.fijo) g.members = (atracciones[g.id] || []).map(name => ({ name }));
+    const suyas = fotos[g.id] || {};
+    if(!g.fijo) g.members = (atracciones[g.id] || []).map(name => ({ name, foto: ARCHIVO_FOTO.test(suyas[name]) ? suyas[name] : null }));
   });
+  fotosBaile = Object.fromEntries(Object.entries(deBailes).filter(([, f]) => ARCHIVO_FOTO.test(f)));
   repartoListo = true;
   if(currentGroupIndex !== null) pintarReparto(GROUPS[currentGroupIndex]);
 }
-async function cargarReparto(){
-  try{
+async function cargarReparto(version){
+  if(version === undefined) try{
     const guardado = JSON.parse(localStorage.getItem('show_reparto') || 'null');
-    if(repartoValido(guardado)) aplicarReparto(guardado);
+    const fotos = JSON.parse(localStorage.getItem('show_reparto_fotos') || '{}');
+    if(repartoValido(guardado)) aplicarReparto(guardado, fotos.fotos, fotos.fotosBaile);
   }catch(e){}
   const control = new AbortController();
   const reloj = setTimeout(() => control.abort(), ESPERA_REPARTO_MS);
   try{
-    const r = await fetch(URL_REPARTO, { cache: 'no-store', signal: control.signal });
+    const r = await fetch(URL_REPARTO + (version === undefined ? '' : `?v=${version}`), { cache: 'no-store', signal: control.signal });
     if(!r.ok) return;
-    const { atracciones } = await r.json();
+    const { atracciones, fotos, fotosBaile: deBailes } = await r.json();
     if(!repartoValido(atracciones)) return;
-    aplicarReparto(atracciones);
-    try{ localStorage.setItem('show_reparto', JSON.stringify(atracciones)); }catch(e){}
+    aplicarReparto(atracciones, fotos, deBailes);
+    try{
+      localStorage.setItem('show_reparto', JSON.stringify(atracciones));
+      localStorage.setItem('show_reparto_fotos', JSON.stringify({ fotos, fotosBaile: deBailes }));
+    }catch(e){}
   }catch(e){
     // Sin señal o error: se queda lo que ya está en pantalla.
   }finally{
@@ -1120,7 +1202,13 @@ function guardarMarcas(){ try{ localStorage.setItem('show_marcas', JSON.stringif
 
 function aplicarEstado(e, { guardado = false } = {}){
   estado = e;
-  if(!guardado) desfaseReloj = e.ahora - Date.now();
+  // Cambió una foto (se ocultó, se borró…): pedir el reparto ya. También la
+  // primera vez, porque /show-reparto sin versión puede venir de una copia de
+  // hasta 60 s, de antes del cambio.
+  if(!guardado && e.activo){
+    if(e.repartoVersion !== repartoVersion && (repartoVersion !== null || e.repartoVersion > 0)) cargarReparto(e.repartoVersion);
+    repartoVersion = e.repartoVersion;
+  }
   document.body.classList.toggle('show-apagado', !e.activo);
   if(!e.activo){ closeTicket(); return; }
   GROUPS.forEach(g => {
@@ -1144,7 +1232,7 @@ function aplicarEstado(e, { guardado = false } = {}){
     ticket.style.setProperty('--bar-color', g.color);
     pintarInteraccion();
   }
-  updateLiveStatus();
+  pintarMisBailes();
 }
 
 function programarEstado(){
@@ -1324,7 +1412,7 @@ try{
   const guardado = JSON.parse(localStorage.getItem('show_estado') || 'null');
   if(guardado && typeof guardado === 'object') aplicarEstado(guardado, { guardado: true });
 }catch(e){}
-updateLiveStatus();
+pintarMisBailes();
 cargarEstado();
 
 // Su carpeta y su scope lo limitan a /show/: el sw.js del portal, sus push

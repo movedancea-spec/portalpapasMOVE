@@ -1803,16 +1803,6 @@ overflow-wrap:anywhere;
 .mapa-interruptor{ display:flex; align-items:center; gap:10px; font-weight:600; margin:6px 0; cursor:pointer; }
 .mapa-interruptor span{ min-width:0; overflow-wrap:anywhere; }
 .mapa-interruptor input{ width:20px; height:20px; flex-shrink:0; }
-.mapa-actos{ display:flex; flex-direction:column; gap:6px; margin:8px 0 12px; }
-.mapa-acto{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; background:#fff; border:1px solid #eee; border-radius:12px; padding:6px 8px; }
-.mapa-acto.arrastrando{ opacity:.6; box-shadow:0 4px 12px rgba(0,0,0,.2); }
-.mapa-destino-arriba{ box-shadow:0 -3px 0 #ef4b9b; }
-.mapa-destino-abajo{ box-shadow:0 3px 0 #ef4b9b; }
-.mapa-asa{ cursor:grab; touch-action:none; padding:6px 8px; font-size:18px; user-select:none; }
-/* En celular el nombre ocupa su renglón y los controles bajan al siguiente. */
-.mapa-acto-nombre{ flex:1 1 calc(100% - 50px); min-width:0; font-weight:600; overflow-wrap:anywhere; }
-@media (min-width:640px){ .mapa-acto-nombre{ flex-basis:0; } }
-.mapa-min.input-texto{ width:64px; flex:0 0 64px; padding:6px; margin:0 0 0 auto; text-align:center; }
 .mapa-textos{ display:flex; flex-direction:column; gap:12px; margin-bottom:12px; }
 .mapa-texto{ display:grid; grid-template-columns:1fr 1fr 44px; gap:6px; align-items:center; }
 .mapa-texto .etiqueta-campo{ grid-column:1 / -1; margin:0; }
@@ -1824,3 +1814,20 @@ overflow-wrap:anywhere;
   .mapa-texto [data-campo="tema"]{ grid-column:1; grid-row:3; }
   .mapa-texto [data-campo="color"]{ grid-column:2; grid-row:2 / 4; }
 }
+
+/* ---------- Fotos del show ---------- */
+.fotos-lote{ display:flex; flex-direction:column; gap:8px; margin:10px 0; max-height:60vh; overflow-y:auto; }
+.foto-fila{ display:flex; gap:10px; align-items:flex-start; background:#fff; border:1px solid #eee; border-radius:12px; padding:8px; }
+.foto-fila.lista{ opacity:.6; }
+.foto-fila-mini{ width:56px; height:56px; object-fit:cover; border-radius:10px; flex-shrink:0; background:#f4f4f4; }
+.foto-fila-centro{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; overflow-wrap:anywhere; }
+.foto-fila-select{ margin:0; }
+.foto-fila-aviso{ font-size:12px; font-weight:600; color:#c2410c; }
+.foto-grupal{ border-top:1px dashed #eee; margin-top:8px; padding-top:8px; }
+.foto-alumna-fila{ border-top:1px solid #f3f3f3; margin-top:8px; padding-top:8px; }
+.foto-ventana{ position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,.7); }
+.foto-ventana[hidden]{ display:none; }
+.foto-ventana-caja{ background:#fff; border-radius:16px; padding:16px; max-width:100%; max-height:90vh; overflow:auto; display:flex; flex-direction:column; gap:10px; align-items:center; }
+.foto-ventana-caja img{ max-width:100%; max-height:70vh; border-radius:10px; }
+#canvasEncuadre{ width:min(280px, 80vw); height:auto; aspect-ratio:1; border-radius:12px; touch-action:none; cursor:grab; }
+#zoomEncuadre{ width:100%; }

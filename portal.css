@@ -1690,3 +1690,14 @@ font-weight:800;
   100%{ transform:scale(1.08); }
 }
 @media (prefers-reduced-motion: reduce){ .reaccion-btn.rebote{ animation:none; } }
+
+
+/* ---------- Foto del show ---------- */
+.bloque-foto-show{ display:flex; flex-direction:column; gap:14px; margin-bottom:16px; text-align:left; }
+.tarjeta-foto-show{ display:flex; flex-direction:column; gap:10px; align-items:center; background:#fff; border-radius:16px; padding:14px; box-shadow:0 2px 10px rgba(0,0,0,.06); }
+.tarjeta-foto-show img{ width:100%; max-width:280px; border-radius:14px; display:block; }
+.tarjeta-foto-titulo{ margin:0; font-weight:700; text-align:center; }
+.acciones-foto-show{ display:flex; flex-direction:column; gap:8px; width:100%; }
+.btn-secundario-foto{ width:100%; border:2px solid #ef4b9b; border-radius:999px; padding:10px 14px; background:#fff; color:#ef4b9b; font:inherit; font-weight:700; cursor:pointer; }
+.btn-secundario-foto:disabled{ opacity:.6; }
+.mensaje-foto-show{ margin:0 0 10px; color:#c2410c; font-weight:600; }

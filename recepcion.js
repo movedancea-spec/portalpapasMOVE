@@ -69,7 +69,7 @@ const PANTALLAS = [
 ];
 
 function mostrarPantalla(id) {
-  PANTALLAS.forEach((p) => {
+  PANTALLAS.filter((p) => el(p)).forEach((p) => {
     el(p).hidden = p !== id;
   });
   // Cada vez que se vuelve al menú se revisan los pagos por link.
@@ -3263,19 +3263,493 @@ async function guardarPago() {
 }
 
 // ==========================================
+// FOTOS DEL SHOW
+// Aquí se prepara la foto: el navegador la recorta y la achica, así al Worker
+// y a las familias solo llega lo necesario, y de paso se van los datos internos
+// de la foto (como el GPS). Foto de alumna: cuadrada, ~400 px, menos de 60 KB;
+// grupal: 1200 px de ancho. Más una JPG de hasta 1600 px solo para descargar.
+// Las 80 fotos no se abren de una vez (no cabrían en memoria): se abren al subir.
+// Lo guardado en Airtable se confirma de 10 en 10.
+// ==========================================
+const FOTO_LADO = 400;
+const FOTO_MAX_BYTES = 60 * 1024;
+const FOTO_GRUPAL_ANCHO = 1200;
+const FOTO_GRUPAL_MAX_BYTES = 300 * 1024;
+const FOTO_DESCARGA_LADO = 1600;
+const FOTO_DESCARGA_MAX_BYTES = 390 * 1024;
+const FOTOS_A_LA_VEZ = 3;
+let fotosDatos = null;
+let fotosLote = [];
+let fotoDestinoIndividual = null; // { tipo, id } de la subida de una sola foto
+let encuadreActual = null;
+
+function encuadrePorDefecto(ancho, alto) {
+  const lado = Math.min(ancho, alto);
+  // En una foto vertical la cara suele ir arriba: mejor no cortar la cabeza.
+  return { x: (ancho - lado) / 2, y: alto > ancho ? (alto - lado) * 0.2 : 0, lado };
+}
+
+function canvasABlob(canvas, tipo, calidad) {
+  return new Promise((listo) => canvas.toBlob(listo, tipo, calidad));
+}
+
+// Baja la calidad hasta que quepa. Safari no sabe crear WebP (devuelve PNG):
+// ahí sale JPG, que el Worker y el mapa también aceptan.
+async function comprimirCanvas(canvas, tipo, maxBytes) {
+  let blob = null;
+  for (let calidad = 0.82; calidad >= 0.3; calidad -= 0.08) {
+    blob = await canvasABlob(canvas, tipo, calidad);
+    if (!blob || blob.type !== tipo) return tipo === "image/webp" ? comprimirCanvas(canvas, "image/jpeg", maxBytes) : blob;
+    if (blob.size <= maxBytes) return blob;
+  }
+  return blob;
+}
+
+function dibujar(fuente, sx, sy, sw, sh, ancho, alto) {
+  const canvas = document.createElement("canvas");
+  canvas.width = ancho;
+  canvas.height = alto;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, ancho, alto);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(fuente, sx, sy, sw, sh, 0, 0, ancho, alto);
+  return canvas;
+}
+
+async function prepararFoto(file, { tipo, encuadre }) {
+  let img;
+  try {
+    img = await createImageBitmap(file);
+  } catch {
+    throw new Error("No se pudo abrir (si es HEIC, conviértela a JPG).");
+  }
+  const { width: w, height: h } = img;
+  let mini;
+  if (tipo === "baile") {
+    const ancho = Math.min(FOTO_GRUPAL_ANCHO, w);
+    mini = await comprimirCanvas(dibujar(img, 0, 0, w, h, ancho, Math.round((ancho * h) / w)), "image/webp", FOTO_GRUPAL_MAX_BYTES);
+  } else {
+    const c = encuadre || encuadrePorDefecto(w, h);
+    mini = await comprimirCanvas(dibujar(img, c.x, c.y, c.lado, c.lado, FOTO_LADO, FOTO_LADO), "image/webp", FOTO_MAX_BYTES);
+  }
+  const escala = Math.min(1, FOTO_DESCARGA_LADO / Math.max(w, h));
+  const descarga = await comprimirCanvas(dibujar(img, 0, 0, w, h, Math.round(w * escala), Math.round(h * escala)), "image/jpeg", FOTO_DESCARGA_MAX_BYTES);
+  img.close();
+  return { mini, descarga };
+}
+
+async function subirArchivosFoto({ tipo, file, encuadre }) {
+  const { mini, descarga } = await prepararFoto(file, { tipo, encuadre });
+  const form = new FormData();
+  form.set("tipo", tipo);
+  form.set("mini", mini, "mini");
+  form.set("descarga", descarga, "descarga.jpg");
+  const resp = await fetch(`${WORKER_URL}/subirFotoShow`, { method: "POST", headers: { "X-Clave-Recepcion": claveRecepcion }, body: form });
+  const datos = await resp.json().catch(() => ({}));
+  if (!resp.ok || !datos.success) throw new Error(datos.error || "No se pudo subir.");
+  return { ...datos, bytesMini: mini.size, bytesDescarga: descarga.size };
+}
+
+async function cargarFotosShow() {
+  try {
+    fotosDatos = await llamarWorker({ accion: "showFotosDatos", clave: claveRecepcion });
+    mensajeShow("mensajeFotos", "");
+  } catch (e) {
+    mensajeShow("mensajeFotos", e.message, "error");
+    return;
+  }
+  el("fotosPortalActivo").checked = fotosDatos.portalActivo;
+  pintarFotosBailes();
+  pintarFotosLote();
+  if (showAlumnaElegida) pintarFotoAlumnaAsignar();
+}
+
+const alumnaDeFotos = (id) => (fotosDatos ? fotosDatos.alumnas.find((a) => a.id === id) : null);
+
+function pintarFotoAlumnaAsignar() {
+  const a = alumnaDeFotos(showAlumnaElegida && showAlumnaElegida.id);
+  el("btnFotoAlumnaSubir").textContent = a && a.foto ? "📸 Reemplazar foto" : "📸 Subir foto";
+  el("showAlumnaFotoEstado").textContent = !a
+    ? "Sin bailes todavía: asígnale uno para poder subir su foto."
+    : !a.foto
+      ? "Sin foto."
+      : a.oculta
+        ? "Tiene foto, oculta: no sale en el mapa. Su familia sí la ve en el portal."
+        : "Tiene foto: sale en el mapa.";
+  el("btnFotoAlumnaSubir").disabled = !a;
+}
+
+el("btnFotoAlumnaSubir")?.addEventListener("click", () => {
+  fotoDestinoIndividual = { tipo: "alumna", id: showAlumnaElegida.id, mensaje: "mensajeFotoAlumna" };
+  el("inputFotoArchivo").value = "";
+  el("inputFotoArchivo").click();
+});
+
+el("inputFotoArchivo")?.addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  const destino = fotoDestinoIndividual;
+  if (!file || !destino) return;
+  try {
+    const encuadre = destino.tipo === "alumna" ? await pedirEncuadre(file) : null;
+    if (destino.tipo === "alumna" && !encuadre) return;
+    mensajeShow(destino.mensaje, "Subiendo...");
+    const s = await subirArchivosFoto({ tipo: destino.tipo, file, encuadre });
+    await llamarWorker({ accion: "showFotosConfirmar", clave: claveRecepcion, items: [{ tipo: destino.tipo, id: destino.id, mini: s.mini, descarga: s.descarga }] });
+    mensajeShow(destino.mensaje, "✅ Foto guardada.", "ok");
+    await cargarFotosShow();
+  } catch (err) {
+    mensajeShow(destino.mensaje, err.message, "error");
+  }
+});
+
+// --- Encuadre: la foto se arrastra debajo de un cuadro fijo ---
+function pintarEncuadre() {
+  const e = encuadreActual;
+  const ctx = el("canvasEncuadre").getContext("2d");
+  ctx.drawImage(e.img, e.x, e.y, e.lado, e.lado, 0, 0, 280, 280);
+}
+function limitarEncuadre() {
+  const e = encuadreActual;
+  e.x = Math.max(0, Math.min(e.img.width - e.lado, e.x));
+  e.y = Math.max(0, Math.min(e.img.height - e.lado, e.y));
+}
+function pedirEncuadre(file, previo) {
+  return new Promise(async (listo, falla) => {
+    let img;
+    try {
+      img = await createImageBitmap(file);
+    } catch {
+      falla(new Error("No se pudo abrir (si es HEIC, conviértela a JPG)."));
+      return;
+    }
+    const base = previo || encuadrePorDefecto(img.width, img.height);
+    encuadreActual = { img, ...base, zoom: Math.min(img.width, img.height) / base.lado, listo };
+    el("zoomEncuadre").value = encuadreActual.zoom;
+    pintarEncuadre();
+    el("ventanaEncuadre").hidden = false;
+  });
+}
+function cerrarEncuadre(valor) {
+  const e = encuadreActual;
+  el("ventanaEncuadre").hidden = true;
+  encuadreActual = null;
+  if (!e) return;
+  e.img.close();
+  e.listo(valor);
+}
+el("btnEncuadreListo")?.addEventListener("click", () => {
+  const { x, y, lado } = encuadreActual;
+  cerrarEncuadre({ x, y, lado });
+});
+el("btnEncuadreCancelar")?.addEventListener("click", () => cerrarEncuadre(null));
+el("zoomEncuadre")?.addEventListener("input", (ev) => {
+  const e = encuadreActual;
+  const centroX = e.x + e.lado / 2;
+  const centroY = e.y + e.lado / 2;
+  e.zoom = Number(ev.target.value);
+  e.lado = Math.min(e.img.width, e.img.height) / e.zoom;
+  e.x = centroX - e.lado / 2;
+  e.y = centroY - e.lado / 2;
+  limitarEncuadre();
+  pintarEncuadre();
+});
+el("canvasEncuadre")?.addEventListener("pointerdown", (ev) => {
+  const lienzo = ev.currentTarget;
+  lienzo.setPointerCapture(ev.pointerId);
+  let px = ev.clientX;
+  let py = ev.clientY;
+  const mover = (m) => {
+    const e = encuadreActual;
+    const escala = e.lado / lienzo.clientWidth;
+    e.x -= (m.clientX - px) * escala;
+    e.y -= (m.clientY - py) * escala;
+    px = m.clientX;
+    py = m.clientY;
+    limitarEncuadre();
+    pintarEncuadre();
+  };
+  const soltar = () => {
+    lienzo.removeEventListener("pointermove", mover);
+    lienzo.removeEventListener("pointerup", soltar);
+    lienzo.removeEventListener("pointercancel", soltar);
+  };
+  lienzo.addEventListener("pointermove", mover);
+  lienzo.addEventListener("pointerup", soltar);
+  lienzo.addEventListener("pointercancel", soltar);
+});
+
+// --- Subida masiva ---
+function normalizarNombreFoto(texto) {
+  return String(texto || "")
+    .replace(/\.[a-z0-9]{2,5}$/i, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function emparejarFoto(nombreArchivo) {
+  const buscado = normalizarNombreFoto(nombreArchivo);
+  const candidatas = fotosDatos.alumnas.filter((a) => normalizarNombreFoto(a.nombreShow) === buscado || normalizarNombreFoto(a.nombre) === buscado);
+  return candidatas.length === 1 ? candidatas[0].id : "";
+}
+
+el("btnFotosElegir")?.addEventListener("click", () => {
+  el("inputFotosArchivos").value = "";
+  el("inputFotosArchivos").click();
+});
+
+el("inputFotosArchivos")?.addEventListener("change", async (e) => {
+  if (!fotosDatos) await cargarFotosShow();
+  if (!fotosDatos) return;
+  fotosLote.forEach((f) => URL.revokeObjectURL(f.url));
+  fotosLote = [...e.target.files].map((file) => ({ file, url: URL.createObjectURL(file), alumnaId: emparejarFoto(file.name), encuadre: null, estado: "", error: "" }));
+  mensajeShow("mensajeFotosLote", "");
+  pintarFotosLote();
+});
+
+function pintarFotosLote() {
+  const cont = el("listaFotosLote");
+  cont.innerHTML = "";
+  const pendientes = fotosLote.filter((f) => f.estado !== "lista");
+  el("btnFotosSubir").hidden = !pendientes.length;
+  if (!fotosLote.length || !fotosDatos) return;
+  const usos = new Map();
+  pendientes.forEach((f) => f.alumnaId && usos.set(f.alumnaId, (usos.get(f.alumnaId) || 0) + 1));
+  fotosLote.forEach((f, i) => {
+    const fila = crearEl("div", "foto-fila" + (f.estado === "lista" ? " lista" : ""));
+    const mini = crearEl("img", "foto-fila-mini");
+    mini.loading = "lazy";
+    mini.src = f.url;
+    mini.alt = "";
+    const centro = crearEl("div", "foto-fila-centro");
+    centro.appendChild(crearEl("span", "tarjeta-resultado-detalle", f.file.name));
+    if (f.estado === "lista") {
+      centro.appendChild(crearEl("span", "show-tarjeta-nombre", `✅ ${alumnaDeFotos(f.alumnaId)?.nombreShow || "Guardada"}`));
+    } else {
+      const select = crearEl("select", "input-select foto-fila-select");
+      select.setAttribute("aria-label", `Alumna de ${f.file.name}`);
+      select.appendChild(new Option("— Elegir alumna —", ""));
+      fotosDatos.alumnas.forEach((a) => select.appendChild(new Option(`${a.nombreShow}${a.foto ? " (reemplaza)" : ""}`, a.id)));
+      select.value = f.alumnaId;
+      select.addEventListener("change", () => {
+        f.alumnaId = select.value;
+        pintarFotosLote();
+      });
+      centro.appendChild(select);
+      const aviso = !f.alumnaId ? "⚠️ Sin emparejar" : usos.get(f.alumnaId) > 1 ? "⚠️ Hay otra foto para esta alumna" : "";
+      if (f.error || aviso) centro.appendChild(crearEl("span", "foto-fila-aviso", f.error || aviso));
+      const acciones = crearEl("div", "show-acciones");
+      const ajustar = crearEl("button", "btn-secundario btn-chico", "✂️ Ajustar");
+      ajustar.type = "button";
+      ajustar.addEventListener("click", async () => {
+        try {
+          const nuevo = await pedirEncuadre(f.file, f.encuadre);
+          if (nuevo) f.encuadre = nuevo;
+        } catch (e) {
+          f.error = e.message;
+          pintarFotosLote();
+        }
+      });
+      const quitar = crearEl("button", "btn-secundario btn-chico show-btn-peligro", "✕");
+      quitar.type = "button";
+      quitar.addEventListener("click", () => {
+        URL.revokeObjectURL(f.url);
+        fotosLote.splice(i, 1);
+        pintarFotosLote();
+      });
+      acciones.append(ajustar, quitar);
+      centro.appendChild(acciones);
+    }
+    fila.append(mini, centro);
+    cont.appendChild(fila);
+  });
+}
+
+el("btnFotosSubir")?.addEventListener("click", async () => {
+  const conAlumna = fotosLote.filter((f) => f.estado !== "lista" && f.alumnaId);
+  const usadas = new Set();
+  const lote = conAlumna.filter((f) => !usadas.has(f.alumnaId) && usadas.add(f.alumnaId));
+  if (!lote.length) return mensajeShow("mensajeFotosLote", "Elige la alumna de cada foto.", "error");
+  const boton = el("btnFotosSubir");
+  boton.disabled = true;
+  let hechas = 0;
+  let porConfirmar = [];
+  const confirmar = async () => {
+    const items = porConfirmar.splice(0, 10);
+    if (!items.length) return;
+    await llamarWorker({ accion: "showFotosConfirmar", clave: claveRecepcion, items: items.map((x) => x.item) });
+    items.forEach((x) => { x.foto.estado = "lista"; hechas++; });
+    mensajeShow("mensajeFotosLote", `Subiendo... ${hechas} de ${lote.length}`);
+  };
+  let siguiente = 0;
+  const trabajador = async () => {
+    while (siguiente < lote.length) {
+      const foto = lote[siguiente++];
+      foto.error = "";
+      for (let intento = 1; intento <= 2 && foto.estado !== "subida"; intento++) {
+        try {
+          const s = await subirArchivosFoto({ tipo: "alumna", file: foto.file, encuadre: foto.encuadre });
+          foto.estado = "subida";
+          porConfirmar.push({ foto, item: { tipo: "alumna", id: foto.alumnaId, mini: s.mini, descarga: s.descarga } });
+        } catch (e) {
+          foto.error = e.message;
+        }
+      }
+      if (porConfirmar.length >= 10) await confirmar().catch((e) => { mensajeShow("mensajeFotosLote", e.message, "error"); });
+    }
+  };
+  await Promise.all(Array.from({ length: FOTOS_A_LA_VEZ }, trabajador));
+  while (porConfirmar.length) {
+    try {
+      await confirmar();
+    } catch (e) {
+      mensajeShow("mensajeFotosLote", e.message, "error");
+      break;
+    }
+  }
+  const fallas = lote.filter((f) => f.estado !== "lista").length;
+  lote.forEach((f) => { if (f.estado === "subida") f.estado = ""; });
+  await cargarFotosShow();
+  boton.disabled = false;
+  mensajeShow("mensajeFotosLote", fallas ? `${hechas} guardadas, ${fallas} con error: revísalas abajo.` : `✅ ${hechas} fotos guardadas.`, fallas ? "error" : "ok");
+});
+
+// --- Vista por baile ---
+async function verFotoRecepcion(archivo, nombre) {
+  try {
+    const resp = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "showFotoRecepcion", clave: claveRecepcion, archivo }) });
+    if (!resp.ok) throw new Error("No se pudo abrir la foto.");
+    el("imgVentanaFoto").src = URL.createObjectURL(await resp.blob());
+    el("imgVentanaFoto").alt = nombre;
+    el("ventanaFoto").hidden = false;
+  } catch (e) {
+    mensajeShow("mensajeFotos", e.message, "error");
+  }
+}
+el("btnVentanaFotoCerrar")?.addEventListener("click", () => {
+  URL.revokeObjectURL(el("imgVentanaFoto").src);
+  el("imgVentanaFoto").removeAttribute("src");
+  el("ventanaFoto").hidden = true;
+});
+
+async function accionFoto(boton, accion, datos) {
+  boton.disabled = true;
+  try {
+    await llamarWorker({ accion, clave: claveRecepcion, ...datos });
+    await cargarFotosShow();
+  } catch (e) {
+    mensajeShow("mensajeFotos", e.message, "error");
+    boton.disabled = false;
+  }
+}
+
+function botonFoto(texto, alTocar, peligro) {
+  const b = crearEl("button", "btn-secundario btn-chico" + (peligro ? " show-btn-peligro" : ""), texto);
+  b.type = "button";
+  b.addEventListener("click", () => alTocar(b));
+  return b;
+}
+
+// Dos toques, sin confirm(): borrar no se puede deshacer.
+function botonBorrarFoto(tipo, id) {
+  let armado = false;
+  return botonFoto("🗑", (b) => {
+    if (armado) return accionFoto(b, "showFotoBorrar", { tipo, id });
+    armado = true;
+    b.textContent = "¿Borrar?";
+    setTimeout(() => { armado = false; b.textContent = "🗑"; }, 4000);
+  }, true);
+}
+
+function filaFotoAlumna(a) {
+  const fila = crearEl("div", "foto-alumna-fila");
+  const texto = crearEl("div", "foto-fila-centro");
+  texto.appendChild(crearEl("span", "show-tarjeta-nombre", `${a.foto ? "📸" : "⬜"} ${a.nombreShow}${a.estado ? ` (${a.estado})` : ""}`));
+  if (a.oculta) texto.appendChild(crearEl("span", "tarjeta-resultado-detalle", "🙈 Oculta"));
+  const acciones = crearEl("div", "show-acciones");
+  acciones.appendChild(botonFoto(a.foto ? "Reemplazar" : "Subir foto", () => {
+    fotoDestinoIndividual = { tipo: "alumna", id: a.id, mensaje: "mensajeFotos" };
+    el("inputFotoArchivo").value = "";
+    el("inputFotoArchivo").click();
+  }));
+  if (a.foto) {
+    acciones.append(
+      botonFoto("Ver", () => verFotoRecepcion(a.foto, a.nombreShow)),
+      botonFoto(a.oculta ? "Mostrar" : "Ocultar foto", (b) => accionFoto(b, "showFotoOcultar", { id: a.id, oculta: !a.oculta })),
+      botonBorrarFoto("alumna", a.id)
+    );
+  }
+  fila.append(texto, acciones);
+  return fila;
+}
+
+function pintarFotosBailes() {
+  const cont = el("listaFotosBailes");
+  cont.innerHTML = "";
+  const filtro = el("selectFotosFiltro").value;
+  const pasa = (a) =>
+    !filtro || (filtro === "sinFoto" && !a.foto) || (filtro === "ocultas" && a.oculta);
+  fotosDatos.bailes.forEach((b) => {
+    const alumnas = b.alumnas.map(alumnaDeFotos).filter(Boolean);
+    const tarjeta = crearEl("div", "show-tarjeta" + (b.activo ? "" : " inactivo"));
+    tarjeta.appendChild(crearEl("span", "show-tarjeta-nombre", `${b.nombre}${b.atraccion ? ` · 🗺️ ${b.atraccion}` : ""}`));
+    const conFoto = alumnas.filter((a) => a.foto).length;
+    tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", `📸 ${conFoto} de ${alumnas.length} con foto`));
+    const grupal = crearEl("div", "foto-grupal");
+    grupal.appendChild(crearEl("span", "tarjeta-resultado-detalle", b.foto ? "Foto grupal:" : "Sin foto grupal"));
+    const acciones = crearEl("div", "show-acciones");
+    acciones.appendChild(botonFoto(b.foto ? "Reemplazar grupal" : "Subir grupal", () => {
+      fotoDestinoIndividual = { tipo: "baile", id: b.id, mensaje: "mensajeFotos" };
+      el("inputFotoArchivo").value = "";
+      el("inputFotoArchivo").click();
+    }));
+    if (b.foto) {
+      acciones.append(botonFoto("Ver", () => verFotoRecepcion(b.foto, b.nombre)), botonBorrarFoto("baile", b.id));
+      const casilla = crearEl("label", "mapa-interruptor");
+      const input = crearEl("input");
+      input.type = "checkbox";
+      input.checked = b.publica;
+      input.addEventListener("change", () => accionFoto(input, "showFotoBailePublica", { id: b.id, publica: input.checked }));
+      casilla.append(input, crearEl("span", "", "Mostrar en el mapa"));
+      grupal.append(acciones, casilla);
+    } else {
+      grupal.appendChild(acciones);
+    }
+    tarjeta.appendChild(grupal);
+    alumnas.filter(pasa).forEach((a) => tarjeta.appendChild(filaFotoAlumna(a)));
+    cont.appendChild(tarjeta);
+  });
+}
+el("selectFotosFiltro")?.addEventListener("change", () => fotosDatos && pintarFotosBailes());
+
+el("fotosPortalActivo")?.addEventListener("change", async (e) => {
+  const casilla = e.currentTarget;
+  casilla.disabled = true;
+  try {
+    await llamarWorker({ accion: "showFotosPortal", clave: claveRecepcion, activo: casilla.checked });
+  } catch (err) {
+    casilla.checked = !casilla.checked;
+    mensajeShow("mensajeFotos", err.message, "error");
+  } finally {
+    casilla.disabled = false;
+  }
+});
+
+// ==========================================
 // MAPA DEL SHOW
-// Horario, en vivo, textos, votos y reacciones de academiamovedance.com/show/.
+// Encendido, textos, votos y reacciones de academiamovedance.com/show/.
 // Todo lo guarda y lo calcula el Worker (acciones mapaShow*): aquí no se suma
-// ni se calcula nada. Lo que se va a guardar (orden, textos) vive en memoria
-// hasta tocar Guardar, por eso el refresco solo repinta En vivo y Votos.
+// ni se calcula nada. Los textos viven en memoria hasta tocar Guardar, por eso
+// el refresco solo repinta Votos.
 // ==========================================
 let mapaDatos = null;
-let mapaPrograma = null; // copia que se edita en ⏱️ Horario
-let mapaPestana = "Vivo";
+let mapaPestana = "Votos";
 let mapaConfirmar = "";
 
 function hayAlgoQueMirarMapa() {
-  return claveRecepcion && !el("pantallaMapaShow").hidden && !document.hidden && (mapaPestana === "Vivo" || mapaPestana === "Votos");
+  return claveRecepcion && !el("pantallaMapaShow").hidden && !document.hidden && mapaPestana === "Votos";
 }
 setInterval(() => {
   if (hayAlgoQueMirarMapa()) cargarMapaShow({ soloVivo: true }).catch(() => {});
@@ -3283,7 +3757,6 @@ setInterval(() => {
 
 function abrirMapaShow() {
   mensajeShow("mensajeMapaShow", "");
-  mapaPrograma = null;
   cambiarPestanaMapa(mapaPestana);
   cargarMapaShow().catch((e) => mensajeShow("mensajeMapaShow", e.message, "error"));
 }
@@ -3297,7 +3770,7 @@ function cambiarPestanaMapa(nombre) {
   document.querySelectorAll("[data-mapa-pestana]").forEach((chip) => {
     chip.classList.toggle("activo", chip.dataset.mapaPestana === nombre);
   });
-  ["Vivo", "Horario", "Textos", "Votos"].forEach((n) => {
+  ["Textos", "Votos"].forEach((n) => {
     el("vistaMapa" + n).hidden = n !== nombre;
   });
 }
@@ -3309,14 +3782,10 @@ async function cargarMapaShow({ soloVivo = false } = {}) {
 function aplicarMapaShow(d, { soloVivo = false } = {}) {
   mapaDatos = d;
   el("mapaActivo").checked = d.config.activo;
-  pintarMapaVivo();
   pintarMapaVotos();
   if (soloVivo) return;
-  mapaPrograma = d.config.programa.map((p) => ({ ...p }));
-  el("inputMapaInicio").value = d.config.inicio ? new Date(d.config.inicio - 6 * 3600000).toISOString().slice(0, 16) : "";
   el("inputMapaRefresco").value = d.config.refrescoSeg;
   el("inputMapaRefrescoAtento").value = d.config.refrescoAtentoSeg;
-  pintarMapaActos();
   pintarMapaTextos();
 }
 
@@ -3324,129 +3793,6 @@ function nombreMapa(id) {
   const t = mapaDatos.config.textos[id] || {};
   return t.nombre || id;
 }
-function nombreItemMapa(p) {
-  return p.tipo === "intermedio" ? "🍿 Intermedio" : nombreMapa(p.id);
-}
-
-function pintarMapaVivo() {
-  const d = mapaDatos;
-  const lista = d.programa;
-  const actual = d.actual;
-  el("mapaAhora").textContent = d.terminado
-    ? "✨ Show finalizado"
-    : actual !== null
-      ? `Ahora: ${nombreItemMapa(lista[actual])}`
-      : d.enVivo
-        ? "Sin acto en escena"
-        : "El show todavía no empieza";
-  const iSigue = d.enVivo ? d.config.vivo.idx + 1 : actual === null ? 0 : actual + 1;
-  el("mapaSigue").textContent = lista[iSigue] ? `Sigue: ${nombreItemMapa(lista[iSigue])}` : "";
-  el("mapaSigue").textContent += d.enVivo ? " · En vivo" : " · Automático, según el horario";
-  el("btnMapaSiguiente").textContent = d.enVivo ? "▶️ Siguiente acto" : "▶️ Empezar: primer acto";
-  el("btnMapaSiguiente").disabled = d.terminado;
-  el("btnMapaAnterior").disabled = !d.enVivo;
-  el("btnMapaAutomatico").disabled = !d.enVivo;
-}
-
-async function mandarActoMapa(movimiento, boton) {
-  boton.disabled = true;
-  mensajeShow("mensajeMapaShow", "");
-  try {
-    const desde = mapaDatos.config.vivo ? mapaDatos.config.vivo.idx : -1;
-    aplicarMapaShow(await llamarWorker({ accion: "mapaShowActo", clave: claveRecepcion, movimiento, desde }), { soloVivo: true });
-  } catch (e) {
-    mensajeShow("mensajeMapaShow", e.message, "error");
-    await cargarMapaShow({ soloVivo: true }).catch(() => {});
-  }
-  pintarMapaVivo();
-}
-el("btnMapaSiguiente").addEventListener("click", (e) => mandarActoMapa("siguiente", e.currentTarget));
-el("btnMapaAnterior").addEventListener("click", (e) => mandarActoMapa("anterior", e.currentTarget));
-el("btnMapaAutomatico").addEventListener("click", (e) => mandarActoMapa("automatico", e.currentTarget));
-
-function moverActoMapa(i, delta) {
-  const j = i + delta;
-  if (j < 0 || j >= mapaPrograma.length) return;
-  [mapaPrograma[i], mapaPrograma[j]] = [mapaPrograma[j], mapaPrograma[i]];
-  pintarMapaActos();
-}
-
-function pintarMapaActos() {
-  const cont = el("listaMapaActos");
-  cont.innerHTML = "";
-  mapaPrograma.forEach((p, i) => {
-    const fila = crearEl("div", "mapa-acto");
-    fila.item = p;
-    const asa = crearEl("span", "mapa-asa", "☰");
-    asa.addEventListener("pointerdown", (e) => empezarArrastreActo(e, fila, asa));
-    const nombre = crearEl("span", "mapa-acto-nombre", `${i + 1}. ${nombreItemMapa(p)}`);
-    const min = crearEl("input", "input-texto mapa-min");
-    min.type = "number";
-    min.min = "1";
-    min.max = "60";
-    min.value = p.min;
-    min.setAttribute("aria-label", "Minutos");
-    min.addEventListener("input", () => { p.min = Number(min.value); });
-    const arriba = crearEl("button", "btn-secundario btn-chico", "↑");
-    arriba.type = "button";
-    arriba.addEventListener("click", () => moverActoMapa(i, -1));
-    const abajo = crearEl("button", "btn-secundario btn-chico", "↓");
-    abajo.type = "button";
-    abajo.addEventListener("click", () => moverActoMapa(i, 1));
-    fila.append(asa, nombre, min, crearEl("span", "tarjeta-resultado-detalle", "min"), arriba, abajo);
-    if (p.tipo === "intermedio") {
-      const quitar = crearEl("button", "btn-secundario btn-chico show-btn-peligro", "✕");
-      quitar.type = "button";
-      quitar.addEventListener("click", () => {
-        mapaPrograma.splice(i, 1);
-        pintarMapaActos();
-      });
-      fila.append(quitar);
-    }
-    cont.appendChild(fila);
-  });
-}
-
-// La fila no se mueve hasta soltar: mover un elemento dentro de la página hace
-// que el navegador pierda el dedo a media arrastrada. Mientras tanto una línea
-// marca dónde va a caer.
-function empezarArrastreActo(e, fila, asa) {
-  e.preventDefault();
-  asa.setPointerCapture(e.pointerId);
-  fila.classList.add("arrastrando");
-  const cont = el("listaMapaActos");
-  const filas = [...cont.children];
-  const origen = filas.indexOf(fila);
-  let destino = origen;
-  const mover = (ev) => {
-    filas.forEach((f) => f.classList.remove("mapa-destino-arriba", "mapa-destino-abajo"));
-    const encima = filas.findIndex((f) => {
-      const r = f.getBoundingClientRect();
-      return ev.clientY < r.top + r.height / 2;
-    });
-    const hueco = encima === -1 ? filas.length : encima; // antes de esta fila
-    destino = hueco > origen ? hueco - 1 : hueco;
-    if (hueco < filas.length) filas[hueco].classList.add("mapa-destino-arriba");
-    else filas[filas.length - 1].classList.add("mapa-destino-abajo");
-  };
-  const soltar = () => {
-    asa.removeEventListener("pointermove", mover);
-    asa.removeEventListener("pointerup", soltar);
-    asa.removeEventListener("pointercancel", soltar);
-    const [item] = mapaPrograma.splice(origen, 1);
-    mapaPrograma.splice(destino, 0, item);
-    pintarMapaActos();
-  };
-  asa.addEventListener("pointermove", mover);
-  asa.addEventListener("pointerup", soltar);
-  asa.addEventListener("pointercancel", soltar);
-}
-
-el("btnMapaIntermedio").addEventListener("click", () => {
-  mapaPrograma.splice(Math.floor(mapaPrograma.length / 2), 0, { tipo: "intermedio", min: 15 });
-  pintarMapaActos();
-});
-
 async function guardarMapa(boton, accion, datos, aviso) {
   boton.disabled = true;
   mensajeShow("mensajeMapaShow", "");
@@ -3459,10 +3805,6 @@ async function guardarMapa(boton, accion, datos, aviso) {
     boton.disabled = false;
   }
 }
-el("btnMapaGuardarHorario").addEventListener("click", (e) =>
-  guardarMapa(e.currentTarget, "mapaShowGuardarHorario", { inicio: el("inputMapaInicio").value, programa: mapaPrograma }, "✅ Horario guardado.")
-);
-
 function pintarMapaTextos() {
   const cont = el("listaMapaTextos");
   cont.innerHTML = "";
@@ -3638,10 +3980,14 @@ function cambiarPestanaShow(nombre) {
   document.querySelectorAll("[data-show-pestana]").forEach((chip) => {
     chip.classList.toggle("activo", chip.dataset.showPestana === nombre);
   });
-  ["Catalogo", "Asignar", "Resumen", "Trajes", "Recibir", "Pagos", "Modista"].forEach((n) => {
-    el("vistaShow" + n).hidden = n !== nombre;
+  // "?.": hasta 10 min tras publicar, un recepcion.html viejo en caché puede
+  // cargar este archivo nuevo (GitHub Pages ignora el ?v=).
+  ["Catalogo", "Asignar", "Fotos", "Resumen", "Trajes", "Recibir", "Pagos", "Modista"].forEach((n) => {
+    const vista = el("vistaShow" + n);
+    if (vista) vista.hidden = n !== nombre;
   });
   if (nombre === "Asignar" && !showAlumnas) cargarAlumnasShow();
+  if ((nombre === "Asignar" || nombre === "Fotos") && el("vistaShowFotos")) cargarFotosShow();
   if (nombre === "Pagos") cargarPagosModista();
   if (nombre === "Modista") cargarLinkModista();
 }
@@ -3985,6 +4331,10 @@ function elegirAlumnaShow(alumna) {
   mensajeShow("mensajeNombreMapa", "");
   el("inputShowNombreMapa").value = alumna.nombreShow || "";
   el("inputShowNombreMapa").placeholder = alumna.nombreShowAuto || "";
+  if (el("mensajeFotoAlumna")) {
+    mensajeShow("mensajeFotoAlumna", "");
+    pintarFotoAlumnaAsignar();
+  }
   renderSelectGrupoAlumna();
   renderAlumnaShow();
 }

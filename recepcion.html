@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=mapa-show-v2" />
+<link rel="stylesheet" href="recepcion.css?v=show-fotos-v1" />
 </head>
 <body>
 
@@ -709,6 +709,28 @@
     <div id="listaAmonestaciones"><p class="lista-vacia">Cargando...</p></div>
   </section>
 
+  <!-- Ajustar el encuadre y ver una foto: sirven para varias pantallas. -->
+  <input type="file" id="inputFotosArchivos" accept="image/jpeg,image/png,image/webp,image/heic" multiple hidden />
+  <input type="file" id="inputFotoArchivo" accept="image/jpeg,image/png,image/webp,image/heic" hidden />
+  <div class="foto-ventana" id="ventanaEncuadre" hidden>
+    <div class="foto-ventana-caja">
+      <p class="subtitulo">Ajustar el encuadre</p>
+      <p class="pista-campo">Arrastra la foto y usa el zoom.</p>
+      <canvas id="canvasEncuadre" width="280" height="280"></canvas>
+      <input type="range" id="zoomEncuadre" min="1" max="4" step="0.05" value="1" aria-label="Zoom" />
+      <div class="show-acciones">
+        <button class="btn-secundario btn-chico" id="btnEncuadreListo" type="button">Usar este encuadre</button>
+        <button class="btn-secundario btn-chico" id="btnEncuadreCancelar" type="button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  <div class="foto-ventana" id="ventanaFoto" hidden>
+    <div class="foto-ventana-caja">
+      <img id="imgVentanaFoto" alt="" />
+      <button class="btn-secundario btn-chico" id="btnVentanaFotoCerrar" type="button">Cerrar</button>
+    </div>
+  </div>
+
   <!-- ============ PANTALLA: MAPA DEL SHOW ============ -->
   <!-- Horario, en vivo, textos, votos y reacciones de academiamovedance.com/show/.
        Lo guarda el Worker (ver recepcion.js, sección MAPA DEL SHOW). -->
@@ -722,37 +744,10 @@
       <p class="pista-campo">Apagado muestra “La temporada del show terminó, ¡gracias!”. Se apaga solo el 1 de enero.</p>
     </div>
     <div class="chips-contenedor show-pestanas">
-      <button class="chip activo" type="button" data-mapa-pestana="Vivo">🎬 En vivo</button>
-      <button class="chip" type="button" data-mapa-pestana="Horario">⏱️ Horario</button>
+      <button class="chip activo" type="button" data-mapa-pestana="Votos">🗳️ Votos y reacciones</button>
       <button class="chip" type="button" data-mapa-pestana="Textos">✏️ Textos</button>
-      <button class="chip" type="button" data-mapa-pestana="Votos">🗳️ Votos y reacciones</button>
     </div>
     <p class="mensaje-form" id="mensajeMapaShow"></p>
-
-    <div id="vistaMapaVivo">
-      <div class="caja-form-ingreso">
-        <p class="subtitulo" id="mapaAhora"></p>
-        <p class="pista-campo" id="mapaSigue"></p>
-        <button class="btn-grande btn-siguiente" id="btnMapaSiguiente" type="button">▶️ Siguiente acto</button>
-        <div class="show-acciones">
-          <button class="btn-secundario btn-chico" id="btnMapaAnterior" type="button">◀️ Acto anterior</button>
-          <button class="btn-secundario btn-chico" id="btnMapaAutomatico" type="button">↩️ Volver a automático</button>
-        </div>
-        <p class="pista-campo">Toca “Siguiente acto” cuando empieza cada uno. El mapa se actualiza en unos 20 segundos.</p>
-      </div>
-    </div>
-
-    <div id="vistaMapaHorario" hidden>
-      <div class="caja-form-ingreso">
-        <p class="etiqueta-campo">Fecha y hora de inicio (Guatemala)</p>
-        <input type="datetime-local" id="inputMapaInicio" class="input-texto" />
-        <p class="etiqueta-campo">Orden de los actos</p>
-        <p class="pista-campo">Arrastra desde ☰ o usa las flechas. Los minutos van al lado.</p>
-        <div id="listaMapaActos" class="mapa-actos"></div>
-        <button class="btn-secundario btn-chico" id="btnMapaIntermedio" type="button">➕ Agregar intermedio</button>
-        <button class="btn-grande btn-siguiente" id="btnMapaGuardarHorario" type="button">Guardar horario</button>
-      </div>
-    </div>
 
     <div id="vistaMapaTextos" hidden>
       <div class="caja-form-ingreso">
@@ -762,7 +757,7 @@
       </div>
     </div>
 
-    <div id="vistaMapaVotos" hidden>
+    <div id="vistaMapaVotos">
       <div class="caja-form-ingreso">
         <label class="mapa-interruptor"><input type="checkbox" id="mapaVotacion" /> <span>Votación abierta</span></label>
         <label class="mapa-interruptor"><input type="checkbox" id="mapaResultados" /> <span>Mostrar resultados al público</span></label>
@@ -799,6 +794,7 @@
     <div class="chips-contenedor show-pestanas">
       <button class="chip activo" type="button" data-show-pestana="Catalogo">💃 Bailes</button>
       <button class="chip" type="button" data-show-pestana="Asignar">🩰 Asignar alumnas</button>
+      <button class="chip" type="button" data-show-pestana="Fotos">📸 Fotos</button>
       <button class="chip" type="button" data-show-pestana="Resumen">📊 Resumen</button>
       <button class="chip" type="button" data-show-pestana="Trajes">👗 Estado trajes</button>
       <button class="chip" type="button" data-show-pestana="Recibir">🧵 Recibir trajes</button>
@@ -845,6 +841,12 @@
         <button class="btn-enlace btn-enlace-arriba" id="btnShowCambiarAlumna" type="button">← Escoger otra alumna</button>
         <p class="show-alumna-nombre" id="showAlumnaNombre"></p>
 
+        <p class="etiqueta-campo">Foto para el show</p>
+        <p class="pista-campo" id="showAlumnaFotoEstado"></p>
+        <div class="show-acciones">
+          <button class="btn-secundario btn-chico" id="btnFotoAlumnaSubir" type="button">📸 Subir foto</button>
+        </div>
+        <p class="mensaje-form" id="mensajeFotoAlumna"></p>
         <p class="etiqueta-campo">Nombre para el show</p>
         <input type="text" id="inputShowNombreMapa" class="input-texto" maxlength="40" autocomplete="off" />
         <p class="pista-campo">Es el que sale en el mapa público. Vacío = nombre + inicial del apellido.</p>
@@ -862,6 +864,31 @@
         <button class="btn-grande btn-siguiente" id="btnGuardarAsignacionesShow" type="button">Guardar bailes</button>
         <p class="mensaje-form" id="mensajeAsignarShow"></p>
       </div>
+    </div>
+
+    <!-- Fotos: subida masiva, ocultar y foto grupal.
+         Ver recepcion.js, sección FOTOS DEL SHOW. -->
+    <div id="vistaShowFotos" hidden>
+      <div class="caja-form-ingreso">
+        <label class="mapa-interruptor"><input type="checkbox" id="fotosPortalActivo" /> <span>Sección «📸 Foto del show» en el portal</span></label>
+        <p class="pista-campo">Ahí cada familia descarga su foto y la grupal de sus bailes. Se apaga sola el 1 de enero.</p>
+      </div>
+      <div class="caja-form-ingreso">
+        <p class="subtitulo">Subir muchas fotos</p>
+        <p class="pista-campo">Nómbralas como el “Nombre para el show”, por ejemplo <b>Sofia M.jpg</b>. Antes de subir verás con quién se emparejó cada una. Salen en el mapa al guardarlas.</p>
+        <button class="btn-secundario" id="btnFotosElegir" type="button">📁 Elegir fotos</button>
+        <div id="listaFotosLote" class="fotos-lote"></div>
+        <button class="btn-grande btn-siguiente" id="btnFotosSubir" type="button" hidden>Subir fotos</button>
+        <p class="mensaje-form" id="mensajeFotosLote"></p>
+      </div>
+      <p class="etiqueta-campo">Ver</p>
+      <select id="selectFotosFiltro" class="input-select">
+        <option value="">Todas las alumnas</option>
+        <option value="sinFoto">Sin foto</option>
+        <option value="ocultas">Ocultas</option>
+      </select>
+      <p class="mensaje-form" id="mensajeFotos"></p>
+      <div id="listaFotosBailes" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
     </div>
 
     <!-- Resumen: por cada baile, cuántas alumnas y cuáles -->
@@ -1474,7 +1501,7 @@
 
 </div>
 
-<script src="recepcion.js?v=mapa-show-v1"></script>
+<script src="recepcion.js?v=show-fotos-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

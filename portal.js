@@ -167,6 +167,7 @@ function mostrarPantalla(id) {
     "pantallaMensajesMaestra",
     "pantallaReconocimientos",
     "pantallaEstadoTrajes",
+    "pantallaFotoShow",
     "pantallaAvisosEntradas",
     "pantallaInfoImportante",
     "pantallaSelectorMaestra",
@@ -174,7 +175,9 @@ function mostrarPantalla(id) {
     "pantallaEvalMaestras",
     "pantallaEvalForm",
   ];
-  pantallas.forEach((p) => {
+  // Hasta 10 min tras publicar, un index.html viejo en caché puede cargar este
+  // portal.js nuevo (GitHub Pages ignora el ?v=): lo que aún no existe se salta.
+  pantallas.filter((p) => el(p)).forEach((p) => {
     el(p).hidden = p !== id;
   });
   // Si nos vamos de la pantalla de chat, dejamos de revisar mensajes
@@ -495,6 +498,7 @@ function mostrarPerfilDesdeDatos(datos) {
   // Igual: el botón "👗 Estado de trajes" solo aparece si Recepción lo
   // encendió y la alumna está en algún baile activo.
   actualizarTrajeShow();
+  actualizarFotoShow();
   actualizarAvisoEntradas();
 
   // Los Mensajes de Recepción y los Avisos de la maestra ya NO se
@@ -4428,6 +4432,193 @@ function abrirEstadoTrajes() {
 }
 
 el("btnEstadoTrajes").addEventListener("click", abrirEstadoTrajes);
+
+// ==========================================
+// FOTO DEL SHOW ("📸 Foto del show")
+// Cada familia ve y descarga la foto de su hija y la grupal de sus bailes; el
+// Worker revisa la clave en cada pedido y la JPG no tiene dirección pública.
+// ==========================================
+let fotoShowDatos = null;
+let fotoShowUrls = [];
+
+async function actualizarFotoShow() {
+  const boton = el("btnFotoShow");
+  fotoShowDatos = null;
+  if (!boton) return;
+  boton.hidden = true;
+  if (!alumnaSeleccionada) return;
+  const alumnaDeEstaConsulta = alumnaSeleccionada.id;
+  try {
+    const datos = await llamarWorker({ accion: "fotosShowDeAlumna", alumnaId: alumnaDeEstaConsulta, ...credencialesAlumna() });
+    if (!alumnaSeleccionada || alumnaSeleccionada.id !== alumnaDeEstaConsulta) return;
+    fotoShowDatos = datos.activo && datos.enShow ? datos : null;
+    boton.hidden = !fotoShowDatos;
+  } catch (e) {
+    // Es un extra del perfil: si falla, simplemente no se muestra.
+    boton.hidden = true;
+  }
+}
+
+async function pedirFotoShow(que, baile) {
+  const resp = await fetch(WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accion: "fotoShowFamilia", alumnaId: alumnaSeleccionada.id, ...credencialesAlumna(), que, baile }),
+  });
+  if (!resp.ok) throw new Error("No se pudo cargar la foto. Intenta de nuevo.");
+  return resp.blob();
+}
+
+function nombreArchivoShow(texto) {
+  const limpio = String(texto).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `dance-rollercoaster-${limpio || "foto"}.jpg`;
+}
+
+function bajarArchivoShow(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombre;
+  enlace.click();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+// En iPhone y Android el menú de compartir tiene "Guardar imagen". El permiso
+// de abrirlo dura poco tras el toque y bajar la foto puede gastarlo: en ese caso
+// la foto ya está lista y basta otro toque.
+async function guardarImagenShow(blob, nombre, boton, textoBoton) {
+  const archivo = new File([blob], nombre, { type: "image/jpeg" });
+  if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    try {
+      await navigator.share({ files: [archivo], title: "The Dance Rollercoaster" });
+    } catch (e) {
+      if (e.name === "NotAllowedError") {
+        boton.textContent = "📲 Toca para guardar";
+        boton.alTocarOtraVez = () => {
+          boton.textContent = textoBoton;
+          return guardarImagenShow(blob, nombre, boton, textoBoton);
+        };
+      }
+    }
+    return;
+  }
+  bajarArchivoShow(blob, nombre);
+}
+
+function imagenDesdeRuta(ruta) {
+  return new Promise((listo, falla) => {
+    const img = new Image();
+    img.onload = () => listo(img);
+    img.onerror = falla;
+    img.src = ruta;
+  });
+}
+
+// Igual que "Foto con marco" del mapa: franja abajo con los dos logos.
+async function fotoConMarcoShow(blob) {
+  const foto = await createImageBitmap(blob);
+  const [logoShow, logoAcademia] = await Promise.all([imagenDesdeRuta("show/logo-dance-rollercoaster.webp"), imagenDesdeRuta("show/logo-academia-move.png")]);
+  const canvas = document.createElement("canvas");
+  canvas.width = foto.width;
+  canvas.height = foto.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(foto, 0, 0);
+  const anchoShow = foto.width * 0.34;
+  const altoShow = anchoShow * (logoShow.height / logoShow.width);
+  const anchoAcademia = foto.width * 0.2;
+  const altoAcademia = anchoAcademia * (logoAcademia.height / logoAcademia.width);
+  const espacio = foto.width * 0.03;
+  const margen = foto.width * 0.025;
+  const franja = Math.max(altoShow, altoAcademia) + margen * 2;
+  ctx.fillStyle = "rgba(10,11,31,0.65)";
+  ctx.fillRect(0, foto.height - franja, foto.width, franja);
+  const inicioX = (foto.width - (anchoAcademia + espacio + anchoShow)) / 2;
+  ctx.drawImage(logoAcademia, inicioX, foto.height - franja / 2 - altoAcademia / 2, anchoAcademia, altoAcademia);
+  ctx.drawImage(logoShow, inicioX + anchoAcademia + espacio, foto.height - franja / 2 - altoShow / 2, anchoShow, altoShow);
+  foto.close();
+  return new Promise((listo) => canvas.toBlob(listo, "image/jpeg", 0.88));
+}
+
+function botonDescargaShow(texto, baile, nombre, conMarco) {
+  const boton = document.createElement("button");
+  boton.type = "button";
+  boton.className = "btn-secundario-foto";
+  boton.textContent = texto;
+  boton.addEventListener("click", async () => {
+    if (boton.alTocarOtraVez) {
+      const accion = boton.alTocarOtraVez;
+      boton.alTocarOtraVez = null;
+      return accion();
+    }
+    el("mensajeFotoShow").textContent = "";
+    boton.disabled = true;
+    boton.textContent = "Preparando...";
+    try {
+      const blob = await pedirFotoShow("descarga", baile);
+      boton.textContent = texto;
+      await guardarImagenShow(conMarco ? await fotoConMarcoShow(blob) : blob, conMarco ? nombre.replace(/\.jpg$/, "-marco.jpg") : nombre, boton, texto);
+    } catch (e) {
+      boton.textContent = texto;
+      el("mensajeFotoShow").textContent = e.message;
+    } finally {
+      boton.disabled = false;
+    }
+  });
+  return boton;
+}
+
+function tarjetaFotoShow(titulo, baile, nombreArchivo) {
+  const tarjeta = document.createElement("div");
+  tarjeta.className = "tarjeta-foto-show";
+  if (titulo) {
+    const t = document.createElement("p");
+    t.className = "tarjeta-foto-titulo";
+    t.textContent = titulo;
+    tarjeta.appendChild(t);
+  }
+  const img = document.createElement("img");
+  img.alt = titulo || "Foto del show";
+  tarjeta.appendChild(img);
+  pedirFotoShow("mini", baile)
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      fotoShowUrls.push(url);
+      img.src = url;
+    })
+    .catch(() => img.remove());
+  const acciones = document.createElement("div");
+  acciones.className = "acciones-foto-show";
+  acciones.append(botonDescargaShow("⬇️ Descargar", baile, nombreArchivo, false), botonDescargaShow("🎢 Descargar con marco del show", baile, nombreArchivo, true));
+  tarjeta.appendChild(acciones);
+  return tarjeta;
+}
+
+function abrirFotoShow() {
+  const cont = el("contenidoFotoShow");
+  const d = fotoShowDatos;
+  if (!d) return;
+  fotoShowUrls.forEach((u) => URL.revokeObjectURL(u));
+  fotoShowUrls = [];
+  cont.innerHTML = "";
+  el("mensajeFotoShow").textContent = "";
+  const nombre = alumnaSeleccionada.nombre;
+  if (d.tieneFoto) {
+    cont.appendChild(tarjetaFotoShow("", undefined, nombreArchivoShow(nombre)));
+  } else {
+    const aviso = document.createElement("p");
+    aviso.className = "lista-alumnas-aviso";
+    aviso.textContent = "Todavía no tenemos la foto para el show.";
+    cont.appendChild(aviso);
+  }
+  d.bailes.forEach((b, i) => {
+    if (b.tieneFoto) cont.appendChild(tarjetaFotoShow(b.nombre, i, nombreArchivoShow(b.nombre)));
+  });
+  mostrarPantalla("pantallaFotoShow");
+  window.scrollTo({ top: 0 });
+}
+
+el("btnFotoShow")?.addEventListener("click", abrirFotoShow);
+el("btnAtrasFotoShow")?.addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
 el("btnAtrasEstadoTrajes").addEventListener("click", () => mostrarPantalla("pantallaPerfil"));
 
 function tarjetaTrajeShow(traje) {

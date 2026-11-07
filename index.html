@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="temas-fecha.css?v=emojis-rapidos-v2" />
-<link rel="stylesheet" href="portal.css?v=mora-v2" />
+<link rel="stylesheet" href="portal.css?v=show-fotos-v1" />
 <link rel="stylesheet" href="juego-baile.css?v=1" />
 </head>
 <body>
@@ -131,6 +131,8 @@
     </div>
 
     <!-- Solo si Recepción lo encendió y la alumna tiene bailes (ver portal.js, ESTADO DEL TRAJE). -->
+    <!-- Solo si Recepción lo encendió y la alumna sale en el show (ver portal.js, FOTO DEL SHOW). -->
+    <button class="btn-grande btn-siguiente" id="btnFotoShow" type="button" hidden>📸 Foto del show</button>
     <button class="btn-grande btn-siguiente" id="btnEstadoTrajes" type="button" hidden>👗 Estado de trajes</button>
 
     <button class="btn-grande btn-siguiente" id="btnMensajesAnuncios" type="button">📢 Mensajes e información importante MOVE</button>
@@ -283,6 +285,14 @@
     <button class="btn-grande btn-siguiente" id="btnAtrasReconocimientos">← Volver al perfil</button>
   </section>
 
+  <!-- ============ PANTALLA: FOTO DEL SHOW ============ -->
+  <section id="pantallaFotoShow" class="pantalla" hidden>
+    <p class="perfil-nombre">📸 Foto del show</p>
+    <div id="contenidoFotoShow" class="bloque-foto-show"></div>
+    <p class="mensaje-foto-show" id="mensajeFotoShow"></p>
+    <button class="btn-grande btn-siguiente" id="btnAtrasFotoShow" type="button">← Volver al perfil</button>
+  </section>
+
   <!-- ============ PANTALLA: ESTADO DE TRAJES DEL SHOW ============ -->
   <section id="pantallaEstadoTrajes" class="pantalla" hidden>
     <p class="perfil-nombre">👗 Estado de trajes</p>
@@ -360,7 +370,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="temas-fecha.js?v=emojis-rapidos-v2"></script>
-<script src="portal.js?v=mora-v2"></script>
+<script src="portal.js?v=show-fotos-v1"></script>
 <script src="juego-baile.js?v=1"></script>
 <script>
   if ("serviceWorker" in navigator) {
