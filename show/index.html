@@ -430,6 +430,48 @@
   .temporada-fin h1{ font-size: clamp(30px, 7vw, 54px); }
   .temporada-fin p{ margin:0; max-width:460px; opacity:.8; font-size:15px; }
 
+  .aviso-votacion{
+    max-width:1100px; margin:10px auto 0; padding:0 16px;
+  }
+  .aviso-votacion[hidden]{ display:none; }
+  .aviso-votacion-caja{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    border:1px solid var(--gold-deep); border-radius:16px; padding:10px 14px;
+    background: linear-gradient(90deg, rgba(199,154,46,.28), rgba(243,210,122,.14));
+    font-size:13.5px; font-weight:600; color: var(--gold-bright);
+    animation: avisoPulso 2.6s ease-in-out infinite;
+  }
+  @keyframes avisoPulso{ 50%{ box-shadow: 0 0 16px rgba(243,210,122,.35); } }
+  .btn-oro{
+    border:1px solid var(--gold-deep); border-radius:999px; padding:6px 12px; cursor:pointer; white-space:nowrap;
+    background: rgba(243,210,122,.14); color: var(--gold); font-family:'Poppins',sans-serif; font-size:12px; font-weight:700;
+  }
+  .explica-lista{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; max-height:60vh; overflow-y:auto; }
+  .explica-lista p{ margin:0; opacity:.92; }
+  .explica-lista b{ color: var(--gold); }
+  .ayuda-tarjeta{ margin:-8px 0 12px; font-size:11.5px; opacity:.72; line-height:1.35; }
+  #ayudaReaccion{ margin:6px 0 4px; }
+  .ayuda-tarjeta[hidden]{ display:none; }
+  .pasos-marco{ margin:0 0 14px; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; font-size:13.5px; }
+  .pin-emojis{
+    position:absolute; left:50%; top:100%; transform:translate(-50%,3px); white-space:nowrap; pointer-events:none;
+    padding:1px 6px; border-radius:999px; background: rgba(10,11,31,.72); color:#fff;
+    font-family:'Poppins',sans-serif; font-size:10px; font-weight:600; line-height:1.5;
+  }
+  .emoji-flota{
+    position:absolute; z-index:40; pointer-events:none; font-size:18px; will-change: transform, opacity;
+    animation: flotar 1.4s ease-out forwards;
+  }
+  @keyframes flotar{ from{ transform:translate(-50%,-50%) scale(.7); opacity:0; } 20%{ opacity:1; } to{ transform:translate(calc(-50% + var(--dx)), calc(-50% - 52px)) scale(1.15); opacity:0; } }
+  @media (prefers-reduced-motion: reduce){ .emoji-flota{ display:none; } .aviso-votacion-caja{ animation:none; } }
+  .ranking-fila.podio{ background: rgba(243,210,122,.14); border:1px solid rgba(243,210,122,.35); font-weight:700; font-size:14.5px; padding:10px 12px; }
+  .boton-sonido{
+    position:absolute; right:12px; top:8px;
+    border:1px solid var(--gold-deep); background: rgba(243,210,122,.12); color: var(--gold);
+    padding:2px 8px; border-radius:999px; cursor:pointer; font-size:13px; line-height:1.4;
+  }
+  .aviso-toque.lider{ font-size:14px; font-weight:700; border-color: var(--gold); background: linear-gradient(90deg,#3a2d08,#14163f); animation: pulso .4s ease; }
+
   .confetti-piece{
     position:fixed; width:8px; height:8px; border-radius:2px; pointer-events:none; z-index:200;
     animation: confetti-fly .8s ease-out forwards;
@@ -455,6 +497,8 @@
   .wa-fab:hover{ transform: translateY(-2px) scale(1.03); }
   .wa-fab .ico{ font-size:17px; }
 
+  .photo-fab small{ display:block; font-size:10px; font-weight:600; opacity:.8; line-height:1.2; }
+  .photo-fab span.textos{ display:flex; flex-direction:column; align-items:flex-start; }
   .photo-fab{
     position: fixed; left:18px; bottom:18px; z-index: 130;
     background: linear-gradient(135deg,var(--gold-deep),var(--gold)); color:#241a05; border:none; border-radius:999px;
@@ -492,6 +536,9 @@
   .photo-modal-actions .close2{ background: rgba(255,255,255,.08); color: var(--cream); flex:0 0 100%; margin-top:4px; }
 
   @media (max-width:600px){
+    /* Dos botones abajo: el de la foto no puede montarse sobre Compartir. */
+    .photo-fab{ max-width:calc(100vw - 172px); padding:9px 12px; font-size:12px; left:12px; bottom:14px; }
+    .wa-fab{ right:12px; bottom:14px; }
     .ticket{ width:100%; }
     .node .pin{
       width:36px; height:36px; padding:0;
@@ -518,6 +565,7 @@
     <span id="followText">¿Qué bailes venís a ver?</span>
     <button id="followBtn" type="button">Elegir</button>
   </div>
+  <button class="boton-sonido" id="botonSonido" type="button" aria-label="Sonido">🔊</button>
 </div>
 
 <header>
@@ -528,8 +576,15 @@
     <span id="progressText">0/21 recorridas</span>
     <span class="progress-track"><span class="progress-fill" id="progressFill"></span></span>
   </div>
-  <button class="ranking-btn" id="rankingBtn" type="button" hidden>🏆 Mejor baile</button>
+  <button class="ranking-btn" id="rankingBtn" type="button" hidden>🏆 Mejor Baile del Show</button>
 </header>
+
+<div class="aviso-votacion" id="avisoVotacion" hidden>
+  <div class="aviso-votacion-caja">
+    <span id="avisoVotacionTexto"></span>
+    <button class="btn-oro" id="btnComoFunciona" type="button">¿Cómo funciona?</button>
+  </div>
+</div>
 
 <div class="map-wrap">
   <div class="map-frame" id="mapFrame">
@@ -547,8 +602,8 @@
 <footer>hecho con 💛 para el show</footer>
 
 <button class="wa-fab" id="waFab"><span class="ico">📲</span>Compartir</button>
-<button class="photo-fab" id="photoFab"><span class="ico">📸</span>Foto con marco</button>
-<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+<button class="photo-fab" id="photoFab"><span class="ico">📸</span><span class="textos">Foto con marco<small>Tu foto con el marco del show 🎢</small></span></button>
+<input type="file" id="cameraInput" accept="image/*" style="display:none">
 
 <div class="photo-modal" id="photoModal">
   <h2>¡Sonrían! 🎢</h2>
@@ -574,7 +629,9 @@
     <button id="shareActBtn">📲 Compartir</button>
     <button id="voteBtn" type="button" hidden>🗳️ Votar</button>
   </div>
+  <p class="ayuda-tarjeta" id="ayudaVoto" hidden>🗳️ Tu voto suma al Mejor Baile del Show. Tocá otra vez para quitarlo.</p>
   <div class="reacciones" id="tReacciones" hidden></div>
+  <p class="ayuda-tarjeta" id="ayudaReaccion" hidden>😍 Tocá un emoji para reaccionar; tocá otra vez para quitarlo.</p>
   <div id="tReparto">
     <div class="perforation"></div>
     <div class="cast-label">Reparto</div>
@@ -593,9 +650,28 @@
 </div>
 
 <div class="modal" id="rankingModal">
-  <h2>🏆 Mejor baile del show</h2>
+  <h2>🏆 Mejor Baile del Show</h2>
   <div class="ranking-lista" id="rankingLista"></div>
   <div class="modal-actions"><button class="skip" id="rankingCerrar" type="button">Cerrar</button></div>
+</div>
+<div class="modal" id="comoFunciona">
+  <h2>¿Cómo funciona? 🎢</h2>
+  <div class="explica-lista">
+    <p id="explicaVoto"><b>🏆 Mejor Baile del Show:</b> podés votar por varios bailes, pero solo una vez por cada baile. Tocá otra vez para quitar tu voto.</p>
+    <p id="explicaReaccion"><b>😍 Reacciones:</b> tocá los emojis de cada baile para reaccionar; tocá otra vez para quitarlo.</p>
+    <p id="explicaResultados"><b>📊 Resultados:</b> cuando estén visibles, aquí ves el ranking en vivo.</p>
+    <p><b>📸 Foto con marco:</b> tomate una foto o elegí una de tu galería y te la devolvemos con el marco de The Dance Rollercoaster, lista para guardar o compartir por WhatsApp.</p>
+  </div>
+  <div class="modal-actions"><button class="save" id="comoFuncionaListo" type="button">¡Listo!</button></div>
+</div>
+<div class="modal" id="pasosMarco">
+  <h2>📸 Foto con marco</h2>
+  <ol class="pasos-marco">
+    <li>1️⃣ Tomate una foto o elegí una de tu galería.</li>
+    <li>2️⃣ Mirá cómo queda con el marco del show.</li>
+    <li>3️⃣ Guardala o compartila por WhatsApp.</li>
+  </ol>
+  <div class="modal-actions"><button class="save" id="pasosMarcoListo" type="button">Elegir foto</button></div>
 </div>
 <div class="foto-grande" id="fotoGrande" role="dialog" aria-modal="true">
   <img class="foto-protegida" id="fotoGrandeImg" alt="" draggable="false">
@@ -728,22 +804,48 @@ function initials(name){
   return name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
 }
 
-function playChime(){
+/* ---------- sonidos: los genera el navegador, sin archivos ni peticiones ---------- */
+let audioCtx = null;
+const SONIDOS = {
+  abrir: [[880, 0], [660, .1]],
+  votar: [[660, 0], [880, .09], [1175, .18]],
+  quitar: [[520, 0], [390, .1]],
+  reaccion: [[990, 0]],
+  recorrida: [[740, 0], [988, .1]],
+  favorito: [[880, 0], [1100, .08]],
+  lista: [[620, 0]],
+  confeti: [[784, 0], [988, .1], [1175, .2], [1568, .3]],
+  aviso: [[698, 0], [932, .12]],
+};
+let sonidoLocal = localStorage.getItem('show_sonido') !== '0';
+function sonar(nombre){
+  // Recepción lo apaga para todos durante las presentaciones.
+  if(!sonidoLocal || (estado && estado.sonidos === false)) return;
   try{
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    [880, 660].forEach((freq, i) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
+    audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    (SONIDOS[nombre] || SONIDOS.lista).forEach(([freq, cuando]) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
       o.type = 'sine'; o.frequency.value = freq;
-      o.connect(g); g.connect(ctx.destination);
-      const t0 = ctx.currentTime + i*0.12;
+      o.connect(g); g.connect(audioCtx.destination);
+      const t0 = audioCtx.currentTime + cuando;
       g.gain.setValueAtTime(0.001, t0);
-      g.gain.exponentialRampToValueAtTime(0.18, t0+0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, t0+0.35);
-      o.start(t0); o.stop(t0+0.4);
+      g.gain.exponentialRampToValueAtTime(0.14, t0+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t0+0.28);
+      o.start(t0); o.stop(t0+0.3);
     });
   }catch(e){}
 }
+const botonSonido = document.getElementById('botonSonido');
+function pintarBotonSonido(){ botonSonido.textContent = sonidoLocal ? '🔊' : '🔇'; }
+botonSonido.addEventListener('click', () => {
+  sonidoLocal = !sonidoLocal;
+  localStorage.setItem('show_sonido', sonidoLocal ? '1' : '0');
+  pintarBotonSonido();
+  sonar('lista');
+});
+pintarBotonSonido();
 
 function spawnConfetti(x, y, color){
   const palette = [color, '#f3d27a', '#ffe9b0'];
@@ -781,6 +883,7 @@ function alternarRecorrida(){
   const pin = GROUPS[i].nodos.pin;
   if(visited.includes(i)){
     visited = visited.filter(x => x !== i);
+    sonar('quitar');
     const sello = pin.querySelector('.check');
     if(sello){
       sello.classList.add('saliendo');
@@ -796,6 +899,7 @@ function alternarRecorrida(){
     pin.appendChild(sello);
     const r = recorridaBtn.getBoundingClientRect();
     spawnConfetti(r.left + r.width / 2, r.top, GROUPS[i].color);
+    sonar('recorrida');
     festejarPasaporte();
   }
   localStorage.setItem('show_visitados', JSON.stringify(visited));
@@ -808,6 +912,7 @@ function alternarRecorrida(){
 function festejarPasaporte(){
   if(visited.length < GROUPS.length || localStorage.getItem('show_pasaporte_completo')) return;
   localStorage.setItem('show_pasaporte_completo', '1');
+  sonar('confeti');
   [0.2, 0.5, 0.8].forEach((x, n) => setTimeout(() => {
     for(let i = 0; i < 3; i++) spawnConfetti(innerWidth * x, innerHeight * (0.3 + i * 0.15), GROUPS[(n + i) % GROUPS.length].color);
   }, n * 180));
@@ -910,6 +1015,8 @@ function closeTicket(){
   ticket.classList.remove('open');
   currentGroupIndex = null;
   rankingModal.classList.remove('open');
+  document.getElementById('comoFunciona').classList.remove('open');
+  document.getElementById('pasosMarco').classList.remove('open');
   if(modal.classList.contains('open')) modal.classList.remove('open');
   if(photoModal.classList.contains('open')) photoModal.classList.remove('open');
 }
@@ -948,8 +1055,21 @@ function loadImg(src){
   });
 }
 
-photoFab.addEventListener('click', () => cameraInput.click());
+// Sin capture: así el teléfono ofrece cámara o galería, no solo la cámara.
+photoFab.addEventListener('click', () => {
+  sonar('lista');
+  if(localStorage.getItem('show_marco_visto')) return cameraInput.click();
+  document.getElementById('pasosMarco').classList.add('open');
+  overlay.classList.add('open');
+});
+document.getElementById('pasosMarcoListo').addEventListener('click', () => {
+  localStorage.setItem('show_marco_visto', '1');
+  document.getElementById('pasosMarco').classList.remove('open');
+  overlay.classList.remove('open');
+  cameraInput.click();
+});
 
+const MARCO_LADO_MAX = 2000;
 cameraInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if(!file) return;
@@ -959,38 +1079,43 @@ cameraInput.addEventListener('change', async (e) => {
     const logo = await loadImg('logo-dance-rollercoaster.webp');
     const academyLogo = await loadImg('logo-academia-move.png');
 
-    photoCanvas.width = photo.width;
-    photoCanvas.height = photo.height;
+    // Una foto del celular pesa varios MB: a este tamaño sale liviana para WhatsApp.
+    const escala = Math.min(1, MARCO_LADO_MAX / Math.max(photo.naturalWidth, photo.naturalHeight));
+    const ancho = Math.round(photo.naturalWidth * escala);
+    const alto = Math.round(photo.naturalHeight * escala);
+    photoCanvas.width = ancho;
+    photoCanvas.height = alto;
     const ctx = photoCanvas.getContext('2d');
-    ctx.drawImage(photo, 0, 0);
+    ctx.drawImage(photo, 0, 0, ancho, alto);
 
     // tamaños de cada logo, manteniendo su proporción
-    const showLogoW = photo.width * 0.34;
+    const showLogoW = ancho * 0.34;
     const showLogoH = showLogoW * (logo.height / logo.width);
-    const academyLogoW = photo.width * 0.20;
+    const academyLogoW = ancho * 0.20;
     const academyLogoH = academyLogoW * (academyLogo.height / academyLogo.width);
-    const gap = photo.width * 0.03;
-    const pad = photo.width * 0.025;
+    const gap = ancho * 0.03;
+    const pad = ancho * 0.025;
 
     const barH = Math.max(showLogoH, academyLogoH) + pad * 2;
     ctx.fillStyle = 'rgba(10,11,31,0.65)';
-    ctx.fillRect(0, photo.height - barH, photo.width, barH);
+    ctx.fillRect(0, alto - barH, ancho, barH);
 
-    // fondo blanco suave detrás del logo de la academia para que se lea bien (tiene texto rosa fino)
     const totalW = academyLogoW + gap + showLogoW;
-    const startX = (photo.width - totalW) / 2;
-
-    const academyY = photo.height - barH/2 - academyLogoH/2;
-    const showY = photo.height - barH/2 - showLogoH/2;
+    const startX = (ancho - totalW) / 2;
+    const academyY = alto - barH/2 - academyLogoH/2;
+    const showY = alto - barH/2 - showLogoH/2;
 
     ctx.drawImage(academyLogo, startX, academyY, academyLogoW, academyLogoH);
     ctx.drawImage(logo, startX + academyLogoW + gap, showY, showLogoW, showLogoH);
 
     photoModal.classList.add('open');
     overlay.classList.add('open');
+    sonar('confeti');
   }catch(err){
     console.error(err);
+    avisar('No se pudo abrir esa foto. Probá con otra 🙈');
   }
+  URL.revokeObjectURL(url);
   cameraInput.value = '';
 });
 
@@ -1000,32 +1125,29 @@ function closePhotoModal(){
 }
 photoCloseBtn.addEventListener('click', closePhotoModal);
 
-photoDownloadBtn.addEventListener('click', () => {
+const fotoMarcoBlob = () => new Promise(r => photoCanvas.toBlob(r, 'image/jpeg', 0.88));
+function bajarFotoMarco(blob){
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = photoCanvas.toDataURL('image/png');
-  link.download = 'the-dance-rollercoaster.png';
+  link.href = url;
+  link.download = 'the-dance-rollercoaster.jpg';
   link.click();
-});
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+photoDownloadBtn.addEventListener('click', async () => { sonar('lista'); bajarFotoMarco(await fotoMarcoBlob()); });
 
-photoShareBtn.addEventListener('click', () => {
-  photoCanvas.toBlob(async (blob) => {
-    const file = new File([blob], 'the-dance-rollercoaster.png', { type: 'image/png' });
-    if(navigator.canShare && navigator.canShare({ files: [file] })){
-      try{
-        await navigator.share({
-          files: [file],
-          title: 'The Dance Rollercoaster',
-          text: '¡Mirá esta foto de nuestro show! 🎢✨'
-        });
-      }catch(err){ /* cancelado por el usuario, no hacer nada */ }
-    } else {
-      const link = document.createElement('a');
-      link.href = photoCanvas.toDataURL('image/png');
-      link.download = 'the-dance-rollercoaster.png';
-      link.click();
-      alert('Tu navegador no permite compartir directo. La foto se descargó — subila manualmente a Instagram desde tu galería.');
-    }
-  }, 'image/png');
+photoShareBtn.addEventListener('click', async () => {
+  sonar('lista');
+  const blob = await fotoMarcoBlob();
+  const file = new File([blob], 'the-dance-rollercoaster.jpg', { type: 'image/jpeg' });
+  if(navigator.canShare && navigator.canShare({ files: [file] })){
+    try{
+      await navigator.share({ files: [file], title: 'The Dance Rollercoaster', text: '¡Mirá esta foto de nuestro show! 🎢✨' });
+    }catch(err){ /* cancelado por el usuario, no hacer nada */ }
+  } else {
+    bajarFotoMarco(blob);
+    avisar('Tu navegador no permite compartir directo. La foto se descargó 📸');
+  }
 });
 
 favBtn.addEventListener('click', () => {
@@ -1036,6 +1158,7 @@ favBtn.addEventListener('click', () => {
   localStorage.setItem('show_favoritos', JSON.stringify(favoritos));
   favBtn.classList.toggle('active', favoritos.includes(currentGroupIndex));
   favBtn.textContent = favoritos.includes(currentGroupIndex) ? '❤️ Favorito' : '🤍 Favorito';
+  sonar(favoritos.includes(currentGroupIndex) ? 'favorito' : 'quitar');
   pulsar(favBtn);
 });
 recorridaBtn.addEventListener('click', alternarRecorrida);
@@ -1062,7 +1185,7 @@ GROUPS.forEach((group, i) => {
     pin.appendChild(sello);
   }
   btn.addEventListener('click', () => {
-    playChime();
+    sonar('abrir');
     openTicket(group, i);
   });
   mapFrame.appendChild(btn);
@@ -1105,6 +1228,7 @@ function marcarMiBaile(id, marcado){
   misBailes = misBailes.filter(x => x !== id);
   if(marcado) misBailes.push(id);
   try{ localStorage.setItem('show_mis_bailes', JSON.stringify(misBailes)); }catch(e){}
+  sonar(marcado ? 'favorito' : 'quitar');
   pintarMisBailes();
 }
 function pintarMisBailes(){
@@ -1117,7 +1241,7 @@ function pintarMisBailes(){
     b.type = 'button';
     b.className = 'mi-baile';
     b.textContent = `${g.nodos.punto.textContent} ${g.attraction}`;
-    b.addEventListener('click', () => openTicket(g, GROUPS.indexOf(g)));
+    b.addEventListener('click', () => { sonar('abrir'); openTicket(g, GROUPS.indexOf(g)); });
     misBailesLista.appendChild(b);
   });
   followText.textContent = !elegidos.length ? '¿Qué bailes venís a ver?' : elegidos.length === 1 ? `⭐ ${elegidos[0].attraction}` : `⭐ ${elegidos.length} bailes elegidos`;
@@ -1126,12 +1250,8 @@ function pintarMisBailes(){
 
 function openModal(){ modal.classList.add('open'); overlay.classList.add('open'); }
 function closeModal(){ modal.classList.remove('open'); overlay.classList.remove('open'); }
-followBtn.addEventListener('click', openModal);
-modalSave.addEventListener('click', closeModal);
-if(!misBailes.length && !localStorage.getItem('show_mis_bailes') && !sessionStorage.getItem('show_bienvenida')){
-  sessionStorage.setItem('show_bienvenida', '1');
-  setTimeout(openModal, 500);
-}
+followBtn.addEventListener('click', () => { sonar('lista'); openModal(); });
+modalSave.addEventListener('click', () => { sonar('lista'); closeModal(); });
 
 /* ---------- reparto en vivo ---------- */
 // Se pinta de una vez lo que haya (no se espera a la red: en el teatro la
@@ -1221,6 +1341,11 @@ function aplicarEstado(e, { guardado = false } = {}){
   // Recepción reinició: lo marcado en este celular ya no cuenta.
   if(marcas.rondaVotos !== e.rondaVotos){ if(marcas.rondaVotos) marcas.votos = []; marcas.rondaVotos = e.rondaVotos; guardarMarcas(); }
   if(marcas.rondaReacciones !== e.rondaReacciones){ if(marcas.rondaReacciones) marcas.reacciones = {}; marcas.rondaReacciones = e.rondaReacciones; guardarMarcas(); }
+  pintarAvisoVotacion();
+  pintarEmojisMapa();
+  // Si abren la votación con el mapa ya abierto, también se explica.
+  if(!guardado && bienvenidaLista) explicarSiToca();
+  if(!guardado) avisarCambiosRanking(e.ranking);
   rankingBtn.hidden = !e.ranking;
   if(!e.ranking) rankingModal.classList.remove('open');
   else if(rankingModal.classList.contains('open')) pintarRanking();
@@ -1233,6 +1358,119 @@ function aplicarEstado(e, { guardado = false } = {}){
     pintarInteraccion();
   }
   pintarMisBailes();
+}
+
+/* ---------- aviso, explicación y bienvenida ---------- */
+const comoFunciona = document.getElementById('comoFunciona');
+const avisoVotacion = document.getElementById('avisoVotacion');
+function pintarAvisoVotacion(){
+  const votos = !!(estado && estado.activo && estado.votacionAbierta);
+  const reacciones = !!(estado && estado.activo && estado.reaccionesAbiertas);
+  avisoVotacion.hidden = !votos && !reacciones;
+  document.getElementById('avisoVotacionTexto').textContent = votos
+    ? '🗳️ ¡Votá por el Mejor Baile del Show! Tocá una atracción para votar y reaccionar'
+    : '😍 ¡Reaccioná a los bailes! Tocá una atracción y elegí tus emojis';
+  document.getElementById('explicaVoto').hidden = !votos;
+  document.getElementById('explicaReaccion').hidden = !reacciones;
+  document.getElementById('explicaResultados').hidden = !votos;
+}
+function abrirComoFunciona(){
+  comoFunciona.classList.add('open');
+  overlay.classList.add('open');
+}
+document.getElementById('btnComoFunciona').addEventListener('click', () => { sonar('lista'); abrirComoFunciona(); });
+document.getElementById('comoFuncionaListo').addEventListener('click', () => {
+  comoFunciona.classList.remove('open');
+  overlay.classList.remove('open');
+  siguienteBienvenida();
+});
+// Una ventana a la vez: primero cómo funciona, después qué bailes venís a ver.
+let bienvenidaLista = false;
+const hayVentanaAbierta = () => !!document.querySelector('.modal.open, .ticket.open, .photo-modal.open, .foto-grande.open');
+function explicarSiToca(){
+  if(avisoVotacion.hidden || localStorage.getItem('show_explicacion_vista') || hayVentanaAbierta()) return false;
+  localStorage.setItem('show_explicacion_vista', '1');
+  abrirComoFunciona();
+  return true;
+}
+function siguienteBienvenida(){
+  bienvenidaLista = true;
+  if(document.body.classList.contains('show-apagado') || explicarSiToca() || hayVentanaAbierta()) return;
+  if(!misBailes.length && !localStorage.getItem('show_mis_bailes') && !sessionStorage.getItem('show_bienvenida')){
+    sessionStorage.setItem('show_bienvenida', '1');
+    openModal();
+  }
+}
+
+/* ---------- emojis sobre el mapa ---------- */
+const CELULAR = window.matchMedia('(max-width: 600px)');
+const MAX_FLOTANDO_POR_ACTUALIZACION = 6;
+let reaccionesPrevias = null;
+function emojisDe(g){
+  const fila = (estado.reacciones || {})[g.id] || {};
+  return Object.entries(fila).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+}
+function flotarEmoji(g, emoji){
+  const f = document.createElement('span');
+  f.className = 'emoji-flota';
+  f.textContent = emoji;
+  f.style.left = g.x + '%';
+  f.style.top = g.y + '%';
+  f.style.setProperty('--dx', (Math.random() * 24 - 12) + 'px');
+  mapFrame.appendChild(f);
+  setTimeout(() => f.remove(), 1450);
+}
+function pintarEmojisMapa(){
+  const mostrar = !!(estado && estado.activo && estado.mostrarEmojis);
+  const cuantos = CELULAR.matches ? 1 : 3;
+  let flotando = 0;
+  GROUPS.forEach(g => {
+    let etiqueta = g.nodos.pin.querySelector('.pin-emojis');
+    const lista = mostrar ? emojisDe(g) : [];
+    if(!lista.length){ if(etiqueta) etiqueta.remove(); }
+    else {
+      if(!etiqueta){
+        etiqueta = document.createElement('span');
+        etiqueta.className = 'pin-emojis';
+        g.nodos.pin.appendChild(etiqueta);
+      }
+      etiqueta.textContent = lista.slice(0, cuantos).map(([e, n]) => `${e} ${n}`).join('  ');
+    }
+    if(!mostrar || reaccionesPrevias === null || document.hidden || currentGroupIndex !== null) return;
+    const antes = reaccionesPrevias[g.id] || {};
+    lista.forEach(([e, n]) => {
+      for(let i = (antes[e] || 0); i < n && flotando < MAX_FLOTANDO_POR_ACTUALIZACION; i++){
+        setTimeout(() => flotarEmoji(g, e), flotando * 180);
+        flotando++;
+      }
+    });
+  });
+  reaccionesPrevias = mostrar ? JSON.parse(JSON.stringify(estado.reacciones || {})) : null;
+}
+CELULAR.addEventListener('change', () => { if(estado) pintarEmojisMapa(); });
+
+/* ---------- avisos del ranking (solo con el ranking visible) ---------- */
+const MS_ENTRE_AVISOS_RANKING = 30000;
+let rankingPrevio = null;
+let ultimoAvisoRanking = 0;
+function avisarCambiosRanking(ranking){
+  if(!ranking){ rankingPrevio = null; return; }
+  const antes = rankingPrevio;
+  rankingPrevio = ranking;
+  if(!antes || Date.now() - ultimoAvisoRanking < MS_ENTRE_AVISOS_RANKING) return;
+  for(let i = 0; i < Math.min(3, ranking.length); i++){
+    const f = ranking[i];
+    const previo = antes.findIndex(x => x.id === f.id);
+    const siguiente = ranking[i + 1];
+    // En un empate no pasó a nadie: el orden ahí es solo alfabético.
+    if((previo !== -1 && previo <= i) || (siguiente && siguiente.votos >= f.votos)) continue;
+    const g = grupoDe(f.id);
+    if(!g) continue;
+    ultimoAvisoRanking = Date.now();
+    avisar(i === 0 ? `🔥 ¡${g.attraction} pasa al primer lugar!` : `⬆️ ¡${g.attraction} sube al lugar ${i + 1}!`, true);
+    sonar('aviso');
+    return;
+  }
 }
 
 function programarEstado(){
@@ -1294,10 +1532,11 @@ async function mandarToques(){
     mandando = false;
   }
 }
-function avisar(texto){
+function avisar(texto, lider = false){
   avisoToque.textContent = texto;
+  avisoToque.classList.toggle('lider', lider);
   avisoToque.classList.add('visible');
-  setTimeout(() => avisoToque.classList.remove('visible'), 2400);
+  setTimeout(() => avisoToque.classList.remove('visible'), lider ? 3600 : 2400);
 }
 
 function conteoReaccion(id, emoji){
@@ -1311,12 +1550,14 @@ function pintarInteraccion(){
   const hay = estado && estado.activo;
   const g = currentGroupIndex === null ? null : GROUPS[currentGroupIndex];
   voteBtn.hidden = !(hay && estado.votacionAbierta);
+  document.getElementById('ayudaVoto').hidden = voteBtn.hidden;
   if(g && !voteBtn.hidden){
     const votado = marcas.votos.includes(g.id);
     voteBtn.classList.toggle('votado', votado);
     voteBtn.textContent = votado ? '✅ Votaste' : '🗳️ Votar';
   }
   tReacciones.hidden = !(hay && estado.reaccionesAbiertas);
+  document.getElementById('ayudaReaccion').hidden = tReacciones.hidden;
   if(!g || tReacciones.hidden){ revisarMasAbajo(); return; }
   if(!tReacciones.children.length){
     EMOJIS.forEach(emoji => {
@@ -1347,6 +1588,7 @@ function tocarReaccion(emoji, boton){
   const id = GROUPS[currentGroupIndex].id;
   const mias = marcas.reacciones[id] || (marcas.reacciones[id] = []);
   const valor = !mias.includes(emoji);
+  sonar(valor ? 'reaccion' : 'quitar');
   const antes = conteoReaccion(id, emoji);
   if(valor) mias.push(emoji); else mias.splice(mias.indexOf(emoji), 1);
   guardarMarcas();
@@ -1363,6 +1605,7 @@ voteBtn.addEventListener('click', () => {
   const id = GROUPS[currentGroupIndex].id;
   const i = marcas.votos.indexOf(id);
   const valor = i === -1;
+  sonar(valor ? 'votar' : 'quitar');
   if(valor) marcas.votos.push(id); else marcas.votos.splice(i, 1);
   guardarMarcas();
   colaToques.set('v' + id, { tipo:'voto', atraccion:id, valor });
@@ -1382,22 +1625,23 @@ function pintarRanking(){
   }
   lista.forEach((f, i) => {
     const fila = document.createElement('div');
-    fila.className = 'ranking-fila';
+    fila.className = 'ranking-fila' + (i < 3 ? ' podio' : '');
     const puesto = document.createElement('span');
     puesto.className = 'ranking-puesto';
-    puesto.textContent = i + 1;
+    puesto.textContent = ['🥇','🥈','🥉'][i] || i + 1;
     const nombre = document.createElement('span');
     const g = grupoDe(f.id);
     nombre.textContent = g ? `${g.nodos.punto.textContent} ${g.attraction}` : f.id;
     const votos = document.createElement('span');
     votos.className = 'ranking-votos';
-    votos.textContent = f.votos;
+    votos.textContent = `${f.votos} ${f.votos === 1 ? 'voto' : 'votos'}`;
     fila.append(puesto, nombre, votos);
     rankingLista.appendChild(fila);
   });
 }
 rankingBtn.addEventListener('click', () => {
   pintarRanking();
+  sonar('lista');
   rankingModal.classList.add('open');
   overlay.classList.add('open');
   programarEstado();
@@ -1413,7 +1657,8 @@ try{
   if(guardado && typeof guardado === 'object') aplicarEstado(guardado, { guardado: true });
 }catch(e){}
 pintarMisBailes();
-cargarEstado();
+// La bienvenida espera al primer estado para saber si hay votación abierta.
+cargarEstado().finally(() => setTimeout(siguienteBienvenida, 500));
 
 // Su carpeta y su scope lo limitan a /show/: el sw.js del portal, sus push
 // y sus llaves VAPID no se enteran de que existe.

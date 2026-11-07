@@ -3,7 +3,7 @@
 // fuera de /show/: el portal, sus push y sus llaves VAPID siguen con el
 // sw.js de la raíz. Aquí no hay push: la señal en el teatro es mala y lo
 // único que hace es que el mapa abra aunque casi no haya internet.
-const CACHE = "show-rollercoaster-v6";
+const CACHE = "show-rollercoaster-v7";
 const PAGINA = "/show/";
 const ARCHIVOS = [
   PAGINA,

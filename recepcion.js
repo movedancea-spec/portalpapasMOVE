@@ -3847,6 +3847,8 @@ function pintarMapaVotos() {
   el("mapaVotacion").checked = d.config.votacionAbierta;
   el("mapaResultados").checked = d.config.resultadosPublicos;
   el("mapaReacciones").checked = d.config.reaccionesAbiertas;
+  el("mapaEmojis").checked = d.config.mostrarEmojis;
+  el("mapaSonidos").checked = d.config.sonidos;
   const s = d.sincronizacion;
   el("mapaSincronizacion").textContent = s.error
     ? `⚠️ ${s.error}`
@@ -3873,8 +3875,8 @@ function pintarMapaVotos() {
   });
 }
 
-[["mapaActivo", "activo"], ["mapaVotacion", "votacionAbierta"], ["mapaResultados", "resultadosPublicos"], ["mapaReacciones", "reaccionesAbiertas"]].forEach(([id, campo]) => {
-  el(id).addEventListener("change", async (e) => {
+[["mapaActivo", "activo"], ["mapaVotacion", "votacionAbierta"], ["mapaResultados", "resultadosPublicos"], ["mapaReacciones", "reaccionesAbiertas"], ["mapaEmojis", "mostrarEmojis"], ["mapaSonidos", "sonidos"]].forEach(([id, campo]) => {
+  el(id)?.addEventListener("change", async (e) => {
     const casilla = e.currentTarget;
     casilla.disabled = true;
     mensajeShow("mensajeMapaShow", "");
