@@ -1148,7 +1148,7 @@ document.getElementById('pasosMarcoListo').addEventListener('click', () => {
    pesado que descargar con mala señal. Cada diseño devuelve dónde va la foto
    (zona) y dibuja encima su decoración; el centro queda libre para la cara. */
 const MARCO_COLORES = { noche:'#0a0b1f', nocheMedia:'#1e2158', oro:'#f3d27a', oroHondo:'#c79a2e', oroBrillo:'#ffe9b0', rosa:'#f95b9b', crema:'#f6ecd6' };
-const MARCO_FECHA = '15 DE NOVIEMBRE 2026';
+const MARCO_FECHA = '25 DE NOVIEMBRE 2026';
 
 function azarMarco(semilla){ return () => { semilla |= 0; semilla = semilla + 0x6D2B79F5 | 0; let t = Math.imul(semilla ^ semilla >>> 15, 1 | semilla); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function caminoRedondo(ctx, x, y, w, h, r, nuevo = true){ if(nuevo) ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
@@ -1281,7 +1281,7 @@ function marcoMontana(ctx, W, H, foto, enc, logos, numero){
   ctx.setLineDash([W * .012, W * .008]); ctx.lineWidth = W * .004; ctx.strokeStyle = MARCO_COLORES.oro; caminoRedondo(ctx, -sw / 2 + W * .012, -sh / 2 + W * .012, sw - W * .024, sh - W * .024, W * .01); ctx.stroke(); ctx.setLineDash([]);
   const dentro = sw - W * .07;
   textoMarco(ctx, 'THE DANCE ROLLERCOASTER', 0, -sh * .22, { tam: sh * .15, letra: 'Cinzel', peso: 600, sombra: false, maxAncho: dentro });
-  textoMarco(ctx, '15 · NOV · 2026', 0, sh * .05, { tam: sh * .3, color: MARCO_COLORES.oroBrillo, sombra: false, maxAncho: dentro });
+  textoMarco(ctx, '25 · NOV · 2026', 0, sh * .05, { tam: sh * .3, color: MARCO_COLORES.oroBrillo, sombra: false, maxAncho: dentro });
   textoMarco(ctx, `FOTO Nº ${numero}`, 0, sh * .3, { tam: sh * .14, letra: 'Space Mono', color: MARCO_COLORES.rosa, sombra: false, maxAncho: dentro });
   ctx.restore();
   return z;
