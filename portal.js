@@ -4483,6 +4483,35 @@ function bajarArchivoShow(blob, nombre) {
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
+// En iPhone y iPad descargar deja la foto en Archivos, no en Fotos. El iPad
+// nuevo dice ser una Mac: se reconoce porque tiene pantalla táctil.
+const ES_IOS_SHOW = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+// Último recurso en iPhone: la foto grande, para mantenerla presionada.
+function mostrarFotoParaGuardar(blob) {
+  const url = URL.createObjectURL(blob);
+  const capa = document.createElement("div");
+  Object.assign(capa.style, { position: "fixed", inset: "0", zIndex: "400", background: "#1a0f24", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", padding: "20px" });
+  const img = document.createElement("img");
+  img.src = url;
+  img.alt = "Foto del show";
+  Object.assign(img.style, { maxWidth: "100%", maxHeight: "72vh", borderRadius: "12px", webkitTouchCallout: "default" });
+  const texto = document.createElement("p");
+  texto.textContent = "Mantén presionada la foto y toca “Agregar a Fotos”";
+  Object.assign(texto.style, { margin: "0", color: "#fff", fontWeight: "600", textAlign: "center" });
+  const cerrar = document.createElement("button");
+  cerrar.type = "button";
+  cerrar.className = "btn-secundario-foto";
+  cerrar.textContent = "Cerrar";
+  cerrar.style.maxWidth = "220px";
+  cerrar.addEventListener("click", () => {
+    capa.remove();
+    URL.revokeObjectURL(url);
+  });
+  capa.append(img, texto, cerrar);
+  document.body.appendChild(capa);
+}
+
 // En iPhone y Android el menú de compartir tiene "Guardar imagen". El permiso
 // de abrirlo dura poco tras el toque y bajar la foto puede gastarlo: en ese caso
 // la foto ya está lista y basta otro toque.
@@ -4491,18 +4520,21 @@ async function guardarImagenShow(blob, nombre, boton, textoBoton) {
   if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
     try {
       await navigator.share({ files: [archivo], title: "The Dance Rollercoaster" });
+      return;
     } catch (e) {
+      if (e.name === "AbortError") return;
       if (e.name === "NotAllowedError") {
         boton.textContent = "📲 Toca para guardar";
         boton.alTocarOtraVez = () => {
           boton.textContent = textoBoton;
           return guardarImagenShow(blob, nombre, boton, textoBoton);
         };
+        return;
       }
     }
-    return;
   }
-  bajarArchivoShow(blob, nombre);
+  if (ES_IOS_SHOW) mostrarFotoParaGuardar(blob);
+  else bajarArchivoShow(blob, nombre);
 }
 
 function imagenDesdeRuta(ruta) {
@@ -4588,7 +4620,10 @@ function tarjetaFotoShow(titulo, baile, nombreArchivo) {
     .catch(() => img.remove());
   const acciones = document.createElement("div");
   acciones.className = "acciones-foto-show";
-  acciones.append(botonDescargaShow("⬇️ Descargar", baile, nombreArchivo, false), botonDescargaShow("🎢 Descargar con marco del show", baile, nombreArchivo, true));
+  acciones.append(
+    botonDescargaShow(ES_IOS_SHOW ? "🖼️ Guardar en Fotos" : "⬇️ Descargar", baile, nombreArchivo, false),
+    botonDescargaShow(ES_IOS_SHOW ? "🎢 Guardar en Fotos con marco" : "🎢 Descargar con marco del show", baile, nombreArchivo, true)
+  );
   tarjeta.appendChild(acciones);
   return tarjeta;
 }

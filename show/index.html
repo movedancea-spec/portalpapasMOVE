@@ -552,6 +552,10 @@
   .photo-modal .marco-miniaturas canvas{ width:auto; height:60px; margin:0; border-radius:8px; }
   .marco-zoom{ display:flex; align-items:center; gap:8px; margin:0 4px 4px; }
   .marco-zoom input{ flex:1; accent-color: var(--gold); }
+  .guardar-fotos{ position:fixed; inset:0; z-index:400; background: var(--night-deep); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:20px; }
+  .guardar-fotos img{ max-width:100%; max-height:72vh; border-radius:12px; -webkit-touch-callout: default; user-select:auto; }
+  .guardar-fotos p{ margin:0; color: var(--cream); font-weight:600; text-align:center; font-size:15px; }
+  .guardar-fotos button{ border:none; border-radius:12px; padding:12px 28px; font-family:'Poppins',sans-serif; font-weight:700; background: rgba(255,255,255,.12); color: var(--cream); cursor:pointer; }
   .marco-ayuda{ font-size:12px; opacity:.75; text-align:center; margin:0 0 10px; }
   /* Compartir y Descargar siempre a la vista: en un celular chico el editor no cabe entero. */
   .photo-modal .photo-modal-actions{ position:sticky; bottom:-22px; margin:0 -22px -22px; padding:10px 22px 22px; background: linear-gradient(180deg, rgba(23,26,66,.85), var(--card) 30%); }
@@ -718,6 +722,7 @@
     <li>2️⃣ Elegí el diseño y el formato (historia o publicación) y acomodá la foto con el dedo.</li>
     <li>3️⃣ Guardala o compartila por WhatsApp e Instagram 📲</li>
     <li class="nota">Si no ves Instagram, guardá la foto y subila desde la app.</li>
+    <li class="nota">En iPhone tocá “Guardar en Fotos” y luego “Guardar imagen”.</li>
   </ol>
   <div class="modal-actions"><button class="save" id="pasosMarcoListo" type="button">Elegir foto</button></div>
 </div>
@@ -1517,7 +1522,48 @@ function bajarFotoMarco(blob){
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
-photoDownloadBtn.addEventListener('click', async () => { sonar('lista'); bajarFotoMarco(await fotoMarcoBlob()); });
+// En iPhone y iPad descargar deja la foto en Archivos, donde nadie la busca:
+// ahí se abre el menú de compartir, que tiene "Guardar imagen" (va a Fotos).
+// El iPad nuevo dice ser una Mac: se reconoce porque tiene pantalla táctil.
+const ES_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if(ES_IOS) photoDownloadBtn.textContent = '🖼️ Guardar en Fotos';
+// Último recurso: la foto grande en pantalla, sin bloquear el toque largo.
+function mostrarParaGuardar(blob){
+  const url = URL.createObjectURL(blob);
+  const capa = document.createElement('div');
+  capa.className = 'guardar-fotos';
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = 'Tu foto con el marco del show';
+  const texto = document.createElement('p');
+  texto.textContent = 'Mantené presionada la foto y tocá “Agregar a Fotos”';
+  const cerrar = document.createElement('button');
+  cerrar.type = 'button';
+  cerrar.textContent = 'Cerrar';
+  cerrar.addEventListener('click', () => { capa.remove(); URL.revokeObjectURL(url); });
+  capa.append(img, texto, cerrar);
+  document.body.appendChild(capa);
+}
+async function guardarEnFotos(blob){
+  const file = new File([blob], 'the-dance-rollercoaster.jpg', { type: 'image/jpeg' });
+  if(navigator.canShare && navigator.canShare({ files: [file] })){
+    try{
+      await navigator.share({ files: [file] });
+      return;
+    }catch(err){
+      // Cerrar el menú no es una falla. Cualquier otra cosa (el permiso del
+      // toque se venció mientras se armaba la foto, etc.): se muestra en grande.
+      if(err && err.name === 'AbortError') return;
+    }
+  }
+  mostrarParaGuardar(blob);
+}
+photoDownloadBtn.addEventListener('click', async () => {
+  sonar('lista');
+  const blob = await fotoMarcoBlob();
+  if(ES_IOS) guardarEnFotos(blob);
+  else bajarFotoMarco(blob);
+});
 
 photoShareBtn.addEventListener('click', async () => {
   sonar('lista');
