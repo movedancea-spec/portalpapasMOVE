@@ -406,6 +406,11 @@
     font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:700;
   }
   .ranking-btn[hidden]{ display:none; }
+  /* Vista previa: se explora, pero nada de la tarjeta se puede tocar. */
+  body.vista-previa .progress-pill, body.vista-previa .node .check, body.vista-previa .ranking-btn#rankingBtn{ display:none !important; }
+  .ticket-actions button:disabled, .reacciones .reaccion:disabled{ opacity:.45; filter:grayscale(1); cursor:not-allowed; }
+  body.vista-previa .reacciones .num{ display:none; }
+  .aviso-previa{ color: var(--gold); font-weight:700; text-align:center; }
   .ranking-lista{ max-height:55vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
   .ranking-fila{
     display:grid; grid-template-columns: 26px 1fr auto; align-items:center; gap:8px;
@@ -675,6 +680,7 @@
     <button id="shareActBtn">📲 Compartir</button>
     <button id="voteBtn" type="button" hidden>🗳️ Votar</button>
   </div>
+  <p class="ayuda-tarjeta aviso-previa" id="avisoPreviaTarjeta" hidden>🎢 Se activa el día del show</p>
   <p class="ayuda-tarjeta" id="ayudaVoto" hidden>🗳️ Tu voto suma al Mejor Baile del Show. Tocá otra vez para quitarlo.</p>
   <div class="reacciones" id="tReacciones" hidden></div>
   <p class="ayuda-tarjeta" id="ayudaReaccion" hidden>😍 Tocá un emoji para reaccionar; tocá otra vez para quitarlo.</p>
@@ -710,6 +716,7 @@
   <div class="explica-lista">
     <p id="explicaVoto"><b>🏆 Mejor Baile del Show:</b> podés votar por varios bailes, pero solo una vez por cada baile. Tocá otra vez para quitar tu voto.</p>
     <p id="explicaReaccion"><b>😍 Reacciones:</b> tocá los emojis de cada baile para reaccionar; tocá otra vez para quitarlo.</p>
+    <p id="explicaPrevia" hidden><b>🎢 El día del show:</b> vas a poder votar por el Mejor Baile y reaccionar con emojis en cada atracción.</p>
     <p id="explicaResultados"><b>📊 Resultados:</b> cuando estén visibles, aquí ves el ranking en vivo.</p>
     <p><b>📸 Foto con marco:</b> tomate una foto o elegí una de tu galería y te la devolvemos con el marco de The Dance Rollercoaster, lista para guardar o compartir por WhatsApp e Instagram 📲</p>
   </div>
@@ -949,7 +956,7 @@ function pintarRecorrida(){
 // Abrir una tarjeta ya no sella el pasaporte: se marca y se desmarca a propósito.
 function alternarRecorrida(){
   const i = currentGroupIndex;
-  if(i === null) return;
+  if(i === null || enVistaPrevia()) return;
   const pin = GROUPS[i].nodos.pin;
   const id = GROUPS[i].id;
   if(visited.includes(id)){
@@ -1111,7 +1118,7 @@ waFab.addEventListener('click', () => {
   shareOnWhatsApp(`🎢✨ Mirá el mapa interactivo de The Dance Rollercoaster, ¡tocá cada atracción para ver a las bailarinas! ${window.location.href}`);
 });
 shareActBtn.addEventListener('click', () => {
-  if(currentGroupIndex === null) return;
+  if(currentGroupIndex === null || enVistaPrevia()) return;
   const g = GROUPS[currentGroupIndex];
   shareOnWhatsApp(`💃 Mirá "${g.attraction}" (${g.theme}) en el mapa de The Dance Rollercoaster: ${window.location.href}`);
 });
@@ -1582,7 +1589,7 @@ photoShareBtn.addEventListener('click', async () => {
 });
 
 favBtn.addEventListener('click', () => {
-  if(currentGroupIndex === null) return;
+  if(currentGroupIndex === null || enVistaPrevia()) return;
   const id = GROUPS[currentGroupIndex].id;
   const idx = favoritos.indexOf(id);
   if(idx === -1){ favoritos.push(id); }
@@ -1836,16 +1843,22 @@ function aplicarEstado(e, { guardado = false } = {}){
 /* ---------- aviso, explicación y bienvenida ---------- */
 const comoFunciona = document.getElementById('comoFunciona');
 const avisoVotacion = document.getElementById('avisoVotacion');
+const enVistaPrevia = () => !!(estado && estado.activo && estado.vistaPrevia);
 function pintarAvisoVotacion(){
+  const previa = enVistaPrevia();
   const votos = !!(estado && estado.activo && estado.votacionAbierta);
   const reacciones = !!(estado && estado.activo && estado.reaccionesAbiertas);
-  avisoVotacion.hidden = !votos && !reacciones;
-  document.getElementById('avisoVotacionTexto').textContent = votos
-    ? '🗳️ ¡Votá por el Mejor Baile del Show! Tocá una atracción para votar y reaccionar'
-    : '😍 ¡Reaccioná a los bailes! Tocá una atracción y elegí tus emojis';
+  document.body.classList.toggle('vista-previa', previa);
+  avisoVotacion.hidden = !previa && !votos && !reacciones;
+  document.getElementById('avisoVotacionTexto').textContent = previa
+    ? '👀 Vista previa: explorá el mapa, elegí los bailes que vas a ver y probá la Foto con marco. La votación y las reacciones se activan el día del show 🎢'
+    : votos
+      ? '🗳️ ¡Votá por el Mejor Baile del Show! Tocá una atracción para votar y reaccionar'
+      : '😍 ¡Reaccioná a los bailes! Tocá una atracción y elegí tus emojis';
   document.getElementById('explicaVoto').hidden = !votos;
   document.getElementById('explicaReaccion').hidden = !reacciones;
   document.getElementById('explicaResultados').hidden = !votos;
+  document.getElementById('explicaPrevia').hidden = !previa;
 }
 function abrirComoFunciona(){
   comoFunciona.classList.add('open');
@@ -2049,16 +2062,20 @@ function conteoReaccion(id, emoji){
 }
 function pintarInteraccion(){
   const hay = estado && estado.activo;
+  const previa = enVistaPrevia();
   const g = currentGroupIndex === null ? null : GROUPS[currentGroupIndex];
-  voteBtn.hidden = !(hay && estado.votacionAbierta);
-  document.getElementById('ayudaVoto').hidden = voteBtn.hidden;
+  // En vista previa se ven votar y reaccionar, pero apagados: así se sabe lo que viene.
+  [recorridaBtn, favBtn, shareActBtn, voteBtn].forEach(b => { b.disabled = previa; });
+  document.getElementById('avisoPreviaTarjeta').hidden = !previa;
+  voteBtn.hidden = !(hay && (estado.votacionAbierta || previa));
+  document.getElementById('ayudaVoto').hidden = voteBtn.hidden || previa;
   if(g && !voteBtn.hidden){
     const votado = marcas.votos.includes(g.id);
     voteBtn.classList.toggle('votado', votado);
     voteBtn.textContent = votado ? '✅ Votaste' : '🗳️ Votar';
   }
-  tReacciones.hidden = !(hay && estado.reaccionesAbiertas);
-  document.getElementById('ayudaReaccion').hidden = tReacciones.hidden;
+  tReacciones.hidden = !(hay && (estado.reaccionesAbiertas || previa));
+  document.getElementById('ayudaReaccion').hidden = tReacciones.hidden || previa;
   if(!g || tReacciones.hidden){ revisarMasAbajo(); return; }
   if(!tReacciones.children.length){
     EMOJIS.forEach(emoji => {
@@ -2079,13 +2096,14 @@ function pintarInteraccion(){
   }
   const mias = marcas.reacciones[g.id] || [];
   [...tReacciones.children].forEach(b => {
+    b.disabled = previa;
     b.classList.toggle('activa', mias.includes(b.dataset.emoji));
     b.querySelector('.num').textContent = conteoReaccion(g.id, b.dataset.emoji);
   });
   revisarMasAbajo();
 }
 function tocarReaccion(emoji, boton){
-  if(currentGroupIndex === null) return;
+  if(currentGroupIndex === null || enVistaPrevia()) return;
   const id = GROUPS[currentGroupIndex].id;
   const mias = marcas.reacciones[id] || (marcas.reacciones[id] = []);
   const valor = !mias.includes(emoji);
@@ -2102,7 +2120,7 @@ function tocarReaccion(emoji, boton){
   mandarToques();
 }
 voteBtn.addEventListener('click', () => {
-  if(currentGroupIndex === null) return;
+  if(currentGroupIndex === null || enVistaPrevia()) return;
   const id = GROUPS[currentGroupIndex].id;
   const i = marcas.votos.indexOf(id);
   const valor = i === -1;

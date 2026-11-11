@@ -3791,6 +3791,7 @@ async function cargarMapaShow({ soloVivo = false } = {}) {
 function aplicarMapaShow(d, { soloVivo = false } = {}) {
   mapaDatos = d;
   el("mapaActivo").checked = d.config.activo;
+  if (el("mapaVistaPrevia")) el("mapaVistaPrevia").checked = d.config.vistaPrevia === true;
   pintarMapaVotos();
   if (soloVivo) return;
   el("inputMapaRefresco").value = d.config.refrescoSeg;
@@ -3890,7 +3891,7 @@ function pintarMapaVotos() {
   });
 }
 
-[["mapaActivo", "activo"], ["mapaVotacion", "votacionAbierta"], ["mapaResultados", "resultadosPublicos"], ["mapaReacciones", "reaccionesAbiertas"], ["mapaEmojis", "mostrarEmojis"], ["mapaSonidos", "sonidos"]].forEach(([id, campo]) => {
+[["mapaVistaPrevia", "vistaPrevia"], ["mapaActivo", "activo"], ["mapaVotacion", "votacionAbierta"], ["mapaResultados", "resultadosPublicos"], ["mapaReacciones", "reaccionesAbiertas"], ["mapaEmojis", "mostrarEmojis"], ["mapaSonidos", "sonidos"]].forEach(([id, campo]) => {
   el(id)?.addEventListener("change", async (e) => {
     const casilla = e.currentTarget;
     casilla.disabled = true;
