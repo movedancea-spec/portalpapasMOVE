@@ -3359,6 +3359,209 @@ async function subirArchivosFoto({ tipo, file, encuadre }) {
   return { ...datos, bytesMini: mini.size, bytesDescarga: descarga.size };
 }
 
+// ==========================================
+// FOTOS POR BAILE (subida rápida, pensada para tomarlas en los ensayos)
+// Tocar a una alumna abre la cámara o la galería; el recorte es automático y
+// se sube en segundo plano (dos a la vez), así se puede seguir con la
+// siguiente. «Ajustar» es opcional: recorta de nuevo desde la foto completa.
+// ==========================================
+const SUBIDAS_FOTO_A_LA_VEZ = 2;
+const colaFotos = [];
+const estadoFotoRapida = new Map(); // alumnaId → { estado: "subiendo"|"listo"|"error", vista, tarea, error }
+let subiendoFotos = 0;
+let alumnaFotoRapida = null;
+let alumnaMenuFoto = null;
+const vistasFotoPrivada = new Map(); // archivo → URL local, para no pedirla dos veces
+
+function baileFotosElegido() {
+  return fotosDatos && fotosDatos.bailes.find((b) => b.id === el("selectFotosBaile")?.value);
+}
+function pintarSelectFotosBaile() {
+  const select = el("selectFotosBaile");
+  if (!select || !fotosDatos) return;
+  const elegido = select.value;
+  select.innerHTML = "";
+  const bailes = fotosDatos.bailes.filter((b) => b.alumnas.length);
+  bailes.forEach((b) => {
+    const alumnas = b.alumnas.map(alumnaDeFotos).filter(Boolean);
+    const conFoto = alumnas.filter((a) => a.foto).length;
+    const op = crearEl("option", "", `${b.nombre} · ${conFoto}/${alumnas.length} con foto${b.activo ? "" : " (desactivado)"}`);
+    op.value = b.id;
+    select.appendChild(op);
+  });
+  // Al entrar, el primero al que le faltan fotos.
+  const primero = bailes.find((b) => b.alumnas.map(alumnaDeFotos).some((a) => a && !a.foto)) || bailes[0];
+  select.value = bailes.some((b) => b.id === elegido) ? elegido : primero ? primero.id : "";
+}
+el("selectFotosBaile")?.addEventListener("change", () => {
+  cerrarMenuFoto();
+  pintarGridFotos();
+});
+
+function vistaFotoAlumna(a, img) {
+  const local = estadoFotoRapida.get(a.id);
+  if (local && local.vista) return (img.src = local.vista);
+  if (!a.foto) return;
+  if (!a.oculta) return (img.src = `${WORKER_URL}/foto-show/${a.foto}`);
+  if (vistasFotoPrivada.has(a.foto)) return (img.src = vistasFotoPrivada.get(a.foto));
+  fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "showFotoRecepcion", clave: claveRecepcion, archivo: a.foto }) })
+    .then((r) => (r.ok ? r.blob() : null))
+    .then((b) => {
+      if (!b) return;
+      vistasFotoPrivada.set(a.foto, URL.createObjectURL(b));
+      img.src = vistasFotoPrivada.get(a.foto);
+    })
+    .catch(() => {});
+}
+function inicialesFoto(nombre) {
+  return String(nombre).trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
+function celdaFoto(a) {
+  const local = estadoFotoRapida.get(a.id);
+  const tieneFoto = Boolean(a.foto || (local && local.vista));
+  const celda = crearEl("button", "foto-celda" + (tieneFoto ? " con-foto" : "") + (a.oculta ? " oculta" : "") + (local ? " " + local.estado : ""));
+  celda.type = "button";
+  celda.dataset.id = a.id;
+  const circulo = crearEl("span", "foto-circulo", tieneFoto ? "" : inicialesFoto(a.nombreShow || a.nombre));
+  if (tieneFoto) {
+    const img = crearEl("img");
+    img.alt = "";
+    vistaFotoAlumna(a, img);
+    circulo.appendChild(img);
+  }
+  const insignia = local ? { subiendo: "⏳", listo: "✅", error: "⚠️" }[local.estado] : tieneFoto ? "" : "📷";
+  if (insignia) circulo.appendChild(crearEl("span", "foto-insignia", insignia));
+  celda.append(circulo, crearEl("span", "foto-nombre", a.nombreShow || a.nombre));
+  celda.setAttribute("aria-label", `${a.nombreShow || a.nombre}: ${local && local.estado === "error" ? "falló, toca para reintentar" : tieneFoto ? "tiene foto" : "sin foto, toca para tomarla"}`);
+  // El input se abre en el mismo toque: iPhone no lo deja abrir después.
+  celda.addEventListener("click", () => tocarCeldaFoto(a));
+  return celda;
+}
+function pintarGridFotos() {
+  const grid = el("gridFotosBaile");
+  if (!grid) return;
+  grid.innerHTML = "";
+  const b = baileFotosElegido();
+  if (!b) return grid.appendChild(crearEl("p", "lista-vacia", "No hay bailes con alumnas."));
+  b.alumnas.map(alumnaDeFotos).filter(Boolean).forEach((a) => grid.appendChild(celdaFoto(a)));
+}
+function repintarCeldaFoto(id) {
+  const vieja = document.querySelector(`#gridFotosBaile .foto-celda[data-id="${id}"]`);
+  const a = alumnaDeFotos(id);
+  if (vieja && a) vieja.replaceWith(celdaFoto(a));
+}
+function pintarEstadoCola() {
+  const p = el("estadoColaFotos");
+  if (!p) return;
+  const pendientes = colaFotos.length + subiendoFotos;
+  const errores = [...estadoFotoRapida.values()].filter((e) => e.estado === "error").length;
+  p.hidden = !pendientes && !errores;
+  p.textContent = [pendientes ? `⏳ Subiendo ${pendientes} foto${pendientes === 1 ? "" : "s"}…` : "", errores ? `⚠️ ${errores} no se ${errores === 1 ? "pudo" : "pudieron"} subir: toca la alumna para reintentar.` : ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function tocarCeldaFoto(a) {
+  const local = estadoFotoRapida.get(a.id);
+  if (local && local.estado === "subiendo") return;
+  if (local && local.estado === "error") return encolarFoto(local.tarea);
+  if (a.foto) return abrirMenuFoto(a);
+  pedirFotoRapida(a);
+}
+function pedirFotoRapida(a) {
+  alumnaFotoRapida = a;
+  el("inputFotoRapida").value = "";
+  el("inputFotoRapida").click();
+}
+el("inputFotoRapida")?.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file || !alumnaFotoRapida) return;
+  encolarFoto({ alumna: alumnaFotoRapida, file, encuadre: null });
+  alumnaFotoRapida = null;
+});
+
+function abrirMenuFoto(a) {
+  alumnaMenuFoto = a;
+  el("menuFotoNombre").textContent = a.nombreShow || a.nombre;
+  el("btnMenuFotoAjustar").disabled = !a.descarga;
+  el("menuFotoAlumna").hidden = false;
+}
+function cerrarMenuFoto() {
+  alumnaMenuFoto = null;
+  if (el("menuFotoAlumna")) el("menuFotoAlumna").hidden = true;
+}
+el("btnMenuFotoCerrar")?.addEventListener("click", cerrarMenuFoto);
+el("btnMenuFotoCambiar")?.addEventListener("click", () => {
+  const a = alumnaMenuFoto;
+  cerrarMenuFoto();
+  if (a) pedirFotoRapida(a);
+});
+// Recorta de nuevo desde la foto completa guardada (la de descarga).
+el("btnMenuFotoAjustar")?.addEventListener("click", async () => {
+  const a = alumnaMenuFoto;
+  cerrarMenuFoto();
+  if (!a || !a.descarga) return;
+  try {
+    const resp = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "showFotoRecepcion", clave: claveRecepcion, archivo: a.descarga }) });
+    if (!resp.ok) throw new Error("No se pudo abrir la foto.");
+    const file = new File([await resp.blob()], "foto.jpg", { type: "image/jpeg" });
+    const encuadre = await pedirEncuadre(file);
+    if (encuadre) encolarFoto({ alumna: a, file, encuadre });
+  } catch (err) {
+    mensajeShow("mensajeFotos", err.message, "error");
+  }
+});
+
+function encolarFoto(tarea) {
+  const previa = estadoFotoRapida.get(tarea.alumna.id);
+  if (previa && previa.vista && previa.vistaPropia) URL.revokeObjectURL(previa.vista);
+  // Mientras sube se ve la foto elegida, sin recortar: el círculo la centra.
+  const vista = URL.createObjectURL(tarea.file);
+  estadoFotoRapida.set(tarea.alumna.id, { estado: "subiendo", vista, vistaPropia: true, tarea });
+  colaFotos.push(tarea);
+  repintarCeldaFoto(tarea.alumna.id);
+  procesarColaFotos();
+}
+function procesarColaFotos() {
+  while (subiendoFotos < SUBIDAS_FOTO_A_LA_VEZ && colaFotos.length) {
+    const tarea = colaFotos.shift();
+    subiendoFotos++;
+    subirFotoRapida(tarea).finally(() => {
+      subiendoFotos--;
+      procesarColaFotos();
+    });
+  }
+  pintarEstadoCola();
+}
+async function subirFotoRapida(tarea) {
+  const { alumna } = tarea;
+  const estado = estadoFotoRapida.get(alumna.id);
+  try {
+    const s = await subirArchivosFoto({ tipo: "alumna", file: tarea.file, encuadre: tarea.encuadre });
+    await llamarWorker({ accion: "showFotosConfirmar", clave: claveRecepcion, items: [{ tipo: "alumna", id: alumna.id, mini: s.mini, descarga: s.descarga }] });
+    alumna.foto = s.mini;
+    alumna.descarga = s.descarga;
+    estado.estado = "listo";
+    estado.tarea = null;
+  } catch (err) {
+    estado.estado = "error";
+    estado.error = err.message;
+  }
+  repintarCeldaFoto(alumna.id);
+  pintarEstadoCola();
+  if (!colaFotos.length && subiendoFotos <= 1) {
+    pintarSelectFotosBaile();
+    if (el("listaFotosBailes")) pintarFotosBailes();
+  }
+}
+// Que no se cierre la página con fotos a medio subir.
+window.addEventListener("beforeunload", (e) => {
+  if (colaFotos.length || subiendoFotos) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
+
 async function cargarFotosShow() {
   try {
     fotosDatos = await llamarWorker({ accion: "showFotosDatos", clave: claveRecepcion });
@@ -3368,6 +3571,8 @@ async function cargarFotosShow() {
     return;
   }
   el("fotosPortalActivo").checked = fotosDatos.portalActivo;
+  pintarSelectFotosBaile();
+  pintarGridFotos();
   pintarFotosBailes();
   pintarFotosLote();
   if (showAlumnaElegida) pintarFotoAlumnaAsignar();

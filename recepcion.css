@@ -1843,6 +1843,20 @@ overflow-wrap:anywhere;
 }
 
 /* ---------- Fotos del show ---------- */
+.fotos-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(76px, 1fr)); gap:12px 6px; margin:12px 0 4px; }
+.foto-celda{ display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; padding:0; cursor:pointer; font-family:inherit; }
+.foto-circulo{ position:relative; width:64px; height:64px; border-radius:50%; background:#f6edf8; color:#7a3e8e; font-weight:800; font-size:20px; display:flex; align-items:center; justify-content:center; border:3px dashed #e9b8cf; overflow:hidden; }
+.foto-celda.con-foto .foto-circulo{ border:3px solid #f95b9b; }
+.foto-circulo img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.foto-insignia{ position:absolute; right:-2px; bottom:-2px; width:26px; height:26px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+.foto-celda.subiendo .foto-circulo img{ opacity:.45; }
+.foto-celda.subiendo .foto-insignia{ animation:girar-foto 1s linear infinite; }
+@keyframes girar-foto{ to{ transform:rotate(360deg); } }
+.foto-nombre{ font-size:12px; font-weight:700; color:#555; text-align:center; line-height:1.2; overflow-wrap:anywhere; }
+.foto-celda.oculta .foto-nombre::after{ content:" 🙈"; }
+.fotos-cola{ font-size:13px; font-weight:700; color:#7a3e8e; margin:8px 0 0; }
+.fotos-menu{ position:sticky; bottom:8px; background:#fff; border:1px solid #f3c6da; border-radius:14px; padding:10px; box-shadow:0 6px 20px rgba(0,0,0,.15); margin-top:10px; }
+.fotos-masivo summary{ cursor:pointer; }
 .fotos-lote{ display:flex; flex-direction:column; gap:8px; margin:10px 0; max-height:60vh; overflow-y:auto; }
 .foto-fila{ display:flex; gap:10px; align-items:flex-start; background:#fff; border:1px solid #eee; border-radius:12px; padding:8px; }
 .foto-fila.lista{ opacity:.6; }

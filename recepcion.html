@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=clave-direccion-v1" />
+<link rel="stylesheet" href="recepcion.css?v=fotos-rapidas-v1" />
 </head>
 <body>
 
@@ -974,13 +974,29 @@
         <p class="pista-campo">Ahí cada familia descarga su foto y la grupal de sus bailes. Se apaga sola el 1 de enero.</p>
       </div>
       <div class="caja-form-ingreso">
-        <p class="subtitulo">Subir muchas fotos</p>
+        <p class="subtitulo">📸 Fotos por baile</p>
+        <p class="pista-campo">Elige el baile y toca a cada alumna: se abre la cámara o la galería y la foto se recorta y se guarda sola. Puedes seguir con la siguiente mientras se sube. Toca una foto ya guardada para cambiarla o ajustar el recorte.</p>
+        <select id="selectFotosBaile" class="input-select"></select>
+        <p class="fotos-cola" id="estadoColaFotos" hidden></p>
+        <div id="gridFotosBaile" class="fotos-grid"></div>
+        <div class="fotos-menu" id="menuFotoAlumna" hidden>
+          <p class="etiqueta-campo" id="menuFotoNombre"></p>
+          <div class="show-acciones">
+            <button class="btn-secundario btn-chico" id="btnMenuFotoCambiar" type="button">📸 Cambiar foto</button>
+            <button class="btn-secundario btn-chico" id="btnMenuFotoAjustar" type="button">✂️ Ajustar</button>
+            <button class="btn-secundario btn-chico" id="btnMenuFotoCerrar" type="button">Cerrar</button>
+          </div>
+        </div>
+        <input type="file" id="inputFotoRapida" accept="image/*" hidden />
+      </div>
+      <details class="caja-form-ingreso fotos-masivo">
+        <summary class="subtitulo">Subir muchas fotos por nombre de archivo</summary>
         <p class="pista-campo">Nómbralas como el “Nombre para el show”, por ejemplo <b>Sofia M.jpg</b>. Antes de subir verás con quién se emparejó cada una. Salen en el mapa al guardarlas.</p>
         <button class="btn-secundario" id="btnFotosElegir" type="button">📁 Elegir fotos</button>
         <div id="listaFotosLote" class="fotos-lote"></div>
         <button class="btn-grande btn-siguiente" id="btnFotosSubir" type="button" hidden>Subir fotos</button>
         <p class="mensaje-form" id="mensajeFotosLote"></p>
-      </div>
+      </details>
       <p class="etiqueta-campo">Ver</p>
       <select id="selectFotosFiltro" class="input-select">
         <option value="">Todas las alumnas</option>
@@ -1601,7 +1617,7 @@
 
 </div>
 
-<script src="recepcion.js?v=clave-direccion-v1"></script>
+<script src="recepcion.js?v=fotos-rapidas-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
