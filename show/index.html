@@ -609,7 +609,7 @@
 <header>
   <div class="eyebrow">Move Dance Academy presenta</div>
   <img class="logo" src="logo-dance-rollercoaster.webp" alt="The Dance Rollercoaster">
-  <p class="sub">Vive la adrenalina de una atracción en la danza. Tocá cada atracción del mapa para descubrir el grupo, el baile y el reparto de bailarinas, y marcala como recorrida en tu pasaporte.</p>
+  <p class="sub" id="textoBienvenida">Vive la adrenalina de una atracción en la danza. Tocá cada atracción del mapa para descubrir el grupo, el baile y el reparto de bailarinas, y marcala como recorrida en tu pasaporte.</p>
   <div class="progress-pill">
     <span id="progressText">0/21 recorridas</span>
     <span class="progress-track"><span class="progress-fill" id="progressFill"></span></span>
@@ -1843,12 +1843,16 @@ function aplicarEstado(e, { guardado = false } = {}){
 /* ---------- aviso, explicación y bienvenida ---------- */
 const comoFunciona = document.getElementById('comoFunciona');
 const avisoVotacion = document.getElementById('avisoVotacion');
+// Antes del show no se marcan recorridas: la bienvenida no lo menciona.
+const TEXTO_BIENVENIDA = document.getElementById('textoBienvenida').textContent;
+const TEXTO_BIENVENIDA_PREVIA = 'Vive la adrenalina de una atracción en la danza. Explorá cada atracción del mapa para descubrir el grupo, el baile y el reparto de bailarinas, elegí los bailes que vas a ver y probá la Foto con marco.';
 const enVistaPrevia = () => !!(estado && estado.activo && estado.vistaPrevia);
 function pintarAvisoVotacion(){
   const previa = enVistaPrevia();
   const votos = !!(estado && estado.activo && estado.votacionAbierta);
   const reacciones = !!(estado && estado.activo && estado.reaccionesAbiertas);
   document.body.classList.toggle('vista-previa', previa);
+  document.getElementById('textoBienvenida').textContent = previa ? TEXTO_BIENVENIDA_PREVIA : TEXTO_BIENVENIDA;
   avisoVotacion.hidden = !previa && !votos && !reacciones;
   document.getElementById('avisoVotacionTexto').textContent = previa
     ? '👀 Vista previa: explorá el mapa, elegí los bailes que vas a ver y probá la Foto con marco. La votación y las reacciones se activan el día del show 🎢'

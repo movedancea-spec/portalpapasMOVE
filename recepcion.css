@@ -1815,6 +1815,10 @@ overflow-wrap:anywhere;
 .mapa-pin.fijo{ opacity:.75; pointer-events:none; }
 .mapa-pin.movible{ cursor:grab; touch-action:none; }
 .mapa-pin.editando{ width:32px; height:32px; font-size:15px; border-color:#fff; box-shadow:0 0 0 3px #e0245e; z-index:2; }
+.mapa-direccion{ border:1px dashed #e9b8cf; border-radius:12px; padding:8px 10px; margin-bottom:10px; }
+.mapa-direccion-fila{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.mapa-direccion-fila .input-texto{ margin:0; flex:1 1 180px; min-width:0; }
+.mapa-interruptor input:disabled + span{ opacity:.5; }
 .mapa-aviso{ background:#fff4dc; color:#8a5a12; border-radius:10px; padding:8px 10px; font-size:13px; margin:0 0 10px; }
 .mapa-fila-dos{ display:grid; grid-template-columns:1fr 60px; gap:8px; align-items:end; }
 .mapa-staff-opciones{ display:flex; flex-direction:column; gap:4px; width:100%; margin-top:6px; }

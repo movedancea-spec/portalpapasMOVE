@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=mapa-coreo-v1" />
+<link rel="stylesheet" href="recepcion.css?v=clave-direccion-v1" />
 </head>
 <body>
 
@@ -740,7 +740,15 @@
       <span class="barra-titulo">🗺️ Mapa del Show</span>
     </div>
     <div class="caja-form-ingreso">
-      <label class="mapa-interruptor"><input type="checkbox" id="mapaVistaPrevia" /> <span><b>👀 Modo vista previa</b></span></label>
+      <div class="mapa-direccion" id="cajaDireccion">
+        <p class="pista-campo">🔒 Lo que tiene candado solo se cambia con la Clave de Dirección.</p>
+        <div class="mapa-direccion-fila" id="filaClaveDireccion">
+          <input type="password" id="inputClaveDireccion" class="input-texto" placeholder="Clave de Dirección" autocomplete="off" />
+          <button class="btn-secundario btn-chico" id="btnDesbloquearDireccion" type="button">🔓 Desbloquear</button>
+        </div>
+        <p class="pista-campo" id="estadoDireccion" hidden>🔓 Desbloqueado en esta pestaña. <button class="btn-enlace" id="btnBloquearDireccion" type="button">Bloquear</button></p>
+      </div>
+      <label class="mapa-interruptor"><input type="checkbox" id="mapaVistaPrevia" /> <span><b>👀 Modo vista previa</b> 🔒</span></label>
       <p class="pista-campo">Encendido: se puede explorar el mapa, elegir bailes, ver Nuestro equipo y usar la Foto con marco, pero votar, reaccionar, recorrida y favoritos quedan bloqueados y no se ven el ranking, el contador ni los emojis, aunque esos interruptores estén encendidos. Apágalo el día del show.</p>
       <label class="mapa-interruptor"><input type="checkbox" id="mapaActivo" /> <span>Mapa encendido en academiamovedance.com/show</span></label>
       <p class="pista-campo">Apagado muestra “La temporada del show terminó, ¡gracias!”. Se apaga solo el 1 de enero.</p>
@@ -848,10 +856,10 @@
 
     <div id="vistaMapaVotos">
       <div class="caja-form-ingreso">
-        <label class="mapa-interruptor"><input type="checkbox" id="mapaVotacion" /> <span>Votación abierta</span></label>
-        <label class="mapa-interruptor"><input type="checkbox" id="mapaResultados" /> <span>Mostrar resultados al público</span></label>
-        <label class="mapa-interruptor"><input type="checkbox" id="mapaReacciones" /> <span>Reacciones abiertas</span></label>
-        <label class="mapa-interruptor"><input type="checkbox" id="mapaEmojis" /> <span>Mostrar emojis en el mapa</span></label>
+        <label class="mapa-interruptor"><input type="checkbox" id="mapaVotacion" /> <span>Votación abierta 🔒</span></label>
+        <label class="mapa-interruptor"><input type="checkbox" id="mapaResultados" /> <span>Mostrar resultados al público 🔒</span></label>
+        <label class="mapa-interruptor"><input type="checkbox" id="mapaReacciones" /> <span>Reacciones abiertas 🔒</span></label>
+        <label class="mapa-interruptor"><input type="checkbox" id="mapaEmojis" /> <span>Mostrar emojis en el mapa 🔒</span></label>
         <label class="mapa-interruptor"><input type="checkbox" id="mapaSonidos" /> <span>Sonidos en el mapa</span></label>
         <p class="pista-campo">Apaga los sonidos durante las presentaciones: apagados aquí, no suena ningún celular (tarda unos 20 segundos).</p>
         <p class="pista-campo" id="mapaSincronizacion"></p>
@@ -868,8 +876,8 @@
         <button class="btn-secundario btn-chico" id="btnMapaGuardarRefresco" type="button">Guardar</button>
       </div>
       <div class="show-acciones">
-        <button class="btn-secundario btn-chico show-btn-peligro" id="btnMapaReiniciarVotos" type="button">🔄 Reiniciar votos</button>
-        <button class="btn-secundario btn-chico show-btn-peligro" id="btnMapaReiniciarReacciones" type="button">🔄 Reiniciar reacciones</button>
+        <button class="btn-secundario btn-chico show-btn-peligro" id="btnMapaReiniciarVotos" type="button">🔄 Reiniciar votos 🔒</button>
+        <button class="btn-secundario btn-chico show-btn-peligro" id="btnMapaReiniciarReacciones" type="button">🔄 Reiniciar reacciones 🔒</button>
       </div>
     </div>
   </section>
@@ -1593,7 +1601,7 @@
 
 </div>
 
-<script src="recepcion.js?v=vista-previa-v1"></script>
+<script src="recepcion.js?v=clave-direccion-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

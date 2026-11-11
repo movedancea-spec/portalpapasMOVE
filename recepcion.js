@@ -84,7 +84,8 @@ async function llamarWorker(payload) {
   });
   const datos = await resp.json().catch(() => ({}));
   if (!resp.ok || !datos.success) {
-    throw new Error(datos.error || "Ocurrió un error. Intenta de nuevo.");
+    // Con los datos: quien llama puede ver por qué falló (p. ej. la Clave de Dirección).
+    throw Object.assign(new Error(datos.error || "Ocurrió un error. Intenta de nuevo."), { datos });
   }
   return datos;
 }
@@ -3788,8 +3789,54 @@ async function cargarMapaShow({ soloVivo = false } = {}) {
   aplicarMapaShow(await llamarWorker({ accion: "mapaShowDatos", clave: claveRecepcion }), { soloVivo });
 }
 
+// Clave de Dirección: se recuerda solo en esta pestaña. El Worker la revisa
+// siempre; aquí solo se deshabilitan los interruptores para no confundir.
+const CONTROLES_DIRECCION = ["mapaVistaPrevia", "mapaVotacion", "mapaResultados", "mapaReacciones", "mapaEmojis", "btnMapaReiniciarVotos", "btnMapaReiniciarReacciones"];
+const CAMPOS_DIRECCION = ["vistaPrevia", "votacionAbierta", "reaccionesAbiertas", "resultadosPublicos", "mostrarEmojis"];
+let claveDireccion = "";
+try {
+  claveDireccion = sessionStorage.getItem("claveDireccion") || "";
+} catch (e) {}
+function guardarClaveDireccion(valor) {
+  claveDireccion = valor;
+  try {
+    if (valor) sessionStorage.setItem("claveDireccion", valor);
+    else sessionStorage.removeItem("claveDireccion");
+  } catch (e) {}
+  pintarCandadosDireccion();
+}
+function pintarCandadosDireccion() {
+  CONTROLES_DIRECCION.forEach((id) => {
+    if (el(id)) el(id).disabled = !claveDireccion;
+  });
+  if (el("filaClaveDireccion")) el("filaClaveDireccion").hidden = Boolean(claveDireccion);
+  if (el("estadoDireccion")) el("estadoDireccion").hidden = !claveDireccion;
+}
+// Clave equivocada o vencida: se olvida y vuelven los candados.
+function revisarErrorDireccion(e) {
+  if (e && e.datos && e.datos.claveDireccion) guardarClaveDireccion("");
+}
+el("btnDesbloquearDireccion")?.addEventListener("click", async (e) => {
+  const boton = e.currentTarget;
+  const valor = el("inputClaveDireccion").value.trim();
+  if (!valor) return mensajeShow("mensajeMapaShow", "Escribe la Clave de Dirección.", "error");
+  boton.disabled = true;
+  try {
+    await llamarWorker({ accion: "mapaShowVerificarDireccion", clave: claveRecepcion, claveDireccion: valor });
+    el("inputClaveDireccion").value = "";
+    guardarClaveDireccion(valor);
+    mensajeShow("mensajeMapaShow", "🔓 Desbloqueado en esta pestaña.", "ok");
+  } catch (err) {
+    mensajeShow("mensajeMapaShow", err.message, "error");
+  } finally {
+    boton.disabled = false;
+  }
+});
+el("btnBloquearDireccion")?.addEventListener("click", () => guardarClaveDireccion(""));
+
 function aplicarMapaShow(d, { soloVivo = false } = {}) {
   mapaDatos = d;
+  pintarCandadosDireccion();
   el("mapaActivo").checked = d.config.activo;
   if (el("mapaVistaPrevia")) el("mapaVistaPrevia").checked = d.config.vistaPrevia === true;
   pintarMapaVotos();
@@ -3811,6 +3858,7 @@ async function guardarMapa(boton, accion, datos, aviso) {
     aplicarMapaShow(await llamarWorker({ accion, clave: claveRecepcion, ...datos }));
     mensajeShow("mensajeMapaShow", aviso, "ok");
   } catch (e) {
+    revisarErrorDireccion(e);
     mensajeShow("mensajeMapaShow", e.message, "error");
   } finally {
     boton.disabled = false;
@@ -3897,12 +3945,15 @@ function pintarMapaVotos() {
     casilla.disabled = true;
     mensajeShow("mensajeMapaShow", "");
     try {
-      aplicarMapaShow(await llamarWorker({ accion: "mapaShowInterruptor", clave: claveRecepcion, campo, valor: casilla.checked }), { soloVivo: true });
+      const extra = CAMPOS_DIRECCION.includes(campo) ? { claveDireccion } : {};
+      aplicarMapaShow(await llamarWorker({ accion: "mapaShowInterruptor", clave: claveRecepcion, campo, valor: casilla.checked, ...extra }), { soloVivo: true });
     } catch (err) {
       casilla.checked = !casilla.checked;
+      revisarErrorDireccion(err);
       mensajeShow("mensajeMapaShow", err.message, "error");
     } finally {
       casilla.disabled = false;
+      pintarCandadosDireccion();
     }
   });
 });
@@ -3931,7 +3982,8 @@ function botonReiniciarMapa(id, tipo, texto) {
     }
     mapaConfirmar = "";
     boton.textContent = texto;
-    await guardarMapa(boton, "mapaShowReiniciar", { tipo, confirmar: true }, "✅ Reiniciado.");
+    await guardarMapa(boton, "mapaShowReiniciar", { tipo, confirmar: true, claveDireccion }, "✅ Reiniciado.");
+    pintarCandadosDireccion();
   });
 }
 botonReiniciarMapa("btnMapaReiniciarVotos", "votos", "🔄 Reiniciar votos");
