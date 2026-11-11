@@ -532,11 +532,29 @@
   .photo-modal.open{ opacity:1; pointer-events:auto; transform: translate(-50%,-50%) scale(1); }
   .photo-modal h2{
     font-family:'Bebas Neue', sans-serif; font-weight:400; letter-spacing:.03em;
-    font-size:24px; margin:0 0 12px; color: var(--gold); text-align:center;
+    font-size:24px; margin:0 0 10px; color: var(--gold); text-align:center;
   }
   .photo-modal canvas{
     width:100%; border-radius:14px; margin-bottom:16px; background:#000;
   }
+  .marco-formatos{ display:flex; gap:8px; justify-content:center; margin:0 0 12px; }
+  .marco-formatos button{ flex:1; border:1px solid rgba(243,210,122,.35); background: rgba(255,255,255,.06); color: var(--cream); border-radius:999px; padding:8px 10px; font-family:'Poppins',sans-serif; font-weight:700; font-size:12.5px; cursor:pointer; }
+  .marco-formatos button.activo{ background: linear-gradient(90deg,var(--gold-deep),var(--gold)); color:#241a05; border-color: transparent; }
+  .marco-visor{ position:relative; display:flex; justify-content:center; }
+  .photo-modal #photoCanvas{ width:auto; max-width:100%; max-height:min(46vh, 560px); margin:0; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
+  .marco-flecha{ position:absolute; top:50%; transform:translateY(-50%); width:38px; height:38px; border-radius:50%; border:1px solid rgba(243,210,122,.5); background: rgba(10,11,31,.72); color: var(--gold); font-size:26px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0 0 3px; }
+  .marco-flecha.anterior{ left:4px; }
+  .marco-flecha.siguiente{ right:4px; }
+  .marco-nombre{ text-align:center; margin:8px 0 6px; font-family:'Bebas Neue',sans-serif; letter-spacing:.06em; font-size:18px; color: var(--gold); }
+  .marco-miniaturas{ display:flex; gap:10px; justify-content:center; margin-bottom:10px; }
+  .marco-miniaturas button{ padding:0; border:2px solid transparent; border-radius:10px; background:none; cursor:pointer; line-height:0; opacity:.7; }
+  .marco-miniaturas button.activo{ border-color: var(--gold); opacity:1; }
+  .photo-modal .marco-miniaturas canvas{ width:auto; height:60px; margin:0; border-radius:8px; }
+  .marco-zoom{ display:flex; align-items:center; gap:8px; margin:0 4px 4px; }
+  .marco-zoom input{ flex:1; accent-color: var(--gold); }
+  .marco-ayuda{ font-size:12px; opacity:.75; text-align:center; margin:0 0 10px; }
+  /* Compartir y Descargar siempre a la vista: en un celular chico el editor no cabe entero. */
+  .photo-modal .photo-modal-actions{ position:sticky; bottom:-22px; margin:0 -22px -22px; padding:10px 22px 22px; background: linear-gradient(180deg, rgba(23,26,66,.85), var(--card) 30%); }
   .photo-modal-actions{ display:flex; gap:10px; flex-wrap:wrap; }
   .photo-modal-actions button{
     flex:1; min-width:120px; border:none; border-radius:12px; padding:12px; font-weight:700; cursor:pointer;
@@ -619,7 +637,19 @@
 
 <div class="photo-modal" id="photoModal">
   <h2>¡Sonrían! 🎢</h2>
-  <canvas id="photoCanvas"></canvas>
+  <div class="marco-formatos" role="group" aria-label="Formato">
+    <button type="button" class="activo" data-formato="historia">📱 Historia</button>
+    <button type="button" data-formato="publicacion">🖼️ Publicación</button>
+  </div>
+  <div class="marco-visor">
+    <button type="button" class="marco-flecha anterior" id="marcoAnterior" aria-label="Diseño anterior">‹</button>
+    <canvas id="photoCanvas" aria-label="Tu foto con el marco: arrastrala para acomodarla"></canvas>
+    <button type="button" class="marco-flecha siguiente" id="marcoSiguiente" aria-label="Diseño siguiente">›</button>
+  </div>
+  <p class="marco-nombre" id="marcoNombre"></p>
+  <div class="marco-miniaturas" id="marcoMiniaturas"></div>
+  <label class="marco-zoom"><span aria-hidden="true">🔍</span><input type="range" id="marcoZoom" min="1" max="4" step="0.01" value="1" aria-label="Acercar la foto"></label>
+  <p class="marco-ayuda">Arrastrá la foto para acomodarla. Pellizcá o usá la barra para acercarla.</p>
   <div class="photo-modal-actions">
     <button class="share" id="photoShareBtn">📲 Compartir</button>
     <button class="download" id="photoDownloadBtn">⬇️ Descargar</button>
@@ -685,7 +715,7 @@
   <h2>📸 Foto con marco</h2>
   <ol class="pasos-marco">
     <li>1️⃣ Tomate una foto o elegí una de tu galería.</li>
-    <li>2️⃣ Mirá cómo queda con el marco del show.</li>
+    <li>2️⃣ Elegí el diseño y el formato (historia o publicación) y acomodá la foto con el dedo.</li>
     <li>3️⃣ Guardala o compartila por WhatsApp e Instagram 📲</li>
     <li class="nota">Si no ves Instagram, guardá la foto y subila desde la app.</li>
   </ol>
@@ -1113,45 +1143,348 @@ document.getElementById('pasosMarcoListo').addEventListener('click', () => {
   cameraInput.click();
 });
 
+/* ---------- marcos de "Foto con marco" ----------
+   Todo se dibuja con canvas sobre los dos logos que ya carga el mapa: nada
+   pesado que descargar con mala señal. Cada diseño devuelve dónde va la foto
+   (zona) y dibuja encima su decoración; el centro queda libre para la cara. */
+const MARCO_COLORES = { noche:'#0a0b1f', nocheMedia:'#1e2158', oro:'#f3d27a', oroHondo:'#c79a2e', oroBrillo:'#ffe9b0', rosa:'#f95b9b', crema:'#f6ecd6' };
+const MARCO_FECHA = '15 DE NOVIEMBRE 2026';
+
+function azarMarco(semilla){ return () => { semilla |= 0; semilla = semilla + 0x6D2B79F5 | 0; let t = Math.imul(semilla ^ semilla >>> 15, 1 | semilla); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function caminoRedondo(ctx, x, y, w, h, r, nuevo = true){ if(nuevo) ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function oroLineal(ctx, x0, y0, x1, y1){ const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, '#8a6414'); g.addColorStop(.25, MARCO_COLORES.oroBrillo); g.addColorStop(.5, MARCO_COLORES.oroHondo); g.addColorStop(.75, MARCO_COLORES.oroBrillo); g.addColorStop(1, '#8a6414'); return g; }
+function fondoNoche(ctx, W, H){ const g = ctx.createRadialGradient(W/2, H*.42, W*.1, W/2, H/2, H*.75); g.addColorStop(0, MARCO_COLORES.nocheMedia); g.addColorStop(1, MARCO_COLORES.noche); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+function destello(ctx, x, y, r, color = '#fff'){
+  ctx.save(); ctx.translate(x, y);
+  const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.6); halo.addColorStop(0, 'rgba(255,240,200,.55)'); halo.addColorStop(1, 'rgba(255,240,200,0)');
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(0, 0, r * 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = color; ctx.beginPath();
+  for(let i = 0; i < 8; i++){ const a = i * Math.PI / 4; const rr = i % 2 ? r * .22 : r; ctx.lineTo(Math.cos(a - Math.PI/2) * rr, Math.sin(a - Math.PI/2) * rr); }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+// Confeti y destellos solo fuera de la zona de la foto.
+function confetiMarco(ctx, W, H, libre, cantidad, semilla){
+  const azar = azarMarco(semilla); const colores = [MARCO_COLORES.oro, MARCO_COLORES.rosa, MARCO_COLORES.crema, MARCO_COLORES.oroBrillo];
+  for(let i = 0, n = 0; n < cantidad && i < cantidad * 20; i++){
+    const x = azar() * W, y = azar() * H;
+    if(libre && x > libre.x - 8 && x < libre.x + libre.w + 8 && y > libre.y - 8 && y < libre.y + libre.h + 8) continue;
+    n++;
+    if(azar() < .22){ destello(ctx, x, y, W * (.008 + azar() * .014)); continue; }
+    ctx.save(); ctx.translate(x, y); ctx.rotate(azar() * Math.PI); ctx.fillStyle = colores[Math.floor(azar() * colores.length)];
+    ctx.globalAlpha = .55 + azar() * .45; ctx.fillRect(-W * .006, -W * .0025, W * .012, W * .005); ctx.restore();
+  }
+}
+// cover + encuadre del usuario: zoom ≥ 1, dx/dy en fracción de la zona.
+function dibujarFotoEnZona(ctx, foto, z, enc = { zoom: 1, dx: 0, dy: 0 }, radio = 0){
+  const iw = foto.naturalWidth || foto.width, ih = foto.naturalHeight || foto.height;
+  const escala = Math.max(z.w / iw, z.h / ih) * enc.zoom;
+  const w = iw * escala, h = ih * escala;
+  const maxX = (w - z.w) / 2, maxY = (h - z.h) / 2;
+  const x = z.x + (z.w - w) / 2 + Math.max(-maxX, Math.min(maxX, enc.dx * z.w));
+  const y = z.y + (z.h - h) / 2 + Math.max(-maxY, Math.min(maxY, enc.dy * z.h));
+  ctx.save(); caminoRedondo(ctx, z.x, z.y, z.w, z.h, radio); ctx.clip(); ctx.drawImage(foto, x, y, w, h); ctx.restore();
+}
+function textoMarco(ctx, texto, x, y, { tam, letra = 'Bebas Neue', color = MARCO_COLORES.oro, alinear = 'center', sombra = true, espacio = 0, peso = '', maxAncho }){
+  ctx.save(); ctx.font = `${peso} ${tam}px '${letra}'`; ctx.textAlign = alinear; ctx.textBaseline = 'middle';
+  if('letterSpacing' in ctx) ctx.letterSpacing = `${espacio}px`;
+  if(sombra){ ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = tam * .25; ctx.shadowOffsetY = tam * .06; }
+  // Si no cabe, se achica: las letras pueden no haber cargado y medir distinto.
+  if(maxAncho){ const ancho = ctx.measureText(texto).width; if(ancho > maxAncho){ ctx.font = `${peso} ${tam * maxAncho / ancho}px '${letra}'`; } }
+  ctx.fillStyle = color; ctx.fillText(texto, x, y); ctx.restore();
+}
+// El logo del show tiene aire alrededor: se recorta a lo que se ve.
+function dibujarLogoShow(ctx, logos, cx, cy, ancho){
+  const L = logos.show, rec = { x: .06, y: .14, w: .88, h: .72 };
+  const sw = L.naturalWidth * rec.w, sh = L.naturalHeight * rec.h, alto = ancho * sh / sw;
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = ancho * .04;
+  ctx.drawImage(L, L.naturalWidth * rec.x, L.naturalHeight * rec.y, sw, sh, cx - ancho / 2, cy - alto / 2, ancho, alto); ctx.restore();
+  return alto;
+}
+function dibujarLogoMove(ctx, logos, cx, cy, ancho, fondo = true){
+  const L = logos.move, alto = ancho * L.naturalHeight / L.naturalWidth;
+  if(fondo){ ctx.save(); ctx.fillStyle = 'rgba(255,255,255,.92)'; caminoRedondo(ctx, cx - ancho * .58, cy - alto * .75, ancho * 1.16, alto * 1.5, alto * .4); ctx.fill(); ctx.restore(); }
+  ctx.drawImage(L, cx - ancho / 2, cy - alto / 2, ancho, alto); return alto;
+}
+
+/* 1. Marquesina: bombillas de feria alrededor de la foto. */
+function marcoMarquesina(ctx, W, H, foto, enc, logos){
+  fondoNoche(ctx, W, H);
+  const historia = H / W > 1.5;
+  const m = W * .075, arriba = H * (historia ? .17 : .15), abajo = H * (historia ? .13 : .14);
+  const z = { x: m, y: arriba, w: W - m * 2, h: H - arriba - abajo };
+  confetiMarco(ctx, W, H, { x: z.x - W * .05, y: z.y - W * .05, w: z.w + W * .1, h: z.h + W * .1 }, 70, 7);
+  dibujarFotoEnZona(ctx, foto, z, enc, W * .02);
+  const t = W * .05, R = { x: z.x - t, y: z.y - t, w: z.w + t * 2, h: z.h + t * 2 };
+  ctx.save(); caminoRedondo(ctx, R.x, R.y, R.w, R.h, W * .045); caminoRedondo(ctx, z.x, z.y, z.w, z.h, W * .02, false);
+  ctx.fillStyle = oroLineal(ctx, R.x, R.y, R.x + R.w, R.y + R.h); ctx.fill('evenodd');
+  ctx.lineWidth = W * .004; ctx.strokeStyle = '#6b4a0e'; ctx.stroke(); ctx.restore();
+  // Bombillas: blancas cálidas y cada cuarta rosa Move, con halo.
+  const paso = W * .062, c = { x: R.x + t / 2, y: R.y + t / 2, w: R.w - t, h: R.h - t };
+  const puntos = [];
+  const lado = (x0, y0, x1, y1) => { const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / paso)); for(let i = 0; i < n; i++) puntos.push([x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]); };
+  lado(c.x, c.y, c.x + c.w, c.y); lado(c.x + c.w, c.y, c.x + c.w, c.y + c.h); lado(c.x + c.w, c.y + c.h, c.x, c.y + c.h); lado(c.x, c.y + c.h, c.x, c.y);
+  puntos.forEach(([x, y], i) => {
+    const rosa = i % 4 === 0, r = t * .3;
+    const halo = ctx.createRadialGradient(x, y, 0, x, y, r * 2.6); halo.addColorStop(0, rosa ? 'rgba(249,91,155,.85)' : 'rgba(255,233,176,.9)'); halo.addColorStop(1, 'rgba(255,233,176,0)');
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, y, r * 2.6, 0, Math.PI * 2); ctx.fill();
+    const foco = ctx.createRadialGradient(x - r * .3, y - r * .3, 0, x, y, r); foco.addColorStop(0, '#fff'); foco.addColorStop(1, rosa ? MARCO_COLORES.rosa : MARCO_COLORES.oroBrillo);
+    ctx.fillStyle = foco; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  });
+  dibujarLogoShow(ctx, logos, W / 2, arriba * .5, W * (historia ? .66 : .56));
+  const pie = H - abajo / 2;
+  textoMarco(ctx, MARCO_FECHA, W * .055, pie, { tam: W * .062, alinear: 'left', espacio: W * .004 });
+  dibujarLogoMove(ctx, logos, W - W * .2, pie, W * .22);
+  destello(ctx, z.x + z.w * .06, z.y + z.h * .05, W * .03); destello(ctx, z.x + z.w * .94, z.y + z.h * .95, W * .026);
+  return z;
+}
+
+/* 2. Foto de la montaña rusa: como la foto de la bajada. */
+function puntoBezier(p0, p1, p2, p3, t){ const u = 1 - t; return [u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0], u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1]]; }
+function marcoMontana(ctx, W, H, foto, enc, logos, numero){
+  const z = { x: 0, y: 0, w: W, h: H };
+  dibujarFotoEnZona(ctx, foto, z, enc);
+  const sombraArriba = ctx.createLinearGradient(0, 0, 0, H * .26); sombraArriba.addColorStop(0, 'rgba(10,11,31,.85)'); sombraArriba.addColorStop(1, 'rgba(10,11,31,0)');
+  ctx.fillStyle = sombraArriba; ctx.fillRect(0, 0, W, H * .26);
+  const sombraAbajo = ctx.createLinearGradient(0, H * .7, 0, H); sombraAbajo.addColorStop(0, 'rgba(10,11,31,0)'); sombraAbajo.addColorStop(1, 'rgba(10,11,31,.85)');
+  ctx.fillStyle = sombraAbajo; ctx.fillRect(0, H * .7, W, H * .3);
+  // Vía: entra por abajo a la izquierda, rodea y sube por la derecha.
+  const tramos = [
+    [[-W * .1, H * .9], [W * .25, H * 1.0], [W * .62, H * .99], [W * .86, H * .84]],
+    [[W * .86, H * .84], [W * 1.04, H * .72], [W * .99, H * .5], [W * 1.12, H * .34]],
+  ];
+  const trazar = () => { ctx.beginPath(); ctx.moveTo(...tramos[0][0]); tramos.forEach(([, a, b, c]) => ctx.bezierCurveTo(...a, ...b, ...c)); };
+  ctx.save(); ctx.lineCap = 'butt';
+  trazar(); ctx.setLineDash([W * .012, W * .022]); ctx.lineWidth = W * .085; ctx.strokeStyle = '#4a3108'; ctx.stroke();
+  ctx.setLineDash([]); trazar(); ctx.lineWidth = W * .06; ctx.strokeStyle = oroLineal(ctx, 0, H * .6, W, H); ctx.stroke();
+  trazar(); ctx.lineWidth = W * .036; ctx.strokeStyle = 'rgba(10,11,31,.92)'; ctx.stroke(); ctx.restore();
+  // Carrito sobre la vía.
+  const t = .38, [cx, cy] = puntoBezier(...tramos[0], t), [nx, ny] = puntoBezier(...tramos[0], t + .01);
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.atan2(ny - cy, nx - cx));
+  const cw = W * .27, ch = W * .11;
+  ctx.fillStyle = MARCO_COLORES.rosa; caminoRedondo(ctx, -cw / 2, -ch - W * .028, cw, ch, ch * .35); ctx.fill();
+  ctx.lineWidth = W * .006; ctx.strokeStyle = MARCO_COLORES.oroBrillo; ctx.stroke();
+  ctx.fillStyle = MARCO_COLORES.oro; caminoRedondo(ctx, -cw / 2 + cw * .08, -ch - W * .02, cw * .84, ch * .22, ch * .1); ctx.fill();
+  textoMarco(ctx, '★', 0, -ch * .45 - W * .028, { tam: ch * .55, color: MARCO_COLORES.oroBrillo, sombra: false });
+  [-cw * .3, cw * .3].forEach(x => { ctx.fillStyle = '#1e2158'; ctx.beginPath(); ctx.arc(x, -W * .022, W * .02, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = MARCO_COLORES.oro; ctx.lineWidth = W * .005; ctx.stroke(); });
+  ctx.restore();
+  for(let i = 1; i < 7; i++){ const [x, y] = puntoBezier(...tramos[i < 4 ? 0 : 1], (i % 4) / 4 + .1); destello(ctx, x, y - W * .05, W * .018); }
+  // Arriba: logo del show y Move; letrero de la foto de la bajada.
+  dibujarLogoShow(ctx, logos, W * .3, W * .135, W * .5);
+  const altoMove = dibujarLogoMove(ctx, logos, W * .8, W * .1, W * .2);
+  ctx.save(); ctx.translate(W * .79, W * .1 + altoMove * .75 + W * .085); ctx.rotate(-.06);
+  const tw = W * .32, th = W * .09; ctx.fillStyle = MARCO_COLORES.rosa; caminoRedondo(ctx, -tw / 2, -th / 2, tw, th, th * .25); ctx.fill();
+  ctx.lineWidth = W * .005; ctx.strokeStyle = MARCO_COLORES.oroBrillo; ctx.stroke();
+  textoMarco(ctx, '¡SONRÍAN! 🎢', 0, th * .04, { tam: th * .55, color: '#fff' }); ctx.restore();
+  // Sello tipo boleto, abajo a la izquierda, sobre la vía.
+  ctx.save(); ctx.translate(W * .25, H * .76); ctx.rotate(-.12);
+  const sw = W * .38, sh = W * .17; ctx.fillStyle = 'rgba(10,11,31,.82)'; caminoRedondo(ctx, -sw / 2, -sh / 2, sw, sh, W * .015); ctx.fill();
+  ctx.setLineDash([W * .012, W * .008]); ctx.lineWidth = W * .004; ctx.strokeStyle = MARCO_COLORES.oro; caminoRedondo(ctx, -sw / 2 + W * .012, -sh / 2 + W * .012, sw - W * .024, sh - W * .024, W * .01); ctx.stroke(); ctx.setLineDash([]);
+  const dentro = sw - W * .07;
+  textoMarco(ctx, 'THE DANCE ROLLERCOASTER', 0, -sh * .22, { tam: sh * .15, letra: 'Cinzel', peso: 600, sombra: false, maxAncho: dentro });
+  textoMarco(ctx, '15 · NOV · 2026', 0, sh * .05, { tam: sh * .3, color: MARCO_COLORES.oroBrillo, sombra: false, maxAncho: dentro });
+  textoMarco(ctx, `FOTO Nº ${numero}`, 0, sh * .3, { tam: sh * .14, letra: 'Space Mono', color: MARCO_COLORES.rosa, sombra: false, maxAncho: dentro });
+  ctx.restore();
+  return z;
+}
+
+/* 3. Boleto VIP dorado con perforaciones. */
+function marcoBoleto(ctx, W, H, foto, enc, logos, numero){
+  fondoNoche(ctx, W, H);
+  const historia = H / W > 1.5;
+  const B = { x: W * .06, y: H * (historia ? .15 : .13), w: W * .88, h: H * (historia ? .8 : .83) };
+  confetiMarco(ctx, W, H, B, 60, 21);
+  const talon = B.h * (historia ? .2 : .23), corte = B.y + B.h - talon, muesca = W * .045;
+  // Boleto con muescas a los lados de la línea perforada.
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = W * .04; ctx.shadowOffsetY = W * .015;
+  ctx.beginPath(); const r = W * .035;
+  ctx.moveTo(B.x + r, B.y); ctx.arcTo(B.x + B.w, B.y, B.x + B.w, corte, r);
+  ctx.lineTo(B.x + B.w, corte - muesca); ctx.arc(B.x + B.w, corte, muesca, -Math.PI / 2, Math.PI / 2, true);
+  ctx.arcTo(B.x + B.w, B.y + B.h, B.x, B.y + B.h, r); ctx.arcTo(B.x, B.y + B.h, B.x, corte, r);
+  ctx.lineTo(B.x, corte + muesca); ctx.arc(B.x, corte, muesca, Math.PI / 2, -Math.PI / 2, true);
+  ctx.arcTo(B.x, B.y, B.x + B.w, B.y, r); ctx.closePath();
+  ctx.fillStyle = oroLineal(ctx, B.x, B.y, B.x + B.w, B.y + B.h); ctx.fill(); ctx.restore();
+  const forma = new Path2D(); caminoRedondo(forma, B.x, B.y, B.w, B.h, r, false);
+  // Brillo diagonal, solo dentro del boleto.
+  ctx.save(); ctx.clip(forma); ctx.globalAlpha = .18; ctx.fillStyle = '#fff';
+  for(let i = 0; i < 3; i++){ ctx.beginPath(); const x = B.x + B.w * (.15 + i * .3); ctx.moveTo(x, B.y); ctx.lineTo(x + W * .06, B.y); ctx.lineTo(x - W * .25, B.y + B.h); ctx.lineTo(x - W * .31, B.y + B.h); ctx.fill(); }
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(90,60,10,.7)'; ctx.lineWidth = W * .004; caminoRedondo(ctx, B.x + W * .02, B.y + W * .02, B.w - W * .04, corte - B.y - W * .04, W * .02); ctx.stroke();
+  // Encabezado y foto.
+  const cab = W * .095;
+  textoMarco(ctx, '★  ADMIT ONE  ★', W / 2, B.y + cab * .62, { tam: W * .062, color: '#1e2158', sombra: false, espacio: W * .008 });
+  const z = { x: B.x + W * .045, y: B.y + cab * 1.15, w: B.w - W * .09, h: corte - B.y - cab * 1.15 - W * .045 };
+  dibujarFotoEnZona(ctx, foto, z, enc, W * .02);
+  ctx.lineWidth = W * .008; ctx.strokeStyle = '#1e2158'; caminoRedondo(ctx, z.x, z.y, z.w, z.h, W * .02); ctx.stroke();
+  // Sello VIP rosa.
+  ctx.save(); ctx.translate(z.x + z.w - W * .08, z.y + W * .08); ctx.rotate(.25);
+  ctx.fillStyle = MARCO_COLORES.rosa; ctx.beginPath(); for(let i = 0; i < 24; i++){ const a = i * Math.PI / 12, rr = i % 2 ? W * .07 : W * .082; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
+  ctx.lineWidth = W * .004; ctx.strokeStyle = '#fff'; ctx.stroke();
+  textoMarco(ctx, 'VIP', 0, W * .004, { tam: W * .06, color: '#fff', sombra: false }); ctx.restore();
+  // Perforación.
+  ctx.save(); ctx.setLineDash([W * .012, W * .012]); ctx.lineWidth = W * .006; ctx.strokeStyle = 'rgba(30,33,88,.75)';
+  ctx.beginPath(); ctx.moveTo(B.x + muesca * 1.3, corte); ctx.lineTo(B.x + B.w - muesca * 1.3, corte); ctx.stroke(); ctx.restore();
+  // Talón: textos, código de barras y logo Move.
+  const tc = corte + talon / 2, izq = B.x + W * .06, textoMax = B.w * .62;
+  textoMarco(ctx, 'THE DANCE ROLLERCOASTER', izq, tc - talon * .24, { tam: W * .04, letra: 'Cinzel', peso: 600, color: '#1e2158', alinear: 'left', sombra: false, maxAncho: textoMax });
+  textoMarco(ctx, MARCO_FECHA, izq, tc + talon * .0, { tam: W * .058, color: '#1e2158', alinear: 'left', sombra: false, maxAncho: textoMax });
+  const azar = azarMarco(Number(numero) || 1); let bx = B.x + W * .06; const by = tc + talon * .2, bh = talon * .2;
+  ctx.fillStyle = '#1e2158'; while(bx < B.x + W * .42){ const g = W * (.002 + azar() * .006); ctx.fillRect(bx, by, g, bh); bx += g + W * (.002 + azar() * .004); }
+  textoMarco(ctx, `Nº ${numero}`, B.x + W * .45, by + bh / 2, { tam: W * .026, letra: 'Space Mono', color: '#1e2158', alinear: 'left', sombra: false });
+  dibujarLogoMove(ctx, logos, B.x + B.w - W * .15, tc - talon * .1, W * .2, false);
+  // El ancho sale del espacio que hay arriba del boleto, para que nunca se corte.
+  const proporcionLogo = (logos.show.naturalHeight * .72) / (logos.show.naturalWidth * .88);
+  dibujarLogoShow(ctx, logos, W / 2, B.y / 2, Math.min(W * (historia ? .62 : .5), (B.y * .9) / proporcionLogo));
+  return z;
+}
+
+const MARCOS = [
+  { id: 'marquesina', nombre: 'Marquesina', dibujar: marcoMarquesina, ajuste: { zoom: 1, dy: 0 } },
+  // La vía tapa la parte de abajo: la foto arranca más arriba y un poco más cerca.
+  { id: 'montana', nombre: 'Montaña rusa', dibujar: marcoMontana, ajuste: { zoom: 1.15, dy: -.1 } },
+  { id: 'boleto', nombre: 'Boleto VIP', dibujar: marcoBoleto, ajuste: { zoom: 1, dy: 0 } },
+];
+const FORMATOS_MARCO = { historia: { w: 1080, h: 1920, nombre: 'Historia' }, publicacion: { w: 1080, h: 1350, nombre: 'Publicación' } };
+
 const MARCO_LADO_MAX = 2000;
+const MARCO_ZOOM_MAX = 4;
+const MARCO_ESCALA_VISTA = .5;
+const marcoEstado = { foto: null, diseno: 0, formato: 'historia', enc: { zoom: 1, dx: 0, dy: 0 }, numero: '' };
+let logosMarco = null;
+let zonaMarco = null;
+const marcoMiniaturas = document.getElementById('marcoMiniaturas');
+const marcoZoom = document.getElementById('marcoZoom');
+
+function cargarLogosMarco(){
+  return Promise.all([loadImg('logo-dance-rollercoaster.webp'), loadImg('logo-academia-move.png')]).then(([show, move]) => (logosMarco = { show, move }));
+}
+// Sin señal las letras pueden no llegar: no se espera más de 2.5 s.
+function letrasMarco(){
+  const todas = Promise.all(["40px 'Bebas Neue'", "600 40px 'Cinzel'", "40px 'Space Mono'"].map(f => document.fonts.load(f)));
+  return Promise.race([todas, new Promise(r => setTimeout(r, 2500))]).catch(() => {});
+}
+// El ajuste del diseño (la Montaña rusa sube la foto) se suma a lo que mueva la persona.
+function encDeMarco(d){
+  const a = MARCOS[d].ajuste, e = marcoEstado.enc;
+  return { zoom: e.zoom * a.zoom, dx: e.dx, dy: e.dy + a.dy };
+}
+function dibujarMarco(lienzo, d, escala){
+  const f = FORMATOS_MARCO[marcoEstado.formato];
+  lienzo.width = Math.round(f.w * escala);
+  lienzo.height = Math.round(f.h * escala);
+  const ctx = lienzo.getContext('2d');
+  ctx.setTransform(escala, 0, 0, escala, 0, 0);
+  return MARCOS[d].dibujar(ctx, f.w, f.h, marcoEstado.foto, encDeMarco(d), logosMarco, marcoEstado.numero);
+}
+let marcoPendiente = false;
+function pintarMarco(){
+  if(marcoPendiente) return;
+  marcoPendiente = true;
+  requestAnimationFrame(() => { marcoPendiente = false; zonaMarco = dibujarMarco(photoCanvas, marcoEstado.diseno, MARCO_ESCALA_VISTA); });
+}
+function pintarMiniaturas(){
+  marcoMiniaturas.innerHTML = '';
+  MARCOS.forEach((m, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = i === marcoEstado.diseno ? 'activo' : '';
+    b.setAttribute('aria-label', `Diseño ${m.nombre}`);
+    const c = document.createElement('canvas');
+    dibujarMarco(c, i, .1);
+    b.appendChild(c);
+    b.addEventListener('click', () => elegirMarco(i));
+    marcoMiniaturas.appendChild(b);
+  });
+  document.getElementById('marcoNombre').textContent = `${marcoEstado.diseno + 1}/${MARCOS.length} · ${MARCOS[marcoEstado.diseno].nombre}`;
+}
+function elegirMarco(i){
+  marcoEstado.diseno = (i + MARCOS.length) % MARCOS.length;
+  sonar('lista');
+  pintarMarco();
+  pintarMiniaturas();
+}
+document.getElementById('marcoAnterior').addEventListener('click', () => elegirMarco(marcoEstado.diseno - 1));
+document.getElementById('marcoSiguiente').addEventListener('click', () => elegirMarco(marcoEstado.diseno + 1));
+document.querySelectorAll('[data-formato]').forEach(b => b.addEventListener('click', () => {
+  marcoEstado.formato = b.dataset.formato;
+  document.querySelectorAll('[data-formato]').forEach(x => x.classList.toggle('activo', x === b));
+  sonar('lista');
+  pintarMarco();
+  pintarMiniaturas();
+}));
+
+// Que la foto no se pueda arrastrar hasta dejar un hueco dentro del marco.
+function limitarEncuadre(){
+  if(!zonaMarco || !marcoEstado.foto) return;
+  const z = zonaMarco, f = marcoEstado.foto, a = MARCOS[marcoEstado.diseno].ajuste, e = encDeMarco(marcoEstado.diseno);
+  const escala = Math.max(z.w / f.width, z.h / f.height) * e.zoom;
+  const mx = (f.width * escala - z.w) / 2 / z.w, my = (f.height * escala - z.h) / 2 / z.h;
+  marcoEstado.enc.dx = Math.max(-mx, Math.min(mx, marcoEstado.enc.dx));
+  marcoEstado.enc.dy = Math.max(-my - a.dy, Math.min(my - a.dy, marcoEstado.enc.dy));
+}
+function ponerZoomMarco(zoom){
+  marcoEstado.enc.zoom = Math.max(1, Math.min(MARCO_ZOOM_MAX, zoom));
+  marcoZoom.value = marcoEstado.enc.zoom;
+  limitarEncuadre();
+  pintarMarco();
+}
+marcoZoom.addEventListener('input', () => ponerZoomMarco(Number(marcoZoom.value)));
+marcoZoom.addEventListener('change', pintarMiniaturas);
+const punterosMarco = new Map();
+let pellizcoMarco = null;
+photoCanvas.addEventListener('pointerdown', (e) => {
+  photoCanvas.setPointerCapture(e.pointerId);
+  punterosMarco.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if(punterosMarco.size === 2){
+    const [a, b] = [...punterosMarco.values()];
+    pellizcoMarco = { distancia: Math.hypot(a.x - b.x, a.y - b.y) || 1, zoom: marcoEstado.enc.zoom };
+  }
+});
+photoCanvas.addEventListener('pointermove', (e) => {
+  const p = punterosMarco.get(e.pointerId);
+  if(!p || !zonaMarco) return;
+  if(punterosMarco.size === 1){
+    // De píxeles de pantalla a fracción de la zona de la foto.
+    const k = FORMATOS_MARCO[marcoEstado.formato].w / photoCanvas.getBoundingClientRect().width;
+    marcoEstado.enc.dx += (e.clientX - p.x) * k / zonaMarco.w;
+    marcoEstado.enc.dy += (e.clientY - p.y) * k / zonaMarco.h;
+  }
+  p.x = e.clientX; p.y = e.clientY;
+  if(punterosMarco.size === 2 && pellizcoMarco){
+    const [a, b] = [...punterosMarco.values()];
+    return ponerZoomMarco(pellizcoMarco.zoom * Math.hypot(a.x - b.x, a.y - b.y) / pellizcoMarco.distancia);
+  }
+  limitarEncuadre();
+  pintarMarco();
+});
+function soltarMarco(e){
+  if(!punterosMarco.delete(e.pointerId)) return;
+  if(punterosMarco.size < 2) pellizcoMarco = null;
+  if(!punterosMarco.size) pintarMiniaturas();
+}
+photoCanvas.addEventListener('pointerup', soltarMarco);
+photoCanvas.addEventListener('pointercancel', soltarMarco);
+photoCanvas.addEventListener('wheel', (e) => { e.preventDefault(); ponerZoomMarco(marcoEstado.enc.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+
 cameraInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if(!file) return;
   const url = URL.createObjectURL(file);
   try{
-    const photo = await loadImg(url);
-    const logo = await loadImg('logo-dance-rollercoaster.webp');
-    const academyLogo = await loadImg('logo-academia-move.png');
-
-    // Una foto del celular pesa varios MB: a este tamaño sale liviana para WhatsApp.
+    const [photo] = await Promise.all([loadImg(url), logosMarco || cargarLogosMarco(), letrasMarco()]);
+    // Una foto del celular pesa varios MB: a este tamaño se mueve fluido y sale liviana.
     const escala = Math.min(1, MARCO_LADO_MAX / Math.max(photo.naturalWidth, photo.naturalHeight));
-    const ancho = Math.round(photo.naturalWidth * escala);
-    const alto = Math.round(photo.naturalHeight * escala);
-    photoCanvas.width = ancho;
-    photoCanvas.height = alto;
-    const ctx = photoCanvas.getContext('2d');
-    ctx.drawImage(photo, 0, 0, ancho, alto);
-
-    // tamaños de cada logo, manteniendo su proporción
-    const showLogoW = ancho * 0.34;
-    const showLogoH = showLogoW * (logo.height / logo.width);
-    const academyLogoW = ancho * 0.20;
-    const academyLogoH = academyLogoW * (academyLogo.height / academyLogo.width);
-    const gap = ancho * 0.03;
-    const pad = ancho * 0.025;
-
-    const barH = Math.max(showLogoH, academyLogoH) + pad * 2;
-    ctx.fillStyle = 'rgba(10,11,31,0.65)';
-    ctx.fillRect(0, alto - barH, ancho, barH);
-
-    const totalW = academyLogoW + gap + showLogoW;
-    const startX = (ancho - totalW) / 2;
-    const academyY = alto - barH/2 - academyLogoH/2;
-    const showY = alto - barH/2 - showLogoH/2;
-
-    ctx.drawImage(academyLogo, startX, academyY, academyLogoW, academyLogoH);
-    ctx.drawImage(logo, startX + academyLogoW + gap, showY, showLogoW, showLogoH);
-
+    const lienzo = document.createElement('canvas');
+    lienzo.width = Math.round(photo.naturalWidth * escala);
+    lienzo.height = Math.round(photo.naturalHeight * escala);
+    lienzo.getContext('2d').drawImage(photo, 0, 0, lienzo.width, lienzo.height);
+    marcoEstado.foto = lienzo;
+    marcoEstado.enc = { zoom: 1, dx: 0, dy: 0 };
+    marcoEstado.diseno = 0;
+    // Distinto en cada foto: es un adorno, no se guarda en ningún lado.
+    marcoEstado.numero = String(Math.floor(Math.random() * 1e6)).padStart(6, '0');
+    marcoZoom.value = 1;
+    pintarMarco();
+    pintarMiniaturas();
     photoModal.classList.add('open');
     overlay.classList.add('open');
     sonar('confeti');
@@ -1169,7 +1502,13 @@ function closePhotoModal(){
 }
 photoCloseBtn.addEventListener('click', closePhotoModal);
 
-const fotoMarcoBlob = () => new Promise(r => photoCanvas.toBlob(r, 'image/jpeg', 0.88));
+// La vista se dibuja a la mitad para que mover la foto sea fluido; lo que se
+// guarda o se comparte se vuelve a dibujar completo (1080 de ancho).
+function fotoMarcoBlob(){
+  const lienzo = document.createElement('canvas');
+  dibujarMarco(lienzo, marcoEstado.diseno, 1);
+  return new Promise(r => lienzo.toBlob(r, 'image/jpeg', 0.86));
+}
 function bajarFotoMarco(blob){
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
