@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="recepcion.css?v=fotos-rapidas-v1" />
+<link rel="stylesheet" href="recepcion.css?v=descargas-fotos-v1" />
 </head>
 <body>
 
@@ -972,11 +972,13 @@
       <div class="caja-form-ingreso">
         <label class="mapa-interruptor"><input type="checkbox" id="fotosPortalActivo" /> <span>Sección «📸 Foto del show» en el portal</span></label>
         <p class="pista-campo">Ahí cada familia descarga su foto y la grupal de sus bailes. Se apaga sola el 1 de enero.</p>
+        <p class="fotos-descargas-resumen" id="resumenDescargasFotos" hidden></p>
       </div>
       <div class="caja-form-ingreso">
         <p class="subtitulo">📸 Fotos por baile</p>
         <p class="pista-campo">Elige el baile y toca a cada alumna: se abre la cámara o la galería y la foto se recorta y se guarda sola. Puedes seguir con la siguiente mientras se sube. Toca una foto ya guardada para cambiarla o ajustar el recorte.</p>
         <select id="selectFotosBaile" class="input-select"></select>
+        <p class="pista-campo" id="resumenDescargasBaile" hidden></p>
         <p class="fotos-cola" id="estadoColaFotos" hidden></p>
         <div id="gridFotosBaile" class="fotos-grid"></div>
         <div class="fotos-menu" id="menuFotoAlumna" hidden>
@@ -1002,6 +1004,7 @@
         <option value="">Todas las alumnas</option>
         <option value="sinFoto">Sin foto</option>
         <option value="ocultas">Ocultas</option>
+        <option value="sinDescargar">Sin descargar (ya tienen foto)</option>
       </select>
       <p class="mensaje-form" id="mensajeFotos"></p>
       <div id="listaFotosBailes" class="show-lista"><p class="lista-vacia">Cargando...</p></div>
@@ -1617,7 +1620,7 @@
 
 </div>
 
-<script src="recepcion.js?v=fotos-rapidas-v1"></script>
+<script src="recepcion.js?v=descargas-fotos-v1"></script>
 <!-- Código QR de los links de las fichas, dibujado aquí mismo (sin
      mandar el link a un servicio de afuera). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>

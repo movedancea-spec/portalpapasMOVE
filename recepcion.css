@@ -1872,3 +1872,8 @@ overflow-wrap:anywhere;
 .foto-ventana-caja img{ max-width:100%; max-height:70vh; border-radius:10px; }
 #canvasEncuadre{ width:min(280px, 80vw); height:auto; aspect-ratio:1; border-radius:12px; touch-action:none; cursor:grab; }
 #zoomEncuadre{ width:100%; }
+
+/* Descargas de la foto del show desde el portal */
+.fotos-descargas-resumen{ margin:10px 0 0; font-weight:700; }
+.foto-descarga{ font-size:10.5px; line-height:1.2; color:#b45309; text-align:center; }
+.foto-descarga.lista{ color:#15803d; }

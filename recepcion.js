@@ -3413,6 +3413,9 @@ function vistaFotoAlumna(a, img) {
     })
     .catch(() => {});
 }
+function fechaCortaDescarga(iso) {
+  return new Date(iso).toLocaleDateString("es-GT", { timeZone: "America/Guatemala", day: "numeric", month: "short" });
+}
 function inicialesFoto(nombre) {
   return String(nombre).trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
@@ -3432,6 +3435,12 @@ function celdaFoto(a) {
   const insignia = local ? { subiendo: "⏳", listo: "✅", error: "⚠️" }[local.estado] : tieneFoto ? "" : "📷";
   if (insignia) circulo.appendChild(crearEl("span", "foto-insignia", insignia));
   celda.append(circulo, crearEl("span", "foto-nombre", a.nombreShow || a.nombre));
+  if (hayDescargasFotos() && a.foto && a.descargas) {
+    const d = a.descargas;
+    const marca = crearEl("span", "foto-descarga" + (d.veces ? " lista" : ""), d.veces ? `✅ ${d.veces}× · ${fechaCortaDescarga(d.ultima)}` : "⏳ Sin descargar");
+    marca.title = textoDescargaAlumna(a);
+    celda.appendChild(marca);
+  }
   celda.setAttribute("aria-label", `${a.nombreShow || a.nombre}: ${local && local.estado === "error" ? "falló, toca para reintentar" : tieneFoto ? "tiene foto" : "sin foto, toca para tomarla"}`);
   // El input se abre en el mismo toque: iPhone no lo deja abrir después.
   celda.addEventListener("click", () => tocarCeldaFoto(a));
@@ -3444,6 +3453,7 @@ function pintarGridFotos() {
   const b = baileFotosElegido();
   if (!b) return grid.appendChild(crearEl("p", "lista-vacia", "No hay bailes con alumnas."));
   b.alumnas.map(alumnaDeFotos).filter(Boolean).forEach((a) => grid.appendChild(celdaFoto(a)));
+  pintarResumenDescargasBaile();
 }
 function repintarCeldaFoto(id) {
   const vieja = document.querySelector(`#gridFotosBaile .foto-celda[data-id="${id}"]`);
@@ -3571,6 +3581,7 @@ async function cargarFotosShow() {
     return;
   }
   el("fotosPortalActivo").checked = fotosDatos.portalActivo;
+  pintarResumenDescargas();
   pintarSelectFotosBaile();
   pintarGridFotos();
   pintarFotosBailes();
@@ -3881,6 +3892,8 @@ function filaFotoAlumna(a) {
   const texto = crearEl("div", "foto-fila-centro");
   texto.appendChild(crearEl("span", "show-tarjeta-nombre", `${a.foto ? "📸" : "⬜"} ${a.nombreShow}${a.estado ? ` (${a.estado})` : ""}`));
   if (a.oculta) texto.appendChild(crearEl("span", "tarjeta-resultado-detalle", "🙈 Oculta"));
+  const descarga = textoDescargaAlumna(a);
+  if (descarga) texto.appendChild(crearEl("span", "tarjeta-resultado-detalle", descarga));
   const acciones = crearEl("div", "show-acciones");
   acciones.appendChild(botonFoto(a.foto ? "Reemplazar" : "Subir foto", () => {
     fotoDestinoIndividual = { tipo: "alumna", id: a.id, mensaje: "mensajeFotos" };
@@ -3898,18 +3911,58 @@ function filaFotoAlumna(a) {
   return fila;
 }
 
+// Descargas desde el portal (DESCARGAS FOTOS SHOW). Cuenta la foto de la
+// alumna; la grupal va aparte. En iPhone cuenta cuando la foto quedó lista,
+// aunque al final no la hayan guardado.
+const hayDescargasFotos = () => Boolean(fotosDatos && fotosDatos.descargasDisponibles);
+const yaDescargo = (a) => Boolean(a.descargas && a.descargas.veces);
+function textoDescargaAlumna(a) {
+  if (!a.foto || !a.descargas) return "";
+  const d = a.descargas;
+  if (!d.veces) return "⏳ Sin descargar";
+  return `✅ Descargada · ${fechaHoraAmon(d.ultima)} · ${d.veces} ${d.veces === 1 ? "vez" : "veces"}`;
+}
+function textoDescargasDe(alumnas) {
+  const conFoto = [...new Map(alumnas.map((a) => [a.id, a])).values()].filter((a) => a.foto);
+  const listas = conFoto.filter(yaDescargo).length;
+  return `📥 ${listas} de ${conFoto.length} ${conFoto.length === 1 ? "familia ya descargó" : "familias ya descargaron"} su foto`;
+}
+function textoDescargaGrupal(b) {
+  if (!b.foto || !b.descargasGrupal) return "";
+  const g = b.descargasGrupal;
+  return g.familias ? `📥 Grupal: la ${g.familias === 1 ? "descargó 1 familia" : `descargaron ${g.familias} familias`} (última ${fechaHoraAmon(g.ultima)})` : "📥 Grupal: nadie la ha descargado";
+}
+function pintarResumenDescargas() {
+  const p = el("resumenDescargasFotos");
+  if (!p) return;
+  p.hidden = !hayDescargasFotos();
+  if (hayDescargasFotos()) p.textContent = textoDescargasDe(fotosDatos.alumnas);
+}
+function pintarResumenDescargasBaile() {
+  const p = el("resumenDescargasBaile");
+  if (!p) return;
+  const b = baileFotosElegido();
+  p.hidden = !hayDescargasFotos() || !b;
+  if (p.hidden) return;
+  p.textContent = [textoDescargasDe(b.alumnas.map(alumnaDeFotos).filter(Boolean)), textoDescargaGrupal(b)].filter(Boolean).join(" · ");
+}
+
 function pintarFotosBailes() {
   const cont = el("listaFotosBailes");
   cont.innerHTML = "";
   const filtro = el("selectFotosFiltro").value;
   const pasa = (a) =>
-    !filtro || (filtro === "sinFoto" && !a.foto) || (filtro === "ocultas" && a.oculta);
+    !filtro || (filtro === "sinFoto" && !a.foto) || (filtro === "ocultas" && a.oculta) || (filtro === "sinDescargar" && a.foto && a.descargas && !yaDescargo(a));
   fotosDatos.bailes.forEach((b) => {
     const alumnas = b.alumnas.map(alumnaDeFotos).filter(Boolean);
     const tarjeta = crearEl("div", "show-tarjeta" + (b.activo ? "" : " inactivo"));
     tarjeta.appendChild(crearEl("span", "show-tarjeta-nombre", `${b.nombre}${b.atraccion ? ` · 🗺️ ${b.atraccion}` : ""}`));
     const conFoto = alumnas.filter((a) => a.foto).length;
     tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", `📸 ${conFoto} de ${alumnas.length} con foto`));
+    if (hayDescargasFotos()) {
+      tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", textoDescargasDe(alumnas)));
+      if (b.foto) tarjeta.appendChild(crearEl("span", "tarjeta-resultado-detalle", textoDescargaGrupal(b)));
+    }
     const grupal = crearEl("div", "foto-grupal");
     grupal.appendChild(crearEl("span", "tarjeta-resultado-detalle", b.foto ? "Foto grupal:" : "Sin foto grupal"));
     const acciones = crearEl("div", "show-acciones");
@@ -3931,7 +3984,9 @@ function pintarFotosBailes() {
       grupal.appendChild(acciones);
     }
     tarjeta.appendChild(grupal);
-    alumnas.filter(pasa).forEach((a) => tarjeta.appendChild(filaFotoAlumna(a)));
+    const visibles = alumnas.filter(pasa);
+    if (filtro === "sinDescargar" && !visibles.length) return;
+    visibles.forEach((a) => tarjeta.appendChild(filaFotoAlumna(a)));
     cont.appendChild(tarjeta);
   });
 }

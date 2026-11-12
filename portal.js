@@ -4537,6 +4537,22 @@ async function guardarImagenShow(blob, nombre, boton, textoBoton) {
   else bajarArchivoShow(blob, nombre);
 }
 
+// Para que Recepción sepa quién ya tiene su foto. Sin esperar respuesta y sin
+// mostrar errores: si no se registra, la descarga sale igual. keepalive para
+// que llegue aunque el menú de compartir mande la página a segundo plano.
+function avisarDescargaFotoShow(baile, conMarco) {
+  try {
+    fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accion: "fotoShowDescargaRegistrar", alumnaId: alumnaSeleccionada.id, ...credencialesAlumna(), baile, conMarco }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {
+    // nada: es solo un conteo
+  }
+}
+
 // "Con marco": los mismos diseños y el mismo editor que "Foto con marco" del
 // mapa (show/marcos.js), así los dos quedan siempre iguales. Se carga solo al
 // tocar el botón: el resto del portal no lo necesita.
@@ -4620,19 +4636,22 @@ function armarEditorMarcoShow(MarcoShow) {
     guardar.disabled = true;
     try {
       const blob = await editor.blob();
+      avisarDescargaFotoShow(capa.baile, true);
       await guardarImagenShow(blob, capa.nombreArchivo, guardar, textoGuardar);
     } finally {
       guardar.disabled = false;
     }
   });
   editorMarcoShow = {
-    async abrir(blob, nombreArchivo, completa) {
+    async abrir(blob, nombreArchivo, baile) {
+      const completa = baile !== undefined;
       const url = URL.createObjectURL(blob);
       try {
         await editor.abrir(await imagenDesdeRuta(url), { completa });
       } finally {
         URL.revokeObjectURL(url);
       }
+      capa.baile = baile;
       capa.nombreArchivo = nombreArchivo.replace(/\.jpg$/, "-marco.jpg");
       guardar.textContent = textoGuardar;
       guardar.alTocarOtraVez = null;
@@ -4673,11 +4692,12 @@ function botonDescargaShow(texto, baile, nombre, conMarco) {
         const [MarcoShow, blob] = await Promise.all([cargarMarcosShow(), pedirFotoShow("descarga", baile)]);
         boton.textContent = texto;
         // Las grupales arrancan enteras, para que no quede nadie afuera.
-        await armarEditorMarcoShow(MarcoShow).abrir(blob, nombre, baile !== undefined);
+        await armarEditorMarcoShow(MarcoShow).abrir(blob, nombre, baile);
         return;
       }
       const blob = await pedirFotoShow("descarga", baile);
       boton.textContent = texto;
+      avisarDescargaFotoShow(baile, false);
       await guardarImagenShow(blob, nombre, boton, texto);
     } catch (e) {
       boton.textContent = texto;
