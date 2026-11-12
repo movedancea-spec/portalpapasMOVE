@@ -1701,3 +1701,29 @@ font-weight:800;
 .btn-secundario-foto{ width:100%; border:2px solid #ef4b9b; border-radius:999px; padding:10px 14px; background:#fff; color:#ef4b9b; font:inherit; font-weight:700; cursor:pointer; }
 .btn-secundario-foto:disabled{ opacity:.6; }
 .mensaje-foto-show{ margin:0 0 10px; color:#c2410c; font-weight:600; }
+
+/* "Con marco" de la foto del show: el mismo editor que el mapa (show/marcos.js),
+   con sus colores de noche y oro. */
+.marco-show-capa{ position:fixed; inset:0; z-index:350; background:rgba(10,11,31,.9); overflow-y:auto; overscroll-behavior:contain; padding:16px; display:flex; justify-content:center; align-items:flex-start; }
+.marco-show-capa[hidden]{ display:none; }
+body.marco-show-abierto{ overflow:hidden; }
+.marco-show-caja{ width:100%; max-width:440px; background:#171a42; color:#f6ecd6; border:1px solid rgba(243,210,122,.35); border-radius:20px; padding:16px; box-sizing:border-box; }
+.marco-show-caja h2{ margin:0 0 10px; text-align:center; color:#f3d27a; font-size:20px; }
+.marco-show-formatos{ display:flex; gap:8px; margin:0 0 12px; }
+.marco-show-formatos button{ flex:1; border:1px solid rgba(243,210,122,.35); background:rgba(255,255,255,.06); color:#f6ecd6; border-radius:999px; padding:8px 10px; font:inherit; font-weight:700; font-size:13px; cursor:pointer; }
+.marco-show-formatos button.activo{ background:linear-gradient(90deg,#c79a2e,#f3d27a); color:#241a05; border-color:transparent; }
+.marco-show-visor{ position:relative; display:flex; justify-content:center; }
+.marco-show-lienzo{ display:block; width:auto; max-width:100%; max-height:min(52vh,560px); border-radius:14px; background:#000; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
+.marco-show-flecha{ position:absolute; top:50%; transform:translateY(-50%); width:38px; height:38px; border-radius:50%; border:1px solid rgba(243,210,122,.5); background:rgba(10,11,31,.72); color:#f3d27a; font-size:26px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0 0 3px; }
+.marco-show-flecha.anterior{ left:4px; }
+.marco-show-flecha.siguiente{ right:4px; }
+.marco-show-nombre{ text-align:center; margin:8px 0 6px; font-weight:700; letter-spacing:.04em; color:#f3d27a; }
+.marco-show-miniaturas{ display:flex; gap:10px; justify-content:center; margin-bottom:10px; }
+.marco-show-miniaturas button{ padding:0; border:2px solid transparent; border-radius:10px; background:none; cursor:pointer; line-height:0; opacity:.7; }
+.marco-show-miniaturas button.activo{ border-color:#f3d27a; opacity:1; }
+.marco-show-miniaturas canvas{ height:60px; width:auto; border-radius:8px; }
+.marco-show-zoom{ display:flex; align-items:center; gap:8px; margin:0 4px 4px; }
+.marco-show-zoom input{ flex:1; accent-color:#f3d27a; }
+.marco-show-ayuda{ font-size:12px; opacity:.8; text-align:center; margin:0 0 8px; }
+.marco-show-acciones{ position:sticky; bottom:-16px; display:flex; flex-direction:column; gap:8px; margin:0 -16px -16px; padding:10px 16px 16px; background:linear-gradient(180deg,rgba(23,26,66,.85),#171a42 30%); border-radius:0 0 20px 20px; }
+.marco-show-acciones .btn-grande{ margin:0; }

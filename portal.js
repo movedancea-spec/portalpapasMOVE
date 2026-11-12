@@ -4537,6 +4537,113 @@ async function guardarImagenShow(blob, nombre, boton, textoBoton) {
   else bajarArchivoShow(blob, nombre);
 }
 
+// "Con marco": los mismos diseños y el mismo editor que "Foto con marco" del
+// mapa (show/marcos.js), así los dos quedan siempre iguales. Se carga solo al
+// tocar el botón: el resto del portal no lo necesita.
+const VERSION_MARCOS_SHOW = "marcos-compartidos-v1";
+let marcosShowCargando = null;
+function cargarMarcosShow() {
+  if (window.MarcoShow) return Promise.resolve(window.MarcoShow);
+  if (!marcosShowCargando) {
+    marcosShowCargando = new Promise((listo, falla) => {
+      const script = document.createElement("script");
+      script.src = `show/marcos.js?v=${VERSION_MARCOS_SHOW}`;
+      script.onload = () => (window.MarcoShow ? listo(window.MarcoShow) : falla(new Error("sin marcos")));
+      script.onerror = () => {
+        script.remove();
+        marcosShowCargando = null;
+        falla(new Error("No se pudo cargar el marco. Revisa tu internet e intenta de nuevo."));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return marcosShowCargando;
+}
+
+let editorMarcoShow = null;
+function armarEditorMarcoShow(MarcoShow) {
+  if (editorMarcoShow) return editorMarcoShow;
+  const capa = document.createElement("div");
+  capa.className = "marco-show-capa";
+  capa.hidden = true;
+  capa.setAttribute("role", "dialog");
+  capa.setAttribute("aria-modal", "true");
+  capa.setAttribute("aria-label", "Foto con el marco del show");
+  capa.innerHTML = `
+    <div class="marco-show-caja">
+      <h2>🎢 Foto con marco</h2>
+      <div class="marco-show-formatos" role="group" aria-label="Formato">
+        <button type="button" class="activo" data-formato="historia">📱 Historia</button>
+        <button type="button" data-formato="publicacion">🖼️ Publicación</button>
+      </div>
+      <div class="marco-show-visor">
+        <button type="button" class="marco-show-flecha anterior" aria-label="Diseño anterior">‹</button>
+        <canvas class="marco-show-lienzo" aria-label="La foto con el marco: arrástrala para acomodarla"></canvas>
+        <button type="button" class="marco-show-flecha siguiente" aria-label="Diseño siguiente">›</button>
+      </div>
+      <p class="marco-show-nombre"></p>
+      <div class="marco-show-miniaturas"></div>
+      <label class="marco-show-zoom"><span aria-hidden="true">🔍</span><input type="range" min="1" max="4" step="0.01" value="1" aria-label="Acercar o alejar la foto"></label>
+      <p class="marco-show-ayuda">Arrastra la foto para acomodarla. Pellizca o usa la barra para acercarla o alejarla.</p>
+      <p class="marco-show-ayuda marco-show-ios" hidden>En el menú que se abre, toca “Guardar imagen” y queda en Fotos.</p>
+      <div class="marco-show-acciones">
+        <button type="button" class="btn-grande btn-siguiente marco-show-guardar"></button>
+        <button type="button" class="btn-secundario-foto marco-show-cerrar">Cerrar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(capa);
+  const q = (sel) => capa.querySelector(sel);
+  const editor = MarcoShow.crearEditor({
+    lienzo: q(".marco-show-lienzo"),
+    miniaturas: q(".marco-show-miniaturas"),
+    nombre: q(".marco-show-nombre"),
+    zoom: q(".marco-show-zoom input"),
+    anterior: q(".marco-show-flecha.anterior"),
+    siguiente: q(".marco-show-flecha.siguiente"),
+    formatos: capa.querySelectorAll("[data-formato]"),
+  });
+  const textoGuardar = ES_IOS_SHOW ? "🖼️ Guardar en Fotos" : "⬇️ Descargar";
+  const guardar = q(".marco-show-guardar");
+  guardar.textContent = textoGuardar;
+  q(".marco-show-ios").hidden = !ES_IOS_SHOW;
+  const cerrar = () => {
+    capa.hidden = true;
+    document.body.classList.remove("marco-show-abierto");
+  };
+  q(".marco-show-cerrar").addEventListener("click", cerrar);
+  guardar.addEventListener("click", async () => {
+    if (guardar.alTocarOtraVez) {
+      const accion = guardar.alTocarOtraVez;
+      guardar.alTocarOtraVez = null;
+      return accion();
+    }
+    guardar.disabled = true;
+    try {
+      const blob = await editor.blob();
+      await guardarImagenShow(blob, capa.nombreArchivo, guardar, textoGuardar);
+    } finally {
+      guardar.disabled = false;
+    }
+  });
+  editorMarcoShow = {
+    async abrir(blob, nombreArchivo, completa) {
+      const url = URL.createObjectURL(blob);
+      try {
+        await editor.abrir(await imagenDesdeRuta(url), { completa });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+      capa.nombreArchivo = nombreArchivo.replace(/\.jpg$/, "-marco.jpg");
+      guardar.textContent = textoGuardar;
+      guardar.alTocarOtraVez = null;
+      capa.hidden = false;
+      document.body.classList.add("marco-show-abierto");
+      capa.scrollTop = 0;
+    },
+  };
+  return editorMarcoShow;
+}
+
 function imagenDesdeRuta(ruta) {
   return new Promise((listo, falla) => {
     const img = new Image();
@@ -4544,31 +4651,6 @@ function imagenDesdeRuta(ruta) {
     img.onerror = falla;
     img.src = ruta;
   });
-}
-
-// Igual que "Foto con marco" del mapa: franja abajo con los dos logos.
-async function fotoConMarcoShow(blob) {
-  const foto = await createImageBitmap(blob);
-  const [logoShow, logoAcademia] = await Promise.all([imagenDesdeRuta("show/logo-dance-rollercoaster.webp"), imagenDesdeRuta("show/logo-academia-move.png")]);
-  const canvas = document.createElement("canvas");
-  canvas.width = foto.width;
-  canvas.height = foto.height;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(foto, 0, 0);
-  const anchoShow = foto.width * 0.34;
-  const altoShow = anchoShow * (logoShow.height / logoShow.width);
-  const anchoAcademia = foto.width * 0.2;
-  const altoAcademia = anchoAcademia * (logoAcademia.height / logoAcademia.width);
-  const espacio = foto.width * 0.03;
-  const margen = foto.width * 0.025;
-  const franja = Math.max(altoShow, altoAcademia) + margen * 2;
-  ctx.fillStyle = "rgba(10,11,31,0.65)";
-  ctx.fillRect(0, foto.height - franja, foto.width, franja);
-  const inicioX = (foto.width - (anchoAcademia + espacio + anchoShow)) / 2;
-  ctx.drawImage(logoAcademia, inicioX, foto.height - franja / 2 - altoAcademia / 2, anchoAcademia, altoAcademia);
-  ctx.drawImage(logoShow, inicioX + anchoAcademia + espacio, foto.height - franja / 2 - altoShow / 2, anchoShow, altoShow);
-  foto.close();
-  return new Promise((listo) => canvas.toBlob(listo, "image/jpeg", 0.88));
 }
 
 function botonDescargaShow(texto, baile, nombre, conMarco) {
@@ -4586,9 +4668,17 @@ function botonDescargaShow(texto, baile, nombre, conMarco) {
     boton.disabled = true;
     boton.textContent = "Preparando...";
     try {
+      if (conMarco) {
+        // La JPG grande, no la mini: el marco sale a 1080 de ancho.
+        const [MarcoShow, blob] = await Promise.all([cargarMarcosShow(), pedirFotoShow("descarga", baile)]);
+        boton.textContent = texto;
+        // Las grupales arrancan enteras, para que no quede nadie afuera.
+        await armarEditorMarcoShow(MarcoShow).abrir(blob, nombre, baile !== undefined);
+        return;
+      }
       const blob = await pedirFotoShow("descarga", baile);
       boton.textContent = texto;
-      await guardarImagenShow(conMarco ? await fotoConMarcoShow(blob) : blob, conMarco ? nombre.replace(/\.jpg$/, "-marco.jpg") : nombre, boton, texto);
+      await guardarImagenShow(blob, nombre, boton, texto);
     } catch (e) {
       boton.textContent = texto;
       el("mensajeFotoShow").textContent = e.message;
