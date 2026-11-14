@@ -406,6 +406,21 @@
     font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:700;
   }
   .ranking-btn[hidden]{ display:none; }
+  /* Botón principal del staff: en su propia línea, alto y fácil de tocar,
+     con el oro del logo y el rosa Move de las bombillas del marco. */
+  .boton-staff{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:min(100%, 340px); min-height:56px; margin:16px auto 0; padding:10px 22px;
+    border:2px solid #f95b9b; border-radius:999px; cursor:pointer;
+    background: linear-gradient(180deg, #fff6da 0%, var(--gold) 45%, var(--gold-deep) 100%);
+    color:#241a05; font-family:'Poppins',sans-serif; font-size:17px; font-weight:700; letter-spacing:.01em;
+    box-shadow: 0 0 0 3px rgba(249,91,155,.25), 0 6px 18px rgba(249,91,155,.35), 0 4px 10px rgba(0,0,0,.4);
+    -webkit-tap-highlight-color: transparent; transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .boton-staff:active{ transform: scale(.97); }
+  .boton-staff:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:3px; }
+  .boton-staff-icono{ font-size:22px; line-height:1; }
+  .boton-staff[hidden]{ display:none; }
   /* Vista previa: se explora, pero nada de la tarjeta se puede tocar. */
   body.vista-previa .progress-pill, body.vista-previa .node .check, body.vista-previa .ranking-btn#rankingBtn{ display:none !important; }
   .ticket-actions button:disabled, .reacciones .reaccion:disabled{ opacity:.45; filter:grayscale(1); cursor:not-allowed; }
@@ -615,7 +630,7 @@
     <span class="progress-track"><span class="progress-fill" id="progressFill"></span></span>
   </div>
   <button class="ranking-btn" id="rankingBtn" type="button" hidden>🏆 Mejor Baile del Show</button>
-  <button class="ranking-btn" id="equipoBtn" type="button" hidden>👩‍🏫 Nuestro equipo</button>
+  <button class="boton-staff" id="equipoBtn" type="button" hidden><span class="boton-staff-icono" aria-hidden="true">👩‍🏫</span> Staff Move Dance</button>
 </header>
 
 <div class="aviso-votacion" id="avisoVotacion" hidden>
@@ -707,7 +722,7 @@
   <div class="modal-actions"><button class="skip" id="rankingCerrar" type="button">Cerrar</button></div>
 </div>
 <div class="modal" id="equipoModal">
-  <h2>👩‍🏫 Nuestro equipo</h2>
+  <h2>👩‍🏫 Staff Move Dance</h2>
   <div class="ranking-lista" id="equipoLista"></div>
   <div class="modal-actions"><button class="skip" id="equipoCerrar" type="button">Cerrar</button></div>
 </div>
@@ -718,6 +733,7 @@
     <p id="explicaReaccion"><b>😍 Reacciones:</b> tocá los emojis de cada baile para reaccionar; tocá otra vez para quitarlo.</p>
     <p id="explicaPrevia" hidden><b>🎢 El día del show:</b> vas a poder votar por el Mejor Baile y reaccionar con emojis en cada atracción.</p>
     <p id="explicaResultados"><b>📊 Resultados:</b> cuando estén visibles, aquí ves el ranking en vivo.</p>
+    <p id="explicaStaff" hidden><b>👩‍🏫 Staff Move Dance:</b> tocá el botón para conocer a las maestras y al equipo que hacen posible el show.</p>
     <p><b>📸 Foto con marco:</b> tomate una foto o elegí una de tu galería y te la devolvemos con el marco de The Dance Rollercoaster, lista para guardar o compartir por WhatsApp e Instagram 📲</p>
   </div>
   <div class="modal-actions"><button class="save" id="comoFuncionaListo" type="button">¡Listo!</button></div>
@@ -1891,9 +1907,10 @@ function pintarRanking(){
   pintarMasAplaudidos();
   rankingLista.scrollTop = scroll;
 }
-/* ---------- nuestro equipo ---------- */
+/* ---------- staff move dance ---------- */
 function pintarBotonEquipo(){
   equipoBtn.hidden = !(estado && estado.activo && staffMapa.length);
+  document.getElementById('explicaStaff').hidden = equipoBtn.hidden;
   if(equipoBtn.hidden) equipoModal.classList.remove('open');
 }
 function pintarEquipo(){
